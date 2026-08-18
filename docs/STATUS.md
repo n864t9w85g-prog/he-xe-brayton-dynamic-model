@@ -1,8 +1,17 @@
 # 项目状态（首次只读审计）
 
-审计日期：2026-08-18。状态结论不是交付验收结论；项目未完成，本轮审计后停止开发。
+审计日期：2026-08-18。状态结论不是交付验收结论；项目未完成，本阶段只建立审计基线和越界定位证据。
 
 ## 1. Baseline
+
+### Git preflight
+
+- 当前分支：`codex/publish-he-xe-brayton-model`。
+- 审计前 HEAD：`fa90cfc`（`publish He-Xe Brayton dynamic model`）。
+- 现有历史：`bede63d` 为 `main` 初始发布规则提交；`fa90cfc` 为项目发布提交。
+- 远程：`origin=https://github.com/n864t9w85g-prog/he-xe-brayton-dynamic-model.git`。
+- PR：#1，`OPEN`、`Draft`，base=`main`，head=`codex/publish-he-xe-brayton-model`。
+- 审计前工作树：clean；本阶段禁止 push、合并 PR 或改写已有历史。
 
 ### 环境和入口
 
@@ -69,9 +78,23 @@
 2. 当前入口不是冷启动六阶段场景，初值和输入调度与 §5.4.1 不同。
 3. 压气机候选表的“未激活”元数据与实际加载冲突，且修正流量超出上界。
 4. `alphac`、Unit Delay、Assertion/Scope/Display 的正式边界和出处尚未逐块确认。
-5. Git 无 commit，且未找到正式命名的 Step 0 时间戳备份。
+5. Step 0 正式时间戳备份尚未在本阶段创建；Git 审计 baseline 尚待 A/C 完成后建立。
 
-## 7. 审计边界
+## 7. Step 0 备份
 
-本轮未修改任何 `.slx`、`.m`、`.py`、`.mat`、规则、验收标准或现有输出。仅允许新增本目录下的 `docs/MODEL_MAP.md`、`docs/STATUS.md`、`docs/PLAN.md`。
+- 文件：`final_dynamic_24a_backup_20260818_234804.slx`
+- 创建方式：从 `final_dynamic_24a.slx` 直接复制；未使用 `save_system`，未覆盖任何历史文件。
+- 源模型 SHA-256：`2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790`
+- 备份 SHA-256：`2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790`
+- 源模型大小：`660489 bytes`
+- 备份大小：`660489 bytes`
+- 校验：✅ SHA-256 和文件大小完全一致。
+- 状态：该备份是 Step 0 审计保护副本，不是交付物，不进入 Git baseline；已由 `.gitignore` 的严格时间戳规则排除。
 
+## 8. 验收文件历史附录说明
+
+`验收标准_论文5.4.md` 末尾“2026-08-16 当前动态版状态”属于历史状态记录。其中关于当前 `N_design=18732`、`PR≈1.92` 和“唯一根因”的判断，已经被 2026-08-18 审计替代；该文件前面的数值和曲线验收标准继续有效。本阶段不修改该文件。
+
+## 9. 审计边界
+
+本阶段只允许修改项目上下文/审计文档和 `.gitignore`，创建 Step 0 备份及探索区临时诊断；不得修改 `.slx`、正式 `.m`/`.py`、正式 `.mat`、参数、solver、验收标准或远程发布状态。

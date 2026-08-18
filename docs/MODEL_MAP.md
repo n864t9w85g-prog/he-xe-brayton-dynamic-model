@@ -23,7 +23,7 @@
 | 中间产物 | `tmp/`、`output/`、`slprj/` | PDF 转换、图像、仿真输出、编译缓存；不应成为交付模型依赖 |
 | 论文/来源 | `空间锂冷堆He-Xe布雷顿循环发电系统优化设计与运行特性分析_徐驰.pdf`、`sources/*.pdf`、根目录锂物性/NASA PDF | 论文及查表来源 |
 
-Git 当前为 `main` 且没有任何 commit；所有项目文件均为 untracked，因此没有可用的仓库提交基线。
+首次只读审计执行时未建立可用提交基线；当前仓库已有发布历史。当前审计分支为 `codex/publish-he-xe-brayton-model`，其审计前 HEAD 为 `fa90cfc`，并将在本阶段建立新的只读审计 baseline。`main` 保留已有发布基线，不在本阶段修改。
 
 ## 2. 正式模型顶层结构
 

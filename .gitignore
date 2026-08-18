@@ -20,5 +20,8 @@ output/
 *.original
 *.r2024a
 
+# Formal Step 0 timestamped backups (kept locally, never committed)
+final_dynamic_24a_backup_????????_??????.slx
+
 # Finder metadata
 .DS_Store
