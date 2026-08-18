@@ -1,0 +1,24 @@
+# Local agent/session state
+.workbuddy/
+
+# Generated MATLAB/Simulink build artifacts
+slprj/
+*.slxc
+*.autosave
+
+# Python bytecode and local test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Exploration outputs and temporary renders
+tmp/
+output/
+
+# Historical local backups are retained outside version control
+*.bak*
+*.original
+*.r2024a
+
+# Finder metadata
+.DS_Store
