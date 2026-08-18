@@ -1,0 +1,6 @@
+84869e11152de778b98c736b76d5d4400710383b6ce930e70f215736d08a7ef8  original/compressor_program.py
+4ad4b41a4710307e2242539effd7b8bfdb48c458bba5d2b399f46795bcb218b6  original/fortran_transcription.f
+c2a6393f827e3882123c43fb742e7a116f11e78035d89812fb20ae178c847141  original/README.md
+511e7c4591820ab75c253587119e626198e00924a7638926a926c5f02bf16d66  original/sample_input.json
+02dd6ef56ac4a0529d0f964f0e835bce2de3f07afb52ad55a58cef6eab04089f  original/test_compressor_program.py
+c8d58a4319eb544957453180d437eb3b2c5f637280a111358c216aa5705e6b84  ../../../../sources/NASA-TN-D-7487-Galvas-1973.pdf
