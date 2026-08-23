@@ -1,0 +1,622 @@
+category	path	blob_oid	size_bytes	evidence	reason
+1	HeXe_property_simulink.m	9a782d8bad7cfa28a851ad57526ac246c6663cab	11908	✅ 隔离加载/直接引用已核实	模型内 11 个 MATLAB Function 图表以 coder.extrinsic 直接调用。
+1	Lithium_property_simulink.m	bf2bae43ed54469efb621e684ae6838d77712aa7	3224	✅ 隔离加载/直接引用已核实	IHX 两个 MATLAB Function 图表以 coder.extrinsic 直接调用。
+1	final_steady_24a.slx	78a9b2d506f20c446794a5f2540703a7075ed1d3	617351	✅ 隔离加载/直接引用已核实	新基线核心模型；隔离目录中成功加载并完成 diagram update。
+1	hexe_compressor_lookup.mat	0cad89608647a81977e259a17f3f54ff9c5f545a	26965	✅ 隔离加载/直接引用已核实	start.m 实际加载；向压气机两张二维表提供 speed_bp、m_ratio_bp、PR_table、ETAT_table。
+1	paper54_constants.m	519e076818c5ea011e99f91262b49dc923aa6c5e	1649	✅ 隔离加载/直接引用已核实	start.m 实际调用；返回 paper54，但 final_steady_24a.slx 当前不引用该变量，属于入口链中的附带硬依赖。
+1	radiator_table.mat	bbd9718b299e3f3a8ea1f5c06afcce91c8fcae34	2567	✅ 隔离加载/直接引用已核实	start.m 实际加载；随后同名辐射器变量会被 sys_param_rad_fixed.m 覆盖，仍是当前入口的硬依赖。
+1	start.m	26c7fa1066609890fec24da01eb9740ada3ed3df	306	✅ 隔离加载/直接引用已核实	当前初始化入口；无模型回调时必须由调用者运行，且它无条件加载 4 个 MAT、调用 2 个 M 文件。
+1	sys_param_rad_fixed.m	b4f4d696602769d0eaeb609021f21b79b60686c4	658	✅ 隔离加载/直接引用已核实	start.m 实际调用；提供模型直接引用的 A_rad、Cp_rad、M_rad、epsilon、h_h、theta。
+1	turbine_table1.mat	0274ebf18629f4b42ca5e857994b889b142f64a6	2088	✅ 隔离加载/直接引用已核实	start.m 实际加载；提供 bp_er、bp_speed、table_mf。
+1	turbine_table2.mat	405f1b4f57f66a43f04dc2fe62d366a88cea0ea1	3732	✅ 隔离加载/直接引用已核实	start.m 实际加载；提供 bp_mf、bp_speed、table_eff。
+2	.gitignore	2267cea0b65349ff45dddaa7f4a6753ffeefd374	482	✅ 用户保留规则或源证据属性已核实	仓库治理/卫生规则；默认保留。
+2	AGENTS.md	598480cf5a8c6397f37dc03f62bff96a0e7e791d	11401	✅ 用户保留规则或源证据属性已核实	用户明确指定的持久治理规则；默认保留。
+2	data/provenance/compressor_map/nasa_tmx2269/calibration.json	1cb55132d13342546a0e4d1d3d938a9822bc07b5	3761	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tmx2269/digitized_points.csv	fecaea081f8b72c55e60d762592e7fdce6e2cc24	4813	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tmx2269/overlay_efficiency.png	4b7c3d17e6eb63953c936c5825372418c6bae4cb	525189	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tmx2269/overlay_pressure_ratio.png	882459d4e879f5f7cd50755762e4c1f2bfae5718	736605	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tmx2269/source_page_14.png	ca351bc1e63f3577014d66247904036e67debd79	742626	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tmx2269/source_page_15.png	a43e48175f2706be36f5ddef5c7d54477ec433a0	525553	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tn_d7487/SHA256SUMS.txt	8f6c3f129a938ffed6876854c3520fb4be13808a	593	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tn_d7487/original/README.md	8899f7824ab8c56dd2817250b156cdc3a28090b9	6299	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tn_d7487/original/compressor_program.py	2a421120521899360ac7d7d33be725a6b39c551e	35493	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tn_d7487/original/fortran_transcription.f	42c32c2757ea95219a07b60d3cf85b55ad62666f	16580	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tn_d7487/original/sample_input.json	bbb02d4deb15c7a44e42bf7dccce6d783131be60	606	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tn_d7487/original/test_compressor_program.py	2262b7e5db0f9c5f0127cb391b2522a002a10dd3	17083	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/nasa_tn_d7487/target_input_audit.csv	0ab6dc64582e4b3830465c4399da6a310e13855f	5600	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	data/provenance/compressor_map/source.md	1404a4f9febe056d4a13df266060b48825c6c26e	5889	✅ 用户保留规则或源证据属性已核实	用户明确指定的 data/provenance/ 数字化、校准、叠图、原始程序或 SHA256 溯源材料；默认保留。
+2	output/nasa_compressor_pdf/NASA-CR-182263-repaired.pdf	3400ddc4cadb8f3a90f7ab4053ffae234f71e152	2421409	✅ 用户保留规则或源证据属性已核实	NASA 报告的修复版；属于可读性/溯源辅助，默认保留。
+2	output/nasa_compressor_pdf/NASA-CR-182263.pdf	b0104c22b44ff604d770fe807c1f6df20cf67a56	1769665	✅ 用户保留规则或源证据属性已核实	NASA 原始参考报告；虽位于 output/，仍是源证据，默认保留。
+2	output/nasa_compressor_pdf/NASA-CR-182263.txt	580367d09cf5da73524442223a09dda17c4ae775	112005	✅ 用户保留规则或源证据属性已核实	NASA 报告文字提取件；属于可检索溯源材料。
+2	sources/NASA-CR-72533-AiResearch-1967.pdf	88e0ea5dc8b76b4c95c0ad7abfa766b6f4bf4025	7157268	✅ 用户保留规则或源证据属性已核实	用户明确指定的 sources/ 下 NASA 原始/修复参考报告；默认保留。
+2	sources/NASA-TM-X-2129-Ball-Tysl-Weigel-1970.pdf	9c27bdddc04440b52fcb07ad3d7919f4755ec5c3	11488759	✅ 用户保留规则或源证据属性已核实	用户明确指定的 sources/ 下 NASA 原始/修复参考报告；默认保留。
+2	sources/NASA-TM-X-2269-Ball-Tysl-Weigel-1971-repaired.pdf	d013df69f76a8634cd7a0f91c6b9c30a4c5709a3	2456	✅ 用户保留规则或源证据属性已核实	用户明确指定的 sources/ 下 NASA 原始/修复参考报告；默认保留。
+2	sources/NASA-TM-X-2269-Ball-Tysl-Weigel-1971.pdf	848ab2190109edd7bee9d54115ffd25ed5281be4	1764429	✅ 用户保留规则或源证据属性已核实	用户明确指定的 sources/ 下 NASA 原始/修复参考报告；默认保留。
+2	sources/NASA-TN-D-5761-Ball-Heidelberg-Weigel-1970-repaired.pdf	b39ea29cd8aada994baabbc38904c50cb47bf5e5	1814746	✅ 用户保留规则或源证据属性已核实	用户明确指定的 sources/ 下 NASA 原始/修复参考报告；默认保留。
+2	sources/NASA-TN-D-5761-Ball-Heidelberg-Weigel-1970.pdf	b29122222ad6e36b514cbff889981df9397fef5e	1166964	✅ 用户保留规则或源证据属性已核实	用户明确指定的 sources/ 下 NASA 原始/修复参考报告；默认保留。
+2	sources/NASA-TN-D-6640-Weigel-Ball-1972-repaired.pdf	7c20602a0aa45503db3ddcf63a0f1d1bcd707eea	1655370	✅ 用户保留规则或源证据属性已核实	用户明确指定的 sources/ 下 NASA 原始/修复参考报告；默认保留。
+2	sources/NASA-TN-D-6640-Weigel-Ball-1972.pdf	b908282d5f7a3445a5fdbad7397c22c73695567e	1026543	✅ 用户保留规则或源证据属性已核实	用户明确指定的 sources/ 下 NASA 原始/修复参考报告；默认保留。
+2	sources/NASA-TN-D-7487-Galvas-1973.pdf	261c8e974615b6a4fad0297e2bb498b6d62dfca0	1759538	✅ 用户保留规则或源证据属性已核实	用户明确指定的 sources/ 下 NASA 原始/修复参考报告；默认保留。
+2	tests/test_nasa_d7487_input_audit.py	52830b0ae4f57763d872029dcb99ae980c0d169c	2988	✅ 用户保留规则或源证据属性已核实	直接验证 NASA D-7487 输入审计材料的溯源测试。
+2	tests/test_nasa_tmx2269_digitization.py	4061fa102e35f5b5047c24afe0ddd38991440724	6107	✅ 用户保留规则或源证据属性已核实	直接验证 NASA TM-X-2269 数字化材料的溯源测试。
+2	tests/test_nasa_tn_d7487_program.py	3658a601dded072309388fba116a1cd66ebfe331	2569	✅ 用户保留规则或源证据属性已核实	直接验证 NASA TN-D-7487 程序转录的溯源测试。
+2	tools/build_tmx2269_digitization.py	1e51a455b69276d2f4dfa246d5d46fd1aa90e6b2	9904	✅ 用户保留规则或源证据属性已核实	生成/核验 NASA TM-X-2269 数字化数据的溯源工具。
+2	tools/nasa_tn_d7487/compressor_program.py	bf17e1858432ea765039478e87bba1412d820160	35853	✅ 用户保留规则或源证据属性已核实	NASA TN-D-7487 压气机程序的可执行溯源实现。
+2	交付边界约束_v4.md	67c96139bbacd0de8a9b58811b7296f11fd9581e	12982	✅ 用户保留规则或源证据属性已核实	用户明确指定的正式交付边界；默认保留。
+2	决策自律准则.md	1b83c4b090098635eb49e2ed70c00af05d0e1533	3828	✅ 用户保留规则或源证据属性已核实	用户明确指定的正式治理规则；默认保留。
+2	压气机几何自洽说明_论文级.md	accf5242aa8eee1e7a0d51afe79aef13c60b6ff1	5381	✅ 用户保留规则或源证据属性已核实	记录 55090 rpm 几何修正的独立物理论证；本次重启决定明确要求保留该结论。
+2	徐驰论文_extracted.txt	a277d191e8748bccdf90ab067f5bedc9568e2310	5261833	✅ 用户保留规则或源证据属性已核实	论文文字提取件；原始论文 PDF 当前未出现在归档树中，因此作为现有论文溯源材料默认保留。
+2	桑迪亚报告.pdf	6bbfa4a8f503542128a88d406dfcefb23b62d773	7847110	✅ 用户保留规则或源证据属性已核实	外部原始参考报告；属于后续物理模型重建的源证据。
+2	桑迪亚报告_extracted.txt	a897878a80ef38534d5a68e5353d551fbfd3eee2	829638	✅ 用户保留规则或源证据属性已核实	桑迪亚报告文字提取件；属于源证据的可检索副本。
+2	透平程序 (Turbine Program).pdf	c83960a7c5d9b813663ddb6549a726c27f53d22b	2323410	✅ 用户保留规则或源证据属性已核实	透平程序原始参考报告；属于后续透平模型重建的源证据。
+2	验收标准_论文5.4.md	b79026eda0b956eb3717c19e19e6797b9d06d051	6739	✅ 用户保留规则或源证据属性已核实	用户明确指定的正式验收标准；默认保留。
+3	.DS_Store	983e5159ccb5d8cbd0b5599e90e7664a974e6c56	14340	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	.workbuddy/memory/2026-08-14.md	db67edc3d4e6d8f6969cb26d420daafb4ac5d31b	19989	✅ 不在第1/2类；❓删除仍待人工确认	旧会话代理记忆；不是正式治理文档，也不参与稳态基线加载，且内容形成于重启前。
+3	.workbuddy/memory/2026-08-15.md	837c5ffd376728a0dc40b558aa337fffdc76e765	25284	✅ 不在第1/2类；❓删除仍待人工确认	旧会话代理记忆；不是正式治理文档，也不参与稳态基线加载，且内容形成于重启前。
+3	.workbuddy/memory/2026-08-16.md	947fddfc46d0115e4590ef83cbf239c995ad54b4	28071	✅ 不在第1/2类；❓删除仍待人工确认	旧会话代理记忆；不是正式治理文档，也不参与稳态基线加载，且内容形成于重启前。
+3	.workbuddy/memory/2026-08-18.md	b03283e4dd85b746363f40c1f6acca9937b218e8	6079	✅ 不在第1/2类；❓删除仍待人工确认	旧会话代理记忆；不是正式治理文档，也不参与稳态基线加载，且内容形成于重启前。
+3	README.md	a4a403022e1600daede687834f4742faca287a58	9791	✅ 不在第1/2类；❓删除仍待人工确认	仓库说明仍围绕旧 dynamic 运行链和审计状态；不参与新稳态基线加载，需按新计划另行重写。
+3	activate_traceable_compressor_lookup.m	212a931d8bfc86048bbf2b7d38a4f261292502d4	2429	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机候选构建/激活/修正链；隔离依赖追踪未加载，后续只能基于新基线和保留的独立物理论证重建。
+3	apply_compressor_corrected_coordinates.m	60233d48c029af4f85e63653c61d7cd1c7efdb10	7004	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机候选构建/激活/修正链；隔离依赖追踪未加载，后续只能基于新基线和保留的独立物理论证重建。
+3	apply_paper52_generator_load.m	569372e799976e7052374b6ee95aa3cb30f1357c	2019	✅ 不在第1/2类；❓删除仍待人工确认	旧表 5.2 负载/稳态求解或残差审计链；不参与 final_steady 的当前加载，且旧耦合结论需重新验证。
+3	build_traceable_compressor_lookup.m	0f669ff1f4f8e76f9dc531e9d9f3421b5626fe94	8887	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机候选构建/激活/修正链；隔离依赖追踪未加载，后续只能基于新基线和保留的独立物理论证重建。
+3	compressor_corrected_coordinates.m	f31b630f1339ece64671114adf7c152ccd14ddaa	462	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机候选构建/激活/修正链；隔离依赖追踪未加载，后续只能基于新基线和保留的独立物理论证重建。
+3	data/.DS_Store	89e459bc88e60a29af8e58c4128e6ba903fb3b30	6148	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	data/provenance/.DS_Store	d0920485af8d856152a490de77faf94e0a8de20e	8196	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	data/provenance/compressor_map/.DS_Store	1d5150d8feb71b3c99b444fbb796bb451f92a92b	8196	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	data/provenance/compressor_map/nasa_tn_d7487/.DS_Store	e40a5ccdad1993e9f4eb2ffc6075ffa4414e1c5e	6148	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	docs/.DS_Store	f28812e1f9a66c2e2412e2076d00a60f0fb5280b	8196	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	docs/MODEL_MAP.md	3a57c00ce75154ec161808a9603a52d2ae4c1e83	9084	✅ 不在第1/2类；❓删除仍待人工确认	重启前的模型地图/计划/状态，包含旧 dynamic 假设；不参与新稳态基线加载，不能继续作为当前事实。
+3	docs/PLAN.md	307afcc2b61f665151a314441cdb2a3ac612c158	4450	✅ 不在第1/2类；❓删除仍待人工确认	重启前的模型地图/计划/状态，包含旧 dynamic 假设；不参与新稳态基线加载，不能继续作为当前事实。
+3	docs/STATUS.md	a3021f5c144dbe19c807121b8bd0c61f3fd916e5	8905	✅ 不在第1/2类；❓删除仍待人工确认	重启前的模型地图/计划/状态，包含旧 dynamic 假设；不参与新稳态基线加载，不能继续作为当前事实。
+3	docs/experiments/compressor_flow_boundary_001.md	df24c0dbc772f615c6e056b91749d531d6b0872d	9604	✅ 不在第1/2类；❓删除仍待人工确认	记录旧 final_dynamic 压气机边界失败实验；对新稳态基线不构成运行依赖，历史已由归档 tag 保留。
+3	docs/superpowers/.DS_Store	bc43d2850a02d71d80fc2419e5095565a26820d4	6148	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	docs/superpowers/plans/2026-08-17-compressor-lookup-rebuild.md	dd1e5cfac11ac60471294aed211bd2845aad0bbf	9305	✅ 不在第1/2类；❓删除仍待人工确认	重启前针对旧压气机候选链或旧动态复现的计划/设计稿；不参与稳态模型加载，结论须重验。
+3	docs/superpowers/plans/2026-08-17-paper54-dynamic-reproduction.md	496b78b88b4b22f7ab1e82c90ec7feb1a03db419	19402	✅ 不在第1/2类；❓删除仍待人工确认	重启前针对旧压气机候选链或旧动态复现的计划/设计稿；不参与稳态模型加载，结论须重验。
+3	docs/superpowers/specs/2026-08-17-compressor-lookup-design.md	ee45cbff06cc451665e0094061365716bd6f5586	3724	✅ 不在第1/2类；❓删除仍待人工确认	重启前针对旧压气机候选链或旧动态复现的计划/设计稿；不参与稳态模型加载，结论须重验。
+3	docs/superpowers/specs/2026-08-17-paper54-dynamic-reproduction-design.md	fe3580739d6f236d53dc11c0d0c931407adc3c65	9730	✅ 不在第1/2类；❓删除仍待人工确认	重启前针对旧压气机候选链或旧动态复现的计划/设计稿；不参与稳态模型加载，结论须重验。
+3	final_dynamic_24a.slx.before_corrected_coordinates.bak	745e6ee8e97a4e099362bdb5aa98d4e1efb9ae14	648340	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 模型备份或编译缓存；不在新稳态依赖链内，且旧动态具体改动不再默认可信。
+3	final_dynamic_24a.slx.original	b7358213a0fb7530445a0460f31626d90194fab1	630975	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 模型备份或编译缓存；不在新稳态依赖链内，且旧动态具体改动不再默认可信。
+3	final_dynamic_24a.slxc	79c502519389826448cf924648b3c26826b1b179	5394	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 模型备份或编译缓存；不在新稳态依赖链内，且旧动态具体改动不再默认可信。
+3	final_dynamic_24a_audit_001.slxc	85558e9a6c560aba7439d595f9c99adf178cb40b	5421	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 模型备份或编译缓存；不在新稳态依赖链内，且旧动态具体改动不再默认可信。
+3	final_steady_24a.slx.r2024a	1de263ce92fcb7e257b1227e47f3b4a845a1b886	138755	✅ 不在第1/2类；❓删除仍待人工确认	final_steady 的版本转换备份；活动基线是 final_steady_24a.slx，本文件不被加载或引用。
+3	hexe_compressor_lookup.mat.bak	fbba6460ea8d1b177074c0a11d0b0c97b5d70e0d	17456	✅ 不在第1/2类；❓删除仍待人工确认	历史压气机查表备份；活动表与独立几何/来源材料已分别列入第 1/2 类，本备份仅由归档 tag 保存历史。
+3	hexe_compressor_lookup.mat.bak2	56c05d6ac22825f0c0e43a94b462f30d2047cb34	24072	✅ 不在第1/2类；❓删除仍待人工确认	历史压气机查表备份；活动表与独立几何/来源材料已分别列入第 1/2 类，本备份仅由归档 tag 保存历史。
+3	hexe_compressor_lookup.mat.before_compressor_map_20260816.bak	1fc80662b3c3af094a0f4ac24f02d3b54792083b	24072	✅ 不在第1/2类；❓删除仍待人工确认	历史压气机查表备份；活动表与独立几何/来源材料已分别列入第 1/2 类，本备份仅由归档 tag 保存历史。
+3	hexe_compressor_lookup.mat.before_traceable_map_20260818.bak	b471603e1418c385b25ca4f0c1e815daa6ab3b24	17551	✅ 不在第1/2类；❓删除仍待人工确认	历史压气机查表备份；活动表与独立几何/来源材料已分别列入第 1/2 类，本备份仅由归档 tag 保存历史。
+3	hexe_compressor_lookup.mat.pre_paper_shape.bak	1fc80662b3c3af094a0f4ac24f02d3b54792083b	24072	✅ 不在第1/2类；❓删除仍待人工确认	历史压气机查表备份；活动表与独立几何/来源材料已分别列入第 1/2 类，本备份仅由归档 tag 保存历史。
+3	output/.DS_Store	163967a05843ec0ad5b59c968698d2d88e08ce33	10244	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	output/compressor_audit/current_compressor_subsystem.png	01e5851d5e634256b9bc82d1b8528b55e14b61b4	392829	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_audit/current_map_domain_audit.png	21cad5db0848f8a775cf1e5b047c318a706c7490	273617	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/build_candidate_mat.m	b3a5d4c6ba17fbd44f60f479e80a31b485e17422	480	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/candidate.json	d92a37f69901065d72e1b6c68b2ceb4ed3bfb694	26196	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/compressor_map_after.png	303f9141ff7d79c2405d34443c535a3fbc753dc3	191115	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/generate_candidate.py	e84d35f81b21896c8805400f89703019db72efe3	9382	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/generate_smooth_candidate.py	f7c7f0b05c6fd74d17fe5c9a2e92f0945fd339f4	5389	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/hexe_compressor_lookup_candidate.mat	7b17716e98bf94becc0b85bdf724c4eee5fa87c2	17845	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/hexe_compressor_lookup_smooth_candidate.mat	222bb3465f6368a0da608ed6a8bdd0783887afa7	13047	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/old_new_surfaces.png	e9c76356a55be70708081941ce00ee16cd3d1cc6	347661	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/old_new_surfaces_v2.png	d55c3dad3b9ee1100d21d37fff45334233e454be	380994	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/paper_shape_map.png	daab6ae177d93e82527e7704dc677af223640bc0	164974	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/smooth_candidate.json	1c11dce5447615e07f659bb595c8fae58c265fe8	7508	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/smooth_candidate_subsystem.png	fc4e1d74cdd35e6b90e8bedb96f2b75ef150a184	398868	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/t0_old_candidate.mat	65cfd13afe75bb8a4e6ce91f318da67b1bc1502a	115798	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/test_compressor_lookup.m	4eb0ecae98628b806c8f99ce7613968ca37a7fc1	2736	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/compressor_map_rebuild/test_compressor_map_shape.m	5432cb0305129f8197a9059693797050eceffd56	2602	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机审计/候选生成物；不是活动查表，也未被 final_steady 依赖链加载。
+3	output/nasa_compressor_pdf/page-15.png	2ffc14448c845cd0f372e9867eb1e07154b91d66	106783	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-30.png	55c6ae3da62033351a24a444f9cf48319751285e	121624	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-31.png	4feff09ced4923d0d9ecbd54e3301cff3f345a35	103758	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-32.png	cb67a415060b187bcccc95e38abf9d9ab7a85717	111343	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-33.png	e49ed0661754881932b21ab7e3a8b8762605c099	124979	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-34.png	a42b333dfb2c32b6ba3bec68036559e54df36438	112254	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-35.png	1b20204a443ffdd0cb80753fa75c0d9ff1ae0a5d	124149	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-36.png	005653e74e76424d38ac73f7ebe53b3fa1b1505e	119350	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-37.png	5419e31347f158663302ecd7fae5add3bdecba18	135124	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-38.png	a6ab356038d08f5c04a617c8250524a261590655	87921	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/nasa_compressor_pdf/page-39.png	060acc8c83ab19f37619377557be6898605e98e6	58641	✅ 不在第1/2类；❓删除仍待人工确认	NASA 报告的临时页图/版面提取；原始或修复 PDF/文字源已列入第 2 类，模型不引用本派生文件。
+3	output/paper54_current/case_summary.csv	21b6a24eaa02f5e01084122443c713e02cf56b78	1575	✅ 不在第1/2类；❓删除仍待人工确认	旧 5.4 动态仿真或表 5.2 审计输出；建立在重启前模型状态上，不能作为新基线事实。
+3	output/paper54_current/load_case_current.mat	19ed3238d425d5223a9f351d22de309c8464b6fd	101925	✅ 不在第1/2类；❓删除仍待人工确认	旧 5.4 动态仿真或表 5.2 审计输出；建立在重启前模型状态上，不能作为新基线事实。
+3	output/paper54_current/load_case_current.png	afe8cdf3a3a09d85219bd0095d3bf5582e0a392d	91305	✅ 不在第1/2类；❓删除仍待人工确认	旧 5.4 动态仿真或表 5.2 审计输出；建立在重启前模型状态上，不能作为新基线事实。
+3	output/paper54_current/reactivity_case_current.mat	d8ba105300a8ecd0b8280a20a26f470b378d450f	133348	✅ 不在第1/2类；❓删除仍待人工确认	旧 5.4 动态仿真或表 5.2 审计输出；建立在重启前模型状态上，不能作为新基线事实。
+3	output/paper54_current/reactivity_case_current.png	85a5e2261f421bbb78f1187a1f41323b44e0fa9a	95607	✅ 不在第1/2类；❓删除仍待人工确认	旧 5.4 动态仿真或表 5.2 审计输出；建立在重启前模型状态上，不能作为新基线事实。
+3	output/paper54_current/stable_minus5_proxy.mat	b2d0ab9efdddc5589a038d037e172f781012d281	74492	✅ 不在第1/2类；❓删除仍待人工确认	旧 5.4 动态仿真或表 5.2 审计输出；建立在重启前模型状态上，不能作为新基线事实。
+3	output/paper54_current/论文5.4_当前模型实跑审计_20260816.md	524dd9fa49607b26ef2f88b9a0539bb06648f79f	11313	✅ 不在第1/2类；❓删除仍待人工确认	旧 5.4 动态仿真或表 5.2 审计输出；建立在重启前模型状态上，不能作为新基线事实。
+3	output/paper54_reproduction/hexe_compressor_lookup_candidate.mat	0cad89608647a81977e259a17f3f54ff9c5f545a	26965	✅ 不在第1/2类；❓删除仍待人工确认	旧 5.4 动态仿真或表 5.2 审计输出；建立在重启前模型状态上，不能作为新基线事实。
+3	output/paper54_reproduction/paper52_steady_residuals.mat	74809eedbe62abc4597825aca68ef69ec78e28b5	314304	✅ 不在第1/2类；❓删除仍待人工确认	旧 5.4 动态仿真或表 5.2 审计输出；建立在重启前模型状态上，不能作为新基线事实。
+3	paper54_schedules.m	0d0462e6f510b9d4657eed9dcc48aea1296a49ab	2198	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 运行入口或 5.4 调度文件；不参与 final_steady 加载，旧动态参数不得迁回。
+3	prop_material.m	77dcd1bfd35aaa8ce523b00603c371e4570b0d58	785	✅ 不在第1/2类；❓删除仍待人工确认	模型静态追踪与 MATLAB Function 脚本均未引用；当前模型使用 HeXe/Lithium 外部函数及内嵌 NaK 关联式。
+3	rebuild_hexe_compressor_lookup.m	03ceef81151720437491fd5dee24ce2c954c0b1f	1909	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机候选构建/激活/修正链；隔离依赖追踪未加载，后续只能基于新基线和保留的独立物理论证重建。
+3	run_dynamic.m	ffd444a48e98724089c62445433f5c6bf1a50083	2468	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 运行入口或 5.4 调度文件；不参与 final_steady 加载，旧动态参数不得迁回。
+3	slprj/_jitprj/s0SVQZJa1gY8fMGAnvfbCtG.l	39e8080381e8406976f961812d6b98a1587a5daa	10680	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/s0SVQZJa1gY8fMGAnvfbCtG.mat	9956d6564bc10c6182242b13ef5ddc69985c22fc	1271	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/s67ytc20FWc3Rw4hMu2uqlF.l	a5e069d426b115920064e81a1cb00072f2739835	9368	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/s67ytc20FWc3Rw4hMu2uqlF.mat	e6afdc9bd0295fbc58d6923d3f8e15b5762e2f76	1274	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/s6dWuTrcFSJvqt1TSjONn1C.l	a96f5e8792ddd199457a10000ae7f8eb91e6b625	10668	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/s6dWuTrcFSJvqt1TSjONn1C.mat	12f92929cdc50390879313c31168bd4a5fe2aad3	1273	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/s7mGd4VUFT5OHnCD5OnZKWC.l	9332d108a83d42618eb96dcbcb5e837d724a6f6b	11960	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/s7mGd4VUFT5OHnCD5OnZKWC.mat	4361a552e6f25d296200cd3ce8ec92d95f34d863	1274	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sGmce2USycUdf9cIMVSLzj.l	86add10da52e40f03e774342edb4ecb380dd71de	10576	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sGmce2USycUdf9cIMVSLzj.mat	332e4dcce7eb6f3fa155205cfb49296fbeb4edc1	1266	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sQ7xVmVBkPJIY4MxB0ZPrOH.l	9abccff166fbed66b1e0fe3e505b2748a68976c9	10676	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sQ7xVmVBkPJIY4MxB0ZPrOH.mat	7d717ae30522608b8c37c480fda2a8e5e0e4a15a	1269	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sRtYwJVVWRj2AzjwbagMXLH.l	466cc25458b6741e5dcf3c8cc92f84eca612240b	10568	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sRtYwJVVWRj2AzjwbagMXLH.mat	1f2968aec5ec42e333638ec41ee8df6ed2eb8a76	1268	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sWubRDtia9VOocSq6hlmcoB.l	6a34d5c6ac5229000e4656ef06435138a4e969de	10000	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sWubRDtia9VOocSq6hlmcoB.mat	9b76ff04aee5a3bc4d7e55382708fad737d296d5	1251	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/skAY00ecgMSXRXeSCRdQhFC.l	1083642eb0ba33ef0051232403e2e68d3ff555d7	10692	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/skAY00ecgMSXRXeSCRdQhFC.mat	fb23ba31d6ad652a6adf3986d086cbbd92111334	1261	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/skHUUEjzVYT3LVZHk64GelF.l	57202758bc3e24a668ab078d13df9a8466d2e447	9376	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/skHUUEjzVYT3LVZHk64GelF.mat	e4b2e71574a6241c79683cec823adbd20c4a3134	1275	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sl0tTnzsIRz836NKU0NTQVH.l	e341aa18a0457ff5bb09646aae7470b22429ec9b	11848	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sl0tTnzsIRz836NKU0NTQVH.mat	02c2577ac3926ae38e8446ea6b254fddca35062b	1274	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/spFBeoMOYT1G6p4uqDlpbF.l	48eeb1f6f1dffde57472a64acd7206a0b2e45900	10572	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/spFBeoMOYT1G6p4uqDlpbF.mat	5959109dd8c839a061737e9b1bb569581eeab587	1268	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/ss7IMw5G2YQAJLKMh7Xe6FE.l	6cab78e079850290a9c975ab6a77f1a76da788d6	10576	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/ss7IMw5G2YQAJLKMh7Xe6FE.mat	a63c15449165fc05217ea4e5819af70ce01bb23f	1270	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/ssw5SIlEnT8jGomNQaGHmc.l	720f49d7f180c442c9c0e79c288d7ef1c8a64db7	10592	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/ssw5SIlEnT8jGomNQaGHmc.mat	12591cb4c324249bf83426a830e3e0c1d2420759	1261	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sv4VBLCPz3su2yhvLMDERpB.l	47a137a63bea6de6c5e6f66fda0b77991597f34e	10680	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sv4VBLCPz3su2yhvLMDERpB.mat	e607f505de57b696dc1be182d861314862bbdaef	1269	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sxNBbBJP6lWy9V2HecoaHS.l	073598959213fa788ee4f0ad2ad569fe556cebb8	10028	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_jitprj/sxNBbBJP6lWy9V2HecoaHS.mat	cd5963566fedddfef04d0270c1ae06be53f2119e	1256	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/s0SVQZJa1gY8fMGAnvfbCtG.mat	7bcceca63dbbc96e8050bed9d3cb963424343d48	2716	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/s67ytc20FWc3Rw4hMu2uqlF.mat	cc662385adffbf1c5937089272c9cc886e5782f4	2595	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/s6dWuTrcFSJvqt1TSjONn1C.mat	077aeb6a1c75a8e897fa0f317311ed20ebfd6e75	2862	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/s7mGd4VUFT5OHnCD5OnZKWC.mat	c9ef88ede0929a7558d3d9370d99a945019235cb	24231	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/sGmce2USycUdf9cIMVSLzj.mat	1d99cd29769ab47f6b73d0368dd8b99ba732de64	2828	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/sQ7xVmVBkPJIY4MxB0ZPrOH.mat	8427ea246fedf297c0ee56201aa2ec4cbe965016	2936	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/sRtYwJVVWRj2AzjwbagMXLH.mat	f0208ca664f165e8674ae168d1c1108c4bb204dc	2725	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/sWubRDtia9VOocSq6hlmcoB.mat	24b07499a2338b2df2789e3dcfb716fc800ae6b8	24844	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/skAY00ecgMSXRXeSCRdQhFC.mat	435b27f4e93fe654e627b41120ea25cd2b723aaf	2724	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/skHUUEjzVYT3LVZHk64GelF.mat	7a0236e997eaa6ee62ab0ea2a925391aabf3cbe6	2616	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/sl0tTnzsIRz836NKU0NTQVH.mat	5f7649b2b0cee4457709520f9b9ddcc46a183571	24268	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/spFBeoMOYT1G6p4uqDlpbF.mat	f3671946e990d96152e86bdfe3e4ceacf592b8a9	2828	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/ss7IMw5G2YQAJLKMh7Xe6FE.mat	b13ff345b918aee7a6687c48d12ea1bcec829e23	2862	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/ssw5SIlEnT8jGomNQaGHmc.mat	ab7ec4c4457e7d836d729584e99ce04d037a9838	2838	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/sv4VBLCPz3su2yhvLMDERpB.mat	79d08eb079a23bc454150718362cc5937429623d	2712	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/EMLReport/sxNBbBJP6lWy9V2HecoaHS.mat	bd3d015f9d0dbac7465250519235ae6d96039b28	24936	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/final_dynamic_24a/_self/sfun/info/binfo.mat	e4cc3199fd23e37f21754fb22a1ad43d79e91494	1250	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/final_dynamic_24a/amsi_serial.mat	daf0253169bab123af5f08e1947b27086ba0aa65	238	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/0p8xPsIOthj3hkvfWUs6q.mat	25dca075cda49d32d341a4515173ce61d8c350e1	666	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/5WylmoUqmtOZdc7h7GweLH.mat	6c81a2bb74ae88ad1ee883dcbe7dd82b5ef74051	666	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/62odJAR7MwzHIKffOuHt9B.mat	469030d9ab867a31258bb185c072b71e39e3c7d0	686	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/CgMeUDnnReRRG02hPb9it.mat	89c7d51ba1d49423381a5a63fd4671bdc151a539	633	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/J311Mw6BdTkdwrU8UTPcQ.mat	25dca075cda49d32d341a4515173ce61d8c350e1	666	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/KEX7chVx6wHmDKLjBh2IYC.mat	6c81a2bb74ae88ad1ee883dcbe7dd82b5ef74051	666	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/OfLGf0PMf65u6Xr7QvHmEE.mat	89c7d51ba1d49423381a5a63fd4671bdc151a539	633	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/Q2lzI0NgZeQD7icfMNFgYG.mat	6c81a2bb74ae88ad1ee883dcbe7dd82b5ef74051	666	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/QwFoaxK41Csi1pdCApPzCH.mat	469030d9ab867a31258bb185c072b71e39e3c7d0	686	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/XMKd3uJSpPy5bd5L1rZMAF.mat	25dca075cda49d32d341a4515173ce61d8c350e1	666	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/aAQQEiHVg4WibSlQ0G92hC.mat	6c81a2bb74ae88ad1ee883dcbe7dd82b5ef74051	666	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/aV2JxUQDOaxpfIDoDICpcF.mat	af35864d470ce0a10ba321218ae564a701ada1c7	688	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/cDhWurfj64gTQQoHEgcyMG.mat	6c81a2bb74ae88ad1ee883dcbe7dd82b5ef74051	666	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/deSWkQ6fDdemkMwKBepQUD.mat	a58bc208d5dae54c3d8fa67a87f43e10a0df1d07	679	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/gZDYAwEx4vnptKpFwwWEuD.mat	03793a8b85cc84de9049c40c01746c3a8e00035f	703	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/hKoEtUoBufsW2xpxXgZGqE.mat	03793a8b85cc84de9049c40c01746c3a8e00035f	703	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/ncp5rF00RwMsLqGHySszED.mat	a58bc208d5dae54c3d8fa67a87f43e10a0df1d07	679	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/qAuwxThxK9vW25ZzOkITJF.mat	7198d6c861c0d9c66f283e5f3627ac6ef1d66082	657	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/_sfprj/precompile/townsSCdUMbJYU6fgi6wKF.mat	af35864d470ce0a10ba321218ae564a701ada1c7	688	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/sim/varcache/final_dynamic_24a/checksumOfCache.mat	8b54e6854b1631da04e965d756eb28f2af9623a9	392	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/sim/varcache/final_dynamic_24a/tmwinternal/simulink_cache.xml	83898b2a25255ca093b134b6fceaeb53bb6dd20c	371	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/sim/varcache/final_dynamic_24a/varInfo.mat	6111d85bd9ec6b4e245aa3bc0ed783505b9ddfb8	7048	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/sim/varcache/final_dynamic_24a_audit_001/checksumOfCache.mat	109cc374276cbe7d5f378524e6067269bd0e358a	392	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/sim/varcache/final_dynamic_24a_audit_001/tmwinternal/simulink_cache.xml	c0e7b37be40eca3b7a8c2dcd0a6d6f6c7ca0bf34	371	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	slprj/sim/varcache/final_dynamic_24a_audit_001/varInfo.mat	34cb4877f9dd8afcb5b0daaf867d70bea7001432	7048	✅ 不在第1/2类；❓删除仍待人工确认	Simulink 自动生成的 slprj/JIT/Stateflow/varcache 文件；可再生且不属于模型源依赖。
+3	solve_paper52_operating_point.m	9b85d60ff776de448be91b2597cc1e614ea8edec	12683	✅ 不在第1/2类；❓删除仍待人工确认	旧表 5.2 负载/稳态求解或残差审计链；不参与 final_steady 的当前加载，且旧耦合结论需重新验证。
+3	tests/__pycache__/test_nasa_d7487_input_audit.cpython-314.pyc	6e0a3280c5a66f06b7bbd9708b56bc72ed961a7a	5469	✅ 不在第1/2类；❓删除仍待人工确认	Python 自动生成的 __pycache__/pyc；可再生且不承载源代码或溯源结论。
+3	tests/__pycache__/test_nasa_tmx2269_digitization.cpython-314.pyc	13f7216ba457d3b21466034c7916cda8e3440316	10573	✅ 不在第1/2类；❓删除仍待人工确认	Python 自动生成的 __pycache__/pyc；可再生且不承载源代码或溯源结论。
+3	tests/__pycache__/test_nasa_tn_d7487_program.cpython-314.pyc	af21d447a3d7cdb557ed830da109af2784475f47	5121	✅ 不在第1/2类；❓删除仍待人工确认	Python 自动生成的 __pycache__/pyc；可再生且不承载源代码或溯源结论。
+3	tests/audit_paper52_baseline.m	fd2af6763072a5a30ac0faaeb48b5f9a1acee429	4625	✅ 不在第1/2类；❓删除仍待人工确认	验证旧表 5.2 平衡/求解链的测试；不参与新稳态基线加载，旧结果不再默认可信。
+3	tests/diagnose_compressor_flow_boundary_001.m	989dd38666f5f4e00d80661ee3b11843362098b9	6935	✅ 不在第1/2类；❓删除仍待人工确认	验证旧 5.4 常量/调度或 dynamic 诊断的测试；不参与新稳态基线加载。
+3	tests/test_compressor_corrected_coordinates_model.m	4690831fff1dc09a491aa3a234a085385f40c2be	3370	✅ 不在第1/2类；❓删除仍待人工确认	验证旧压气机候选、修正坐标、相似变换或激活门禁的测试；不参与新稳态基线加载，候选链须重验。
+3	tests/test_compressor_lookup_paper_shape.m	c4788fc7c4e289a3cfaca781f26c3eb657c3595f	2494	✅ 不在第1/2类；❓删除仍待人工确认	验证旧压气机候选、修正坐标、相似变换或激活门禁的测试；不参与新稳态基线加载，候选链须重验。
+3	tests/test_compressor_map_provenance.m	85c9dcb2d94b3694108d1eb3692daa4df257d059	909	✅ 不在第1/2类；❓删除仍待人工确认	验证旧压气机候选、修正坐标、相似变换或激活门禁的测试；不参与新稳态基线加载，候选链须重验。
+3	tests/test_paper52_power_balance.m	2134c9849858806af1fc62c143e6cebe47a0b809	780	✅ 不在第1/2类；❓删除仍待人工确认	验证旧表 5.2 平衡/求解链的测试；不参与新稳态基线加载，旧结果不再默认可信。
+3	tests/test_paper54_constants.m	9a22feae2864d2c8cf4cac80fb16b0bc70d977a1	1994	✅ 不在第1/2类；❓删除仍待人工确认	验证旧 5.4 常量/调度或 dynamic 诊断的测试；不参与新稳态基线加载。
+3	tests/test_paper54_schedules.m	5c0309deb0e6c9838d20426acb8d566c96308411	2841	✅ 不在第1/2类；❓删除仍待人工确认	验证旧 5.4 常量/调度或 dynamic 诊断的测试；不参与新稳态基线加载。
+3	tests/test_solve_paper52_operating_point.m	7b8090839c911fc9e951a8323099c8fcac88f080	1955	✅ 不在第1/2类；❓删除仍待人工确认	验证旧表 5.2 平衡/求解链的测试；不参与新稳态基线加载，旧结果不再默认可信。
+3	tests/test_tmx2269_similarity.m	5b4b1b480e33e41f3646d98a831cb5ad8b477c0f	2421	✅ 不在第1/2类；❓删除仍待人工确认	验证旧压气机候选、修正坐标、相似变换或激活门禁的测试；不参与新稳态基线加载，候选链须重验。
+3	tests/test_tmx2269_speed_extension.m	9664ca7248561f988b3c01cc9be55690515e060e	4542	✅ 不在第1/2类；❓删除仍待人工确认	验证旧压气机候选、修正坐标、相似变换或激活门禁的测试；不参与新稳态基线加载，候选链须重验。
+3	tests/test_traceable_activation_gate.m	8c8ec2b580621168aa4158d0e576b4d7a896c825	560	✅ 不在第1/2类；❓删除仍待人工确认	验证旧压气机候选、修正坐标、相似变换或激活门禁的测试；不参与新稳态基线加载，候选链须重验。
+3	tests/test_traceable_compressor_candidate.m	7c25baee271c219fac8153f05af9919102181a28	4888	✅ 不在第1/2类；❓删除仍待人工确认	验证旧压气机候选、修正坐标、相似变换或激活门禁的测试；不参与新稳态基线加载，候选链须重验。
+3	tmp/.DS_Store	151679f86620692d0e1c7031514c4794063d5791	10244	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	tmp/compressor_flow_boundary_001/compressor_flow_boundary_001.mat	5860719cb58e5a5b0b91bd7c4f3fc9de86922713	721	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 边界诊断的临时模型/结果；只证明重启前故障现象，不是新基线依赖。
+3	tmp/compressor_flow_boundary_001/final_dynamic_24a_audit_001.slx	b485901ff252861a19fdcfefd7be66d4ee4e50f9	660489	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 边界诊断的临时模型/结果；只证明重启前故障现象，不是新基线依赖。
+3	tmp/pdfs/compressor_program_layout.txt	eeff702ae80ca95bdc1f4879ce79c3ad3a6e415e	167607	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p13.png	2d30d5559b56e8cde715a03c1f8db389993c24e6	184552	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p14.png	c1314a773621a33841e20986b881086e2e5197f4	196608	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p15.png	33c3ebd3417c1f01417bfec5a55292de95e36123	220689	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p16.png	89ada201cd3e4d7c70e455fa0e13867ebea79373	197097	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p17.png	42779eb69f3a9f472cc526f3c0a5c66881f5d866	34852	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p18.png	1c6206d26d484f3e9c9b43d8519d8f57caa0a91e	166495	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p19.png	666acb61cb6aa7f94c7cfdb79052a21a9e30f62c	206042	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p20.png	768cea49bc1f0499d1dc59b637663cf349f7913e	234347	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p21.png	00709786f23b76481f17fd4b2b7b95afa84e33a6	186833	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p22.png	62eb3a275940abcdc848d68607ebafc68ffd7c3d	198650	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p23.png	d2b96f1e24c5288672f8af7030849421b133f3df	67963	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p24.png	a551aa690d167e41377934f979add9e7cd21a4fc	157703	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p25.png	f908702f5331326c00751c5320fbd67801c3d995	127660	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p26.png	f3d6f1ce272c5372939fcaaeb1f78eada447546a	124070	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p27.png	b2bbe12486c78495dc0fcba2d4c4d27d5d9e3afa	129034	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p28.png	eea421e708a8e127f577cb79190a528f049c53d2	82888	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p29.png	9b993bc9977e6a49d5ee58b7b1524361d948c043	156426	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p30.png	d3b629019d82cd9dc5c862e65332eb3c9248de0f	149657	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p31.png	93bcd91b721201ba9d5b7edfad85d51bf7a092f9	155100	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p32.png	beda73443c3571e3780fa3af855b3c1c91e1837b	153226	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p33.png	737f9ddd44bbbd7e0ef1b60750b2933217db4434	105881	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/cr182263-p34.png	f79b259a6656d41904da8f466e3e9336a792ceec	157632	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-fig34-11.png	cfc3384ce366df99c1ff0dbdb814ceb96f8a73ef	166234	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-fig34-12.png	84c154f99e5913edc2afbbb2efa7d61ad647a238	126668	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-fig34b-15.png	dfa092245154f0928286d21d530dc3a16a162520	122102	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-fig34b-16.png	7e59fde2f70b52fccd6d4183dd6acb0d0228f89b	141016	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-fig34c-13.png	fc6d599e8e772cff2f2122d8c46f5383196ea55b	169767	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-fig34c-14.png	174a2a0a027c575821a0f02af51fdaf65d2ead7b	210864	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-sample-output-16.png	bbe85407bfe5b3b18e46b97e360358d313b15cd0	105805	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-sample-output-17.png	32675b9b4bd1ccb665a14e2a98bdf5028ef30e5a	99232	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-sample-output-18.png	0ed798ceaa5afc3a8087a2ca8f14496f76efed87	101825	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-sample-output-19.png	a825b644c00ac1f8dda7529b79f4d7ebae948b4c	90920	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-sample-output-20.png	920e7594b42387e78cf065e28353caa7f635d680	90202	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-sample-output-21.png	96e0eebca5f5959ae805125e02193407f0139312	101086	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/nasa-sample-output-22.png	f1d669dfa35d8746a57f4cd3c9fe506758cac8c2	41113	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tm-x-2269.txt	5ec3f6b3d1a4875365ce554362de09e214d34c9e	43460	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-01.png	e188603ea42ffad285878d2f2fdbefcd5f6af1fd	640477	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-02.png	adf329bc87d69d6a85cbd27529a2956f8c49a2eb	79141	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-03.png	1932527e12250d67501cc9b1e287b18a077ff8b7	108406	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-04.png	c6a0e4cf71cf5d71592daf491c9c4414a5333a2e	128053	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-05.png	88f518aa1d13f74d9aab2536074f8920c8215d0f	88875	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-06.png	f7ccdc23df214539d9f46cd500dd0efdd9d7b0e3	92360	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-07.png	ad4be10dc833278bee2350d55846abe4244ce208	78024	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-08.png	7de6632716f46cee32e59f7bb55fd823f8820960	98870	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-09.png	54663fe9ab6b3feb4caed3038793202507c7a471	189866	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-10.png	7ff313f6510b7562aa2ff5e15d24ca1f03da4e68	117161	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-11.png	58f737d392945ba31692e5102a7cb58d78495bc1	61669	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-12.png	c07072052e0788bcdb8ca85d2c74d48b01d9d98e	98599	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-13.png	0c50430fedda437db368dac4de417ace3111dbb3	141370	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-14.png	5b768e59342ce3bbdc5b062bda0fd0e1ebd57380	89424	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-15.png	8ed357cb6dbac4be6dfa29718aa6a5fadd7ad7ab	66759	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-16.png	8fcae0014a85721954f806ca5c33db9eaefbebff	99237	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-17.png	a4fbabfa9ea32fc9304835b49a9c0b3ac30a3b2e	82209	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-18.png	f14311db96f6c73a3b36539d8530b792dffb5381	125253	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-19.png	ecc48bf8c11d21130a99968261fbfcd955ed2465	45745	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-20.png	dced8b917d75470e000176ccc67d6a59eac2b434	109770	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-21.png	28802bd91506b131acb521ec1c651dc982949e40	93129	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-22.png	d782d453d5ee43baa41e8c74a555f8d5c943fd03	63327	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tmx2269-page-23.png	3908352ba53ce8c07ef42416f0e6bf71a8a19d5a	851728	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tn-d-5761.txt	a2d723f9664fcf2d80a8417e3c8cf85bc7fbfefc	67639	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/tn-d-6640.txt	dbffbf9a84f3987ec8db92443b4d200512a432cd	53028	✅ 不在第1/2类；❓删除仍待人工确认	参考报告的临时页面/OCR/版面提取；对应原始 PDF 或正式溯源材料已保留，模型不引用。
+3	tmp/pdfs/xuchi-fig53-095.png	dee51febfbd41e9cf6b683e198994db8046c047d	543063	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-080.jpg	79a96c464aa88cf128ba9f709a9e784af7fd628c	124589	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-080.txt	082f5491b99f981a3ccdabbd10c5fad76733a5d4	807	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-081.jpg	cd5de9973da86636dff6c79021822bc8ba406a39	113564	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-081.txt	a55bdec3d91a3545c47971c3e6b5c1ffd8dfb1e2	747	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-082.jpg	2d67ae8e2ba7b03a062cdf58b363816846a44a2b	156842	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-082.txt	423223d0c0f605e37f21c8ab0794a49c02341ea4	1139	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-083.jpg	4ffca972b9cf8791dc40406025576e1db081bc63	78920	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-083.txt	001cbecb84bd39f258156f290f70fb3ced56bbf0	581	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-084.jpg	6aba3153a82e28ee990317b13cb66558995c8c8a	117610	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-084.txt	c6a5776f19b0f3d27156f58d54f4a67d767230c9	695	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-085.jpg	b0f0710c6127f6d737d4775c70044183e5f4a231	127279	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-085.txt	aa8610b9f1a8a653fe4c5a03461bc2890d70b06c	822	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-086.jpg	49155f237680e9724339a211c10116b377e0889f	102366	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-086.txt	a34f14669e05560604ff43344fadf85475a286f6	731	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-087.jpg	0a9dd469bf8c95fecd7b64a6e031c542c762e90e	116272	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-087.txt	2da5b1056b01993408e1d2e200ed4a297ed17de1	787	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-088.jpg	f46956f412510ccda56e3898b33ccfb8a3ec0f29	159248	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-088.txt	92354879bfe3d02d8b390239796b67e465bf72f6	1329	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-089.jpg	cb87a92032389c85fbd53b8a4377ce92ec4ac268	112764	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-089.txt	208e4687f6be6e28f92b87d51a410a0b5b28a374	888	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-090.jpg	1a28d62ac1f46c13a203ffa1b74979a72bb610cf	170021	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-090.txt	6c649ff2346ecd5965fcec8d02329d6425d1ff9f	1155	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-091.jpg	3a3500ba9a9b8c56d7063bc4ae1fc4696c44c71c	171200	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-091.txt	c6fd55fa8689051f669c94620272a397bd3c8b1c	1245	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-092.jpg	0b6581083d1382bb2718329ca4c7388a8e33ce2e	161461	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-092.txt	f1278dd7609ce6b9e411c22ba8a4991981fb8c0a	1169	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-093.jpg	040bb60138dc412b1e179a9cb1ed6a180dfaa944	147655	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-093.txt	6f0b76c23d6ee42844dfb9f0c60e2e04f62d7a96	935	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-094.jpg	4c394eaf51690b36eea83ad6362fc547b6260dd4	90979	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-094.txt	43caf209438db03f4ac1a5a8b7651477f9852234	400	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-095.jpg	eb68e0cf3ff16670a809d2b18fcc9b8d0a5bb19f	117424	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-095.txt	c7ac80cfcc1e09fc60c2c50f633838948e41f801	739	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-096.jpg	9beb92f895219e97429c338ab25457038e252596	91546	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-096.txt	dbe303200962061b6caa0f234550e7f146c465c7	327	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-097.jpg	504ce60d585a4f376ce952196a5cd68bf3c7a80d	127607	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-097.txt	18392f75774929b648a54d25d8d1526e245989ea	852	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-098.jpg	0b57e7e377ffd4d97553d7626edee079de822a73	99458	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-098.txt	9decdc07f415325d8a965c5aaed25e429d2402db	483	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-099.jpg	44f8d175cac25015a81d3c25261b979c35837862	106630	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-099.txt	a64c64574bca167e14d86064d7b8da3dd3c17c16	528	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-100.jpg	04932f3ea2b9ce48ff3bbea636cce3d5fdafc77c	105973	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-100.txt	7871ef6df3e16ae9594a883acb2afabb2d4d34ec	548	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-101.jpg	8dced5a2ec385b4216529187f947929c89e466bb	95820	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-101.txt	272e2df2838ee153959e5e3aae4fc56bc8b2a20d	538	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-102.jpg	4671e286f78e7ea3c7f58e303a9f1e5343e5605c	105714	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-102.txt	da2a7e6008d4deafcb8d6fd9ed1ea492180239a5	683	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-103.jpg	8707841371a48e3aa22b8ace8c98a34d735c81b9	152754	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-103.txt	2db5a900cf08207bdca6cf26312ef37f6028368e	972	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-104.jpg	cae7cbcf7706db853e13ad351cf83a76c0331513	95685	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-104.txt	811c6f503f149611efc599bdaa5142af0315b387	919	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-105.jpg	1042ce9c456c9c674d7510b7f86bfa87664c8deb	112329	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-105.txt	7e380c330e8aad3748669e922b2a726aad4f0437	570	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-106.jpg	7f4df336a7532dfaafe1e25edefd7b4fe6851345	110750	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-106.txt	0d2739fdb9f0abd4d16d2a189fe4ded4105f6840	742	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-107.jpg	90c3cfa4b7bd868fe7cce2f86fd54de344cd7b5b	150835	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-107.txt	471707e18f22116df6ab4675fe036e023ce3ab27	1061	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-108.jpg	72339c129931dbc841b16545e3068ff7f4e5fa36	151528	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-108.txt	131b10fbb8974c7f8c07cefbadda28ad284b4bdc	1012	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-109.jpg	5b15029865c99f0e6daba05c62ca5c3b1ab10fe7	131564	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-109.txt	0092ab17056751c40c9a3663871e3fa161490439	811	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-110.jpg	b7c19e4f4085decfdb319f60b317908f4a23360d	145478	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-110.txt	f3135b10f93842f99634a494696e1e4347c483d9	975	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-111.jpg	f656e246f187805efb0923aa70f0759fac6af50f	134652	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-111.txt	45a851d6e11d83711ebdea37c33f06909edd51d2	1086	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-112.jpg	914876108226e6d275652870e054f94ebd837287	96854	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-112.txt	13acfbf8991407a09d769c7bfffdf7d7015ebb88	731	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-113.jpg	1db4df9436995e4a218060edbf902e92b943117d	86253	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-113.txt	311c936b47b343ed0431f4996b1e91a6b2fe91ca	562	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-114.jpg	ce98525534ea7d6eea437cce4e8b397ba7213342	106320	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-114.txt	235f721493431a621ddf3cff0bed3ccb9e2fc9cd	617	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-115.jpg	a9a0f7ac2d1756313d030e62197cf103347816ed	142966	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-115.txt	6919895fb6c66a93b6ade404e7677cb29dad5a03	998	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-116.jpg	3f44fc196f8716232d9e962044f88eeee589872a	84373	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-116.txt	fb17fa29596885d6a1b9c8a4e1d082fe89f220d8	421	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-117.jpg	3f4d5b94428159c4a097ca90416155c084f830bf	194712	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-117.txt	a23151d6410d9a95a10a777e0a3d411e44489ed3	1461	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-118.jpg	8f74268a5d6b16900a911996563bb5a7e03771cc	144134	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-118.txt	38c7deeb11057eb26dbb63eaadf8b84802fe630e	1097	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-119.jpg	bb195fc18afbbdaa564b4d683876ee2a255dae87	112757	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-119.txt	4d7ccf026f06fa41fec4ae4042a1c5b6e22b90aa	773	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-120.jpg	083999c8f1af74c234b4f46f4e723a3fc94f120c	160937	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-120.txt	a8fa82b164ceb28f4a09b51ac32162d7dacb76d5	1107	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-121.jpg	eae29eed43e67d9d5ca8ee3404040c1861eac2e5	175860	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-121.txt	ed6329237d53b3cb0492d99a541f90f4aa7d6fa7	1223	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-122.jpg	35b42f078e49c08908613687c9e5599866069481	178654	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-122.txt	e99bbe96b4ca5585cef4d0ac2a731b2ff2b87068	1293	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-123.jpg	c75c763a0e63d506e6a5b73b7dc2bc9dd25ee443	182999	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-123.txt	8ee8aafdb61f1f94b1faa1a4341ec6dd623cdb6b	1258	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-124.jpg	9255fb17d2e05574b78636527b73f05b0ef500c5	39104	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-124.txt	c2e1915d1d20760adbda9e1db56994c0f54c9dfc	202	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-125.jpg	e2262b458b24d8192bfe068eadc7cf0d765184ed	161492	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-125.txt	1800d9b77383b5055664213fd2bb6b5d18502253	2223	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-126.jpg	667cc5fbfc316287657e52c37c6eec61db0e392c	178963	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-126.txt	bcbe5702af1bf48483d4937e982ad123c94cea2a	2663	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-127.jpg	0338aa2e0fb3e2e8964ddd6733a25e12ddde02e7	180809	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-127.txt	467d31bb45b254d697413e76580f732135466a58	3164	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-128.jpg	9736947a0cf7f163d178aa0077dbfa3521053dd7	173188	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-128.txt	68609dbd54d686e829599731288f991bdf922df6	2986	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-129.jpg	2ead84e7489e4e856c374adbb8937dc17c7f18e1	169247	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-129.txt	2b104a944853904ab297a8f3c07bf84f7ac66c0f	2729	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-130.jpg	91bf4f073e43cc44bd4ab411b55a2a7cac7eba68	179624	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi-page-130.txt	cdeb604c2829f67596e790329fb51b01d3d19dee	3060	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-108.png	091a27000f75c0b4fb34124723737c5497ac2729	272819	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-109.png	b030770086e7be1b9d2bc6d83e4d715b9a9c42eb	232342	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-110.png	77604148314dbbdebf4f6ce978e3cc1ace29b009	229584	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-111.png	5eed69722dd3d9d6c279e9cc3138f51e0eb5073e	217491	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-112.png	7aa8aca27f4d70e3540ae6cc500717ad3f5719fc	258691	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-113.png	794bbbcd1a63267ed4a07a82f16342e6e377061e	262173	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-114.png	1e0145fb25c7057024dfe3a8dce8c2c7e158166d	266158	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-115.png	a0df9944f8683734386f4566d10286bde7ade104	193630	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-116.png	d4398191a78cd12cfc3013e2ebe3a187d4e3b228	315986	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-117.png	b4c154180bb1b8ce28fd953432813b89f3ef14ca	197446	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-118.png	eb148161b90087adeda4c7d2796d4a7602aa32e1	189986	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-119.png	cf9df2b3f9ca0b60ddaba321b56f1a5d33091721	296142	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-120.png	b585f015a1d6bea7096a0ebfdcf5d69e24efd922	162877	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-121.png	d7a68843ddee05b1985ed32c847a76dc58e290ba	180000	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-122.png	d3fb3f0332061fc41a640ac3f0fe411c72e28106	181451	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_54-123.png	f49238ed6e346f0611cfb9a0295827fb1a874867	188239	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_compressor-093.png	5caa8d8631ad3d06e7970e5a2b5dc03f7416d4e0	184707	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_compressor-094.png	c38a22991d6419285ba1ab3632a032342c24c9d9	533992	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_compressor-095.png	99c2282bf3ae614e4666eb11264b9217213bf923	306912	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_compressor-096.png	029c1206a5d231cfcabd2a3586065bb318b47f5c	925342	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/pdfs/xuchi_compressor-097.png	677395e71c249b6584de512657d48b534b5a6511	158665	✅ 不在第1/2类；❓删除仍待人工确认	论文页图/OCR 临时提取件；不被模型加载。注意归档树中缺少论文原始 PDF，删除前必须先确认这些派生件已由保留的文字提取或补回的 PDF 覆盖。
+3	tmp/slx_dynamic/.DS_Store	d1006cf1be99b04058546139c6b578025a1dbcfe	6148	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	tmp/slx_dynamic/[Content_Types].xml	c9e6484a6a56738c6a725079d02ad24a333b4187	4776	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/_rels/.rels	2abee847d782e095f6c35cebefb6e14f1be9e0c0	1567	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/metadata/coreProperties.xml	94f3fc8b09d9b4104a3c4671e74daae8bda57e09	771	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/metadata/mwcoreProperties.xml	0916f974f5f9848832f942d7c87a92f3cbaeed57	339	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/metadata/mwcorePropertiesExtension.xml	c8e3c36718c42ba3f9f3e2acf5c35f14128047df	222	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/metadata/mwcorePropertiesReleaseInfo.xml	4174250fb3f9c222b0e6895a4c28c0c950de802a	302	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/metadata/thumbnail.png	ce2d0aafdae72ef62a4c8cc32d86404970683632	16356	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/ScheduleCore.xml	054811f2ed15455a708289478ef86aea3130155c	2859	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/ScheduleEditor.xml	df4626dc47fb8d017f967548a97f648415273742	2625	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/_rels/blockdiagram.xml.rels	3b4c3b7c1c9b15a415156d7917abc9041c1f3fb5	1357	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/_rels/configSetInfo.xml.rels	f0f69f1f969285e4547c4149aea11f3d4c7aaa62	291	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/bddefaults.xml	646badf4ff99980091e84bb26bd2d289b05be8fb	709	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/bdmxdata/LibrarySourceProduct_4045.mxarray	9e3a87e73b1e2fa0be1e566bbc161c584e6bd1d7	344	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/blockdiagram.xml	662a7b9d5d6702019d6b18604b9fe5097dabe9df	1819	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/configSet0.xml	ea3ad4b7a6546ebfa72770e942e4f547bac62e84	47599	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/configSetInfo.xml	7c14be453488021ce095b25caa9a478ec2bf44aa	161	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/graphicalInterface.json	1207e88baffe47e901cacca174d991d79c38b150	1319	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/hdlParams.xml	c3b8f75161e1606f2e89848da04a127b7db3fd16	311	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/modelDictionary.xml	ec4a157ee634b6059d1b80d42d46a1a18ddbbda7	313	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/_rels/machine.xml.rels	084b6d958988e2165608e7bfefba20237db54f28	3403	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_102.xml	b94e57f4252a5a68af30f4679cc50d2ee70eadc8	3768	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_110.xml	a61e361473c1a26d5e1943fc713d5468ecc6a630	3801	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_118.xml	d886de2cb4b73543c10631aae90dcb7145224abb	3801	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_126.xml	331e8dd0abc9c47a1bb12003eefe07c3b297b304	3625	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_13.xml	a1f4252baab785b61f418bd47c3c5d4f08fed124	3762	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_134.xml	0e1e047a1a8516781d8a8f31a05e9d753c3377fc	3612	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_142.xml	00ed7ae63870ae236e19eaef451c23863535bedf	3612	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_150.xml	90b9ff7df01ba59bddde59861676022c255137ae	4094	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_159.xml	0dc2c609830cc74dab1ca6b4b628341c1e2644d2	3865	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_167.xml	dbb24d705f80745d9a360c9fe5a9b11b730d8edc	3742	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_175.xml	348d63a255ef1a12448c8420935883404e863eb8	3865	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_183.xml	06e82aa00e4117ac7ce5ea729dfa2ca6f3f9f5fd	3742	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_191.xml	ee3e9fc81b5a8007cf39456f1cfba585c122f875	5446	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_21.xml	0a8f4e74d12e4ac1718d574837b3b8a279dd536c	3733	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_29.xml	562bc87730af608dbd77b3d5349314edccc17d18	3082	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_36.xml	8befc670ed182ee672e298b19e966b7fce133625	3733	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_44.xml	eefd84cc29f288abbbca49fc25f6c306780f3364	3083	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_51.xml	7dbd8f51138e9429be252181101fc538340ec191	2899	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_58.xml	c5959d885e60996ad4314040ff8fc4a14c0fe281	3681	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_66.xml	c001661b106e2ac3bfffecda7cf2ff9450e2d4b8	3667	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_74.xml	72cf48ce4c0d19ffe9b7695521bfa61610d57129	3668	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_82.xml	0c4be23c4e03f5eb3e68db7aa7ee0841f0da8e92	4070	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/chart_91.xml	fb245a26350fc862cbbaaaddcd25dcfea8122fce	5410	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/stateflow/machine.xml	653e8e823e46c93659f6142ebe9d99c04e979a0c	4524	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_1.xml.rels	de703d8b44dd45ca55b235a5693471c1f032027c	411	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_272.xml.rels	3c060d87b6e32687b514a7518704ca9354bdcfa5	417	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_278.xml.rels	0877cbd150ac568eb5dcb45ee826aba8ccd04892	417	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_2898.xml.rels	68df4a17d89d91214b9e08813ed351baf3d4ddcd	421	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_2907.xml.rels	1c26a53ca044dce90b0ae74c4178428e0aecc0d0	421	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_3016.xml.rels	fdfec43c704af2e1e5f44683de2190439e763c4f	421	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_3143.xml.rels	53df72ba787402df847891d2a58e5761dfa04e4b	421	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_3804.xml.rels	441393c47dddde18405baa76acba8733ae22b451	552	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_3811.xml.rels	1402e6740518aa33327629fd49ebc4727fbb76e6	945	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_388.xml.rels	a50c2858de952f7b5720322ccc8d653385115a0b	417	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_3882.xml.rels	ca2e57abf7e40de3c243cb1584587055b683c6b8	945	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_514.xml.rels	c5e2c2005f3e15aaaa34be1d4be8444c0b2c844c	417	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_521.xml.rels	72941dcab4bf5584752069c9bd432d540ba1af73	417	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_755.xml.rels	75b882b2a5c2ee8de6bb3f10afb0aabc8fa28ffa	417	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/_rels/system_root.xml.rels	cacdfb7d04cbb792b9214f21f8ae715a27128003	935	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_1.xml	183eb432df106dd16b8df8346c8fc730f40e4f39	49466	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_272.xml	b60e9355c0995c1dba50e994b4298d145f2aa79e	9612	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_278.xml	6cbc1d74d56d6c3e7970c4ef352654d9eb7bfe2a	35472	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_2898.xml	13f92f743e37531b64e601ce7406848d8060f6f1	6892	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_2907.xml	5206e5f59e84fbfbdcd71a7d8417151f525969ab	35618	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_2978.xml	4cc36960c35360edeab4c7eba4673e015c38726b	2334	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_2979.xml	0117aa155ffa5bdb163e1b72efe1773ac3ff9b6f	1872	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3016.xml	a5dd2ec61336d25428fd59ffd99fd164f28bf0fe	34516	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3087.xml	4a575fdb6b3e02ede67ebb70c758c8b71cec2963	2334	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3088.xml	c9ea86db7a585825ec65c65fa95fc81ef8bc9e30	1872	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3143.xml	3434e229541073d5022f037ee3f5c502c94294d1	9715	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3149.xml	0f70e222b99e6c3ad213a4f57905c77d00b3b7dd	1867	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3154.xml	fff4183ab9f0a053156132d7909f74f7c8cba4e4	2815	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_34.xml	13538ab0b1db19c7e782cfd3e218165e239194cb	2746	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_350.xml	a5452554b4f75c498fb08fb6f09ac8860185559a	2185	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_351.xml	b4b71092692d4167f149e79331bd735455382546	2326	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3804.xml	4559b80a915b07f7b8ca75ac79e9381bd7b50dab	9822	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3811.xml	04e53b03758f57e067bc7642a1089722ca5cfd96	21980	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3862.xml	c23af8f41463dcf44eeffa187c1122297a0dedf7	2200	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3863.xml	230207ec5c17ef2ab82f9e7cea47aa7953ba9712	2194	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3864.xml	b7fa3401fffe992d266940828fc0d4e5f0dad7f8	2329	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3865.xml	371856b59f0add45fb4e7936284b93dda510bcb4	2615	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3866.xml	b2c5a500e0fa14bfde8b69c090bf557583cd50ae	3432	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_388.xml	c34fa964bc8f8e1b13af576de53ecc1980aaff99	34378	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3882.xml	014207dd854187621d95539b54fc9271ea62724f	25260	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3937.xml	b7efce40043fac431b743278e04c79f40cf30996	2199	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3938.xml	330d696e4a9338a47909d5a761b3892465219669	2193	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3939.xml	3c9423f5157e0b35f35ebca2525747423d757ba1	2328	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3940.xml	a653dd542a2d2d5220870966acfec93d06773fc6	2618	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3941.xml	d1a01340cebe82d7f82d695027315e19f7f446df	3420	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3942.xml	506a9d188222434ccf936a5313e5ac8d6b00fee7	2317	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_3966.xml	0e6b67ca74f0a0ac653b822076b6beb8eafa7a51	3277	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_4045.xml	5dd30fad4175675e89bfdcab8de9a0af65868aa9	9065	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_460.xml	334cd6bdc436dc1198b7b3be55b0d478d44d5905	2184	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_461.xml	978845276e5a420a11bc5648ff006afbc10ca5d2	2326	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_5.xml	b4afba02d32694e75e17277d5b1ec1ce08f5b2cb	3210	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_514.xml	7bb7aa3446ca494a63bb94a82453d3f913ef51f9	6451	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_521.xml	edf4bdbd1f44660b57b4d7c82e590c20d79666d1	37309	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_598.xml	8c1062a61c4599f4ba42f241af90a58c3df5ee0a	2177	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_599.xml	8b29e68bcf7c68fb2751777c03e425755c182146	2319	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_755.xml	4f37fe9ead26288560b02bc48dcf9bb286d02c32	36274	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_832.xml	f48ae5704c05a07a15eadacc798a4ecb9f03794f	2177	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_833.xml	1e7a935b6abd6c91865cda645bdc26c35ed849ea	2319	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/systems/system_root.xml	11fa66c39fe37e500ce6785b4c5169ee58b8b312	23368	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_dynamic/simulink/windowsInfo.xml	3ac97120f3d73ff696fae7a276ce07d012843305	19807	✅ 不在第1/2类；❓删除仍待人工确认	旧 final_dynamic 的解包 XML/媒体副本；可由归档模型对象重新生成，不参与新稳态加载。
+3	tmp/slx_steady/[Content_Types].xml	a07b70d0b75d1ba6706d2284e2b1fe23e6696761	4681	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/_rels/.rels	2abee847d782e095f6c35cebefb6e14f1be9e0c0	1567	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/metadata/coreProperties.xml	2cced52c8f5bafd83b9e450df02447114a362136	770	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/metadata/mwcoreProperties.xml	0916f974f5f9848832f942d7c87a92f3cbaeed57	339	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/metadata/mwcorePropertiesExtension.xml	c8e3c36718c42ba3f9f3e2acf5c35f14128047df	222	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/metadata/mwcorePropertiesReleaseInfo.xml	4174250fb3f9c222b0e6895a4c28c0c950de802a	302	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/metadata/thumbnail.png	cf377c4fe39bb79f6d2a1ef282578b8cd6dd903a	7655	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/ScheduleCore.xml	7625d7aa46a65dbe3390c0ffb5f16624b62d5993	2425	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/ScheduleEditor.xml	b68b7514f41112354ac7a197020f66449b763766	2430	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/_rels/blockdiagram.xml.rels	a809854c9e10ef55b3e85ee14c56608ae458edd7	1174	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/_rels/configSetInfo.xml.rels	f0f69f1f969285e4547c4149aea11f3d4c7aaa62	291	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/bddefaults.xml	646badf4ff99980091e84bb26bd2d289b05be8fb	709	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/blockdiagram.xml	dbc984bd4b89cdd796e2e5046622c45013e03eb2	1818	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/configSet0.xml	c03839129cb09362ffe6d62bcb255f608fa384af	47592	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/configSetInfo.xml	7c14be453488021ce095b25caa9a478ec2bf44aa	161	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/graphicalInterface.json	9c97bcbcdc270c4e87616ed98476b672726189c8	156	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/hdlParams.xml	c3b8f75161e1606f2e89848da04a127b7db3fd16	311	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/modelDictionary.xml	ec4a157ee634b6059d1b80d42d46a1a18ddbbda7	313	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/_rels/machine.xml.rels	084b6d958988e2165608e7bfefba20237db54f28	3403	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_102.xml	b94e57f4252a5a68af30f4679cc50d2ee70eadc8	3768	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_110.xml	a61e361473c1a26d5e1943fc713d5468ecc6a630	3801	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_118.xml	d886de2cb4b73543c10631aae90dcb7145224abb	3801	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_126.xml	331e8dd0abc9c47a1bb12003eefe07c3b297b304	3625	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_13.xml	a1f4252baab785b61f418bd47c3c5d4f08fed124	3762	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_134.xml	0e1e047a1a8516781d8a8f31a05e9d753c3377fc	3612	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_142.xml	00ed7ae63870ae236e19eaef451c23863535bedf	3612	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_150.xml	90b9ff7df01ba59bddde59861676022c255137ae	4094	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_159.xml	0dc2c609830cc74dab1ca6b4b628341c1e2644d2	3865	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_167.xml	dbb24d705f80745d9a360c9fe5a9b11b730d8edc	3742	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_175.xml	348d63a255ef1a12448c8420935883404e863eb8	3865	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_183.xml	06e82aa00e4117ac7ce5ea729dfa2ca6f3f9f5fd	3742	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_191.xml	ee3e9fc81b5a8007cf39456f1cfba585c122f875	5446	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_21.xml	0a8f4e74d12e4ac1718d574837b3b8a279dd536c	3733	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_29.xml	562bc87730af608dbd77b3d5349314edccc17d18	3082	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_36.xml	8befc670ed182ee672e298b19e966b7fce133625	3733	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_44.xml	eefd84cc29f288abbbca49fc25f6c306780f3364	3083	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_51.xml	7dbd8f51138e9429be252181101fc538340ec191	2899	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_58.xml	c5959d885e60996ad4314040ff8fc4a14c0fe281	3681	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_66.xml	c001661b106e2ac3bfffecda7cf2ff9450e2d4b8	3667	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_74.xml	72cf48ce4c0d19ffe9b7695521bfa61610d57129	3668	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_82.xml	0c4be23c4e03f5eb3e68db7aa7ee0841f0da8e92	4070	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/chart_91.xml	fb245a26350fc862cbbaaaddcd25dcfea8122fce	5410	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/stateflow/machine.xml	653e8e823e46c93659f6142ebe9d99c04e979a0c	4524	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_1.xml.rels	de703d8b44dd45ca55b235a5693471c1f032027c	411	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_272.xml.rels	3c060d87b6e32687b514a7518704ca9354bdcfa5	417	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_278.xml.rels	0877cbd150ac568eb5dcb45ee826aba8ccd04892	417	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_2898.xml.rels	68df4a17d89d91214b9e08813ed351baf3d4ddcd	421	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_2907.xml.rels	1c26a53ca044dce90b0ae74c4178428e0aecc0d0	421	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_3016.xml.rels	fdfec43c704af2e1e5f44683de2190439e763c4f	421	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_3143.xml.rels	53df72ba787402df847891d2a58e5761dfa04e4b	421	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_3804.xml.rels	441393c47dddde18405baa76acba8733ae22b451	552	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_3811.xml.rels	c448e43816ab9238050f029d7f326ff475e78e04	814	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_388.xml.rels	a50c2858de952f7b5720322ccc8d653385115a0b	417	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_3882.xml.rels	ca2e57abf7e40de3c243cb1584587055b683c6b8	945	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_514.xml.rels	c5e2c2005f3e15aaaa34be1d4be8444c0b2c844c	417	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_521.xml.rels	72941dcab4bf5584752069c9bd432d540ba1af73	417	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_755.xml.rels	75b882b2a5c2ee8de6bb3f10afb0aabc8fa28ffa	417	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/_rels/system_root.xml.rels	cacdfb7d04cbb792b9214f21f8ae715a27128003	935	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_1.xml	8d2bbe1f55e7c977ae44ec7b54794edf8d8b3e46	47276	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_272.xml	918aa238eea4fc5f24ec85a8be4d967636d9b90e	9612	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_278.xml	c268ee7b7839831434e673030cce21b1ec60229a	34934	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_2898.xml	d31014d5546a0df1be910bb93329c1db390f3ef5	6892	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_2907.xml	f49031abd4a2bc09060d072e35b76ca5ac2eb06e	34513	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_2978.xml	d4f9d4f4e7902019d0399d8f3ea17fe8537a5a1f	2422	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_2979.xml	37966f2d0fdbf6240fc6805f4c484fa6bf27b114	1995	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3016.xml	ab0f78883db44eb9055b3a6f7b65576e50b4f6ce	34545	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3087.xml	c5c1b92d81474609c2041d141b55cc935c6251f4	2422	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3088.xml	bde8dc3ab32238a4f085ae1baff136bae7b1fc30	1995	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3143.xml	9ff7f943af2caf44e0f49571be21ce9d12371687	9131	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3149.xml	e6ea322227e6c1e4bc904f5b6f7358265c0684b8	1990	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3154.xml	fff4183ab9f0a053156132d7909f74f7c8cba4e4	2815	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_34.xml	13538ab0b1db19c7e782cfd3e218165e239194cb	2746	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_350.xml	d096b983a2efd524fa81d48e5b98259af124294b	2273	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_351.xml	4b9cc00b6d320cf3899582fa4cc96ef17a461ee0	2414	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3804.xml	b7ec1d3dbbb709fc3d34c95b2ba9dae2a6e21382	6105	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3811.xml	6da6609ddc528316a0741689ea4e2986c86049c3	21433	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3862.xml	e21d3a45a2061d1e671fdaca74bcdaf96d8f938a	2288	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3863.xml	b63c27379701f71a07013573d26f90951ff43e1f	2282	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3864.xml	6dc69c6d018e6b6a0e0b801dae381a1cca684d5a	2417	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3865.xml	c03f10d0b9dc2772dbd19618e24be0b210b39ae9	2785	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3866.xml	eab8d05a3a2016094a7eb018619a5b1de3751426	3680	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_388.xml	284f250196929eb39ef5d87d58b62fa5494d43b7	34942	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3882.xml	f3891b88c3c6addbae353353d6a088f587991d2b	25290	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3937.xml	f3b2d559510299617921cbf65ad38c429adb7980	2287	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3938.xml	1db714470fdecd2101a03a9f76363eafc68c591f	2281	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3939.xml	2cd3de9d50e94f03996e136f0565c9442d44f32e	2416	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3940.xml	1a0ca71160eb1d87be2edbf6ce6760835408a3c3	2788	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3941.xml	ed126523a62a7b13dcff7a8a01842738a87fdb6d	3668	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3942.xml	506a9d188222434ccf936a5313e5ac8d6b00fee7	2317	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_3966.xml	12b8d5a96328a33ec153a99250c4d1dca934165b	2865	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_460.xml	4edcebbd3e6e03b49931447e427cf322503a0606	2272	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_461.xml	86fd8057b6b87a23f49300f19e8bfc42ddc12818	2414	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_5.xml	b4afba02d32694e75e17277d5b1ec1ce08f5b2cb	3210	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_514.xml	e1a5cf41d2a727717d1a4bc2e7d95694d411f605	6451	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_521.xml	526aba33f5fb44570eababbf5a5090284cc70ffc	36265	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_598.xml	1d94979e6526286fe1d4df0d894e929383d6ac0f	2265	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_599.xml	5042fe9dff7c1304edfd6980ef271f940cf6e752	2407	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_755.xml	b328620fb208d8ce75e462d2b0ee0c3af26261c7	36304	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_832.xml	b4bf1fd59261d83cd66d58dc5001c87fea33c126	2265	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_833.xml	323244def755d06b81dd8f96c761ca4010a8c567	2407	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/systems/system_root.xml	1695d2ac4c965a001ffacc39f679d6502cd01e7c	7120	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmp/slx_steady/simulink/windowsInfo.xml	bbf4e4f4c542a65c701dee325a79dde375046a49	20101	✅ 不在第1/2类；❓删除仍待人工确认	final_steady_24a.slx 的解包副本；可从活动 SLX 重新生成，模型运行不引用这些 XML/媒体文件。
+3	tmx2269_predict_speed_line.m	9575c7fd445aae0fcabc9f76f417fdfc1f7a1250	2860	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机候选构建/激活/修正链；隔离依赖追踪未加载，后续只能基于新基线和保留的独立物理论证重建。
+3	tmx2269_similarity_transform.m	25422ea245a92bee1cb3461593915cfe66f8c210	4633	✅ 不在第1/2类；❓删除仍待人工确认	旧压气机候选构建/激活/修正链；隔离依赖追踪未加载，后续只能基于新基线和保留的独立物理论证重建。
+3	tools/.DS_Store	7079ff157fa37945b5ac273c4041c2db04d820b5	8196	✅ 不在第1/2类；❓删除仍待人工确认	操作系统生成的 .DS_Store 元数据；既不参与模型加载，也不承载治理/溯源内容。
+3	tools/nasa_tn_d7487/__pycache__/compressor_program.cpython-314.pyc	40136a1e5c5182075ace6adc3cc074f8594b90b7	57057	✅ 不在第1/2类；❓删除仍待人工确认	Python 自动生成的 __pycache__/pyc；可再生且不承载源代码或溯源结论。
+3	图5_34_对比分析_14000s.md	612cf13a7260ea99619bc60c40d3739157c40e1d	6688	✅ 不在第1/2类；❓删除仍待人工确认	图 5.34 旧全耦合对比分析；用户已明确其前提过时，不能继续作为当前事实。

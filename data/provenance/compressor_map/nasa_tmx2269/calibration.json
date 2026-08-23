@@ -1,0 +1,143 @@
+{
+  "source_report": "NASA TM X-2269",
+  "source_pdf": "sources/NASA-TM-X-2269-Ball-Tysl-Weigel-1971.pdf",
+  "source_pdf_sha256": "c008e88a5c851f15125b8c2f9206c625af7f5c54bc632c773f0b17768826362e",
+  "render_dpi": 300,
+  "working_fluid": "argon",
+  "candidate_use_limitation": "Public NASA source map candidate only; no claim that Xu Chi used this compressor. Any He-Xe use requires a separately tested and documented similarity transform.",
+  "digitization_method": "Marker centers on unmodified 300 dpi page rasters; circle detection plus template-assisted manual inspection. Physical coordinates use a least-squares fit through all printed grid lines.",
+  "x_axis_primary_units": "lbm/s",
+  "lbm_to_kg_exact": 0.45359237,
+  "speed_lines": {
+    "0.5": {
+      "label_percent": 50,
+      "equivalent_tip_speed_m_s": 162
+    },
+    "0.6": {
+      "label_percent": 60,
+      "equivalent_tip_speed_m_s": 195
+    },
+    "0.7": {
+      "label_percent": 70,
+      "equivalent_tip_speed_m_s": 227
+    },
+    "0.8": {
+      "label_percent": 80,
+      "equivalent_tip_speed_m_s": 260
+    },
+    "0.9": {
+      "label_percent": 90,
+      "equivalent_tip_speed_m_s": 292
+    },
+    "1.0": {
+      "label_percent": 100,
+      "equivalent_tip_speed_m_s": 325
+    }
+  },
+  "published_design_conditions": {
+    "flow_eq_kg_s": 0.69,
+    "pressure_ratio": 2.28,
+    "efficiency": 0.8,
+    "source": "Report text on printed page 12",
+    "role": "independent measured-data check; not inserted into the digitized curves"
+  },
+  "predicted_design_markers": {
+    "flow_eq_kg_s": 0.69,
+    "pressure_ratio": 2.3,
+    "efficiency": 0.82,
+    "pressure_ratio_pixel": [
+      1548.2,
+      778.8
+    ],
+    "efficiency_pixel": [
+      1448.8,
+      1752.1
+    ],
+    "source": "Report text and Figure 8/Figure 10 filled Design markers",
+    "role": "predicted design check; not included as a measured speed-line sample"
+  },
+  "overlay_colors_rgb": {
+    "0.5": [
+      230,
+      25,
+      75
+    ],
+    "0.6": [
+      245,
+      130,
+      48
+    ],
+    "0.7": [
+      255,
+      225,
+      25
+    ],
+    "0.8": [
+      60,
+      180,
+      75
+    ],
+    "0.9": [
+      0,
+      130,
+      200
+    ],
+    "1.0": [
+      240,
+      50,
+      230
+    ]
+  },
+  "visual_review": {
+    "status": "verified",
+    "reviewed_on": "2026-08-18",
+    "maximum_marker_displacement_px": 2.0,
+    "criterion_px": 2.0
+  },
+  "pressure_ratio": {
+    "source_image": "data/provenance/compressor_map/nasa_tmx2269/source_page_14.png",
+    "overlay_image": "data/provenance/compressor_map/nasa_tmx2269/overlay_pressure_ratio.png",
+    "axes_pixels": {
+      "x_left": 768.7843137254905,
+      "x_right": 1716.156862745098,
+      "y_top": 720.75,
+      "y_bottom": 1550.05
+    },
+    "x_range_kg_s": [
+      0.09071847400000001,
+      0.816466266
+    ],
+    "y_range": [
+      1.0,
+      2.4
+    ],
+    "grid_fit_max_residual_px": 3.05,
+    "figure": "Figure 8",
+    "pdf_page": 14,
+    "printed_page": 12,
+    "source_image_sha256": "da25a1fc8ae13ebc01cd49c1819fb110356a5b4ea163f29dd7f73df3b9211cf0"
+  },
+  "efficiency": {
+    "source_image": "data/provenance/compressor_map/nasa_tmx2269/source_page_15.png",
+    "overlay_image": "data/provenance/compressor_map/nasa_tmx2269/overlay_efficiency.png",
+    "axes_pixels": {
+      "x_left": 665.3137254901965,
+      "x_right": 1613.9803921568632,
+      "y_top": 1656.8461538461531,
+      "y_bottom": 2365.7692307692305
+    },
+    "x_range_kg_s": [
+      0.09071847400000001,
+      0.816466266
+    ],
+    "y_range": [
+      0.3,
+      0.9
+    ],
+    "grid_fit_max_residual_px": 1.11,
+    "figure": "Figure 10",
+    "pdf_page": 15,
+    "printed_page": 13,
+    "source_image_sha256": "877a6085495a647dd2a7332a79cd5183b270573ea11f94f724214700db837140"
+  }
+}
