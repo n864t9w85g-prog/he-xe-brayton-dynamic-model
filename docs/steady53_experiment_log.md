@@ -38,3 +38,35 @@
 - ✅ schema v2 无参数 500 s 复跑仍为 `success=true`、`tFinal_s=500`、`warningIds=[]`；正式源模型 SHA-256 仍为 `08b903324a5bf60a16d7b019fd83de7e7937242627e592ba7368404a817dc27a`。
 - ✅ 当前 schema v2 marker 指向 `run_1787565286804_7a02debf9af2499f80405c77e165ba9a`，状态 `completed`，副本 SHA-256 为 `d8964212142663a8fba86c9d5f64cbba93c362d6f9c5a8db0e07106d2a7261c2`，结果 SHA-256 为 `ebd06be2e9b38f6a56d8fb08d15ca2c9b06bc0f455fe2914f299a06d33940ec4`；marker 校验返回 `cacheRebuilt=false`。控制台证据为 `tmp/steady53/speed55090_schema_v2_console.txt`，不提交。
 - ❓ 证据边界：本节改进的是异常安全、运行身份和证据发布协议；除再次复核同一 500 s 完成事实外，不把工具重构升级为新的物理证据，不扩大此前关于 55090 rpm 单变量的结论范围。
+
+## 2026-08-24 第 5.3.1 节部件恒边界隔离工装
+
+- ✅ TDD RED：创建实现前，边界测试以 `MATLAB:UndefinedFunction` 报告 `steady53_component_boundaries` 未定义，工装测试同样报告 `create_component_harness` 未定义。证据保存于 `tmp/steady53/components/task6_tdd_red.txt`，不提交。
+- ✅ 每次工装生成使用唯一运行目录和唯一模型名；拒绝预加载的正式源模型，不关闭非本调用所有的用户模型。六个工装的实际 Inport 名称和端口号均与边界合同一致，且 update/compile 通过。
+- ✅ 语义差异审计：`IHX`/`recuperator`/`precooler`/`rediator`/`reactor` 的 DUT 内部无 DialogParameter 或连线差异；`TAC` 的唯一行为差异为探索副本内 `DUT/Constant.Value: 66100 -> 55090 rpm`。这一改动未保存回正式模型。
+- ✅ 正式 `final_steady_24a.slx` 试验前后 SHA-256 均为 `08b903324a5bf60a16d7b019fd83de7e7937242627e592ba7368404a817dc27a`。本任务未保存正式 `.slx` 或 `.mat`。
+
+### 边界合同与出处
+
+| 部件 | 输入向量（按实际 Inport 端口号） | 出处与证据等级 |
+|---|---|---|
+| `IHX` | `[1600, 4.572, 11.97, 1100.91, 1.543e6]` | 温度/压力：论文表 5.2 直接值 ✅；`4.572` 锂流量和 `11.97` He-Xe 流量：批准的项目工装边界 ❓，不冒充论文直接值 |
+| `recuperator` | `[11.97, 1162, 0.676e6, 1.551e6, 601.90, 11.97]` | 温度/压力：论文表 5.2 直接值 ✅；两侧 `11.97` 流量：批准的项目工装边界 ❓ |
+| `precooler` | `[360.10, 6.95, 663.63, 0.676e6, 11.97]` | 温度/压力：论文表 5.2 直接值 ✅；`6.95`/`11.97` 流量：批准的项目工装边界 ❓ |
+| `rediator` | `[609.58, 6.95]` | 温度：论文表 5.2 直接值 ✅；冷却剂流量：批准的项目工装边界 ❓ |
+| `reactor` | `[1443.27]` | 论文表 5.2 反应堆入口温度直接值 ✅ |
+| `TAC` | `[1.539e6, 1522.96, 405.16, 0.658e6, 11.97, 1000e3]` | 温度/压力：论文表 5.2 直接值 ✅；`11.97` 流量与 `1000e3 W` 名义负载：第 5.3.1 节本轮批准的项目工装边界 ❓，负载不冒充实测发电功率 |
+
+### 真实运行矩阵
+
+| component | 500 s | 14000 s | `tFinal` / error | 物性 warning |
+|---|---:|---:|---|---|
+| `IHX` | PASS ✅ | PASS ✅ | `500` / `14000` s；无 error ID | 无 |
+| `recuperator` | PASS ✅ | PASS ✅ | `500` / `14000` s；无 error ID | 无 |
+| `precooler` | PASS ✅ | PASS ✅ | `500` / `14000` s；无 error ID | 无 |
+| `rediator` | PASS ✅ | PASS ✅ | `500` / `14000` s；无 error ID | 无 |
+| `reactor` | PASS ✅ | PASS ✅ | `500` / `14000` s；无 error ID | 无 |
+| `TAC` | PASS ✅ | PASS ✅ | `500` / `14000` s；无 error ID | 无 |
+
+- ✅ 上表来自两个完整六部件矩阵；每个成功项均核对 `tout(end)` 精确达到请求时间、所有 To Workspace 输出为有限实数，且 `HeXe:T_lo` / `HeXe:T_hi` / 锂物性上下限四类 warning 均被提升为 error 而未触发。机器可读证据为 `tmp/steady53/components/component_matrix_500.mat` 和 `component_matrix_14000.mat`，不提交。
+- ❓ 结论边界：恒边界下六个隔离部件均能完成 14000 s，因此本轮未由 Task 6 触发 Root-Cause Checkpoint。这不证明整机闭环已通过，不证明部件在整机互联边界下不会失稳，也不将“隔离运行通过”上升为任一具体根因结论。
