@@ -6,11 +6,11 @@ function setupOnce(testCase)
 root = fileparts(fileparts(fileparts(mfilename("fullpath"))));
 testCase.TestData.root = root;
 testCase.TestData.testFolder = fullfile(root, "tests", "steady53");
+testCase.TestData.originalPath = path;
 if bdIsLoaded("final_steady_24a")
     error("steady53:TestModelAlreadyLoaded", ...
         "Acceptance tests require final_steady_24a to be initially unloaded.");
 end
-testCase.TestData.originalPath = path;
 addpath(testCase.TestData.testFolder);
 end
 
