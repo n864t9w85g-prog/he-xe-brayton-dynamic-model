@@ -34,7 +34,10 @@ required = [ ...
     "cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33"
     "5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d"
     "h1a_sensitivity.csv"
-    "h1a_summary.txt"];
+    "h1a_summary.txt"
+    "turbine_lookup_expansion_ratio"
+    "turbine_expansion_ratio"
+    "H1a remains BLOCKED pending user approval"];
 for index = 1:numel(required)
     verifyTrue(testCase, contains(source, required(index)));
 end
@@ -90,6 +93,72 @@ verifyError(testCase, @() analyze_task8_h1a_readonly(options), ...
 verifyFalse(testCase, isfolder(outputDir));
 verifyFalse(testCase, isfile(fullfile(outputDir, "h1a_sensitivity.csv")));
 verifyFalse(testCase, isfile(fullfile(outputDir, "h1a_summary.txt")));
+end
+
+function testNonMaxIntegralWarningFailsClosedAndRestoresState(testCase)
+outputDir = fullfile(testCase.TestData.tempRoot, ...
+    "non_max_integral_warning");
+options = validTestOptions(testCase.TestData.root, outputDir);
+options.integralFunction = @nonMaxIntegralWarningStub;
+warningBefore = warning;
+
+try
+    analyze_task8_h1a_readonly(options);
+    verifyFail(testCase, "Expected non-Max integral warning to fail closed.");
+catch exception
+    verifyEqual(testCase, string(exception.identifier), ...
+        "steady53:H1aIntegrationNonconvergence");
+    verifyEqual(testCase, numel(exception.cause), 1);
+    verifyEqual(testCase, string(exception.cause{1}.identifier), ...
+        "MATLAB:integral:MinStepSize");
+end
+
+verifyEqual(testCase, warning, warningBefore);
+verifyFalse(testCase, isfolder(outputDir));
+end
+
+function testMetricMeanAndRelativeErrorAreSeparatedFromTerminalSignal(testCase)
+outputDir = fullfile(testCase.TestData.tempRoot, "metric_separation");
+options = validTestOptions(testCase.TestData.root, outputDir);
+options.integralFunction = @constantIntegralStub;
+analysis = analyze_task8_h1a_readonly(options);
+
+verifyEqual(testCase, analysis.inputs.reportMetricMeanT2_K, ...
+    1143.7357422849552, "AbsTol", 1e-9);
+verifyEqual(testCase, analysis.inputs.reportMetricMeanError_K, ...
+    18.264257715044778, "AbsTol", 1e-12);
+verifyEqual(testCase, analysis.inputs.reportMetricRelativeError, ...
+    0.015717949840830272, "AbsTol", 1e-15);
+verifyEqual(testCase, analysis.inputs.recordedTerminalT2_K, ...
+    1143.7357706111763, "AbsTol", 1e-12);
+verifyEqual(testCase, analysis.inputs.recordedTerminalError_K, ...
+    18.264229388823651, "AbsTol", 1e-12);
+verifyEqual(testCase, analysis.inputs.recordedTerminalRelativeError, ...
+    0.015717925463703659, "AbsTol", 1e-15);
+verifyNotEqual(testCase, analysis.inputs.reportMetricMeanT2_K, ...
+    analysis.inputs.recordedTerminalT2_K);
+
+csvTable = readtable(analysis.csvPath, "TextType", "string");
+requiredColumns = [ ...
+    "reportMetricMeanT2_K"
+    "reportMetricMeanError_K"
+    "reportMetricRelativeError"
+    "recordedTerminalT2_K"
+    "recordedTerminalError_K"
+    "recordedTerminalRelativeError"];
+verifyTrue(testCase, all(ismember(requiredColumns, ...
+    string(csvTable.Properties.VariableNames))));
+summary = string(fileread(analysis.summaryPath));
+verifyTrue(testCase, contains(summary, ...
+    "reportMetricMeanT2_K=1143.7357422849552"));
+verifyTrue(testCase, contains(summary, ...
+    "reportMetricMeanError_K=18.264257715044778"));
+verifyTrue(testCase, contains(summary, ...
+    "reportMetricRelativeError=0.015717949840830272"));
+verifyTrue(testCase, contains(summary, ...
+    "recordedTerminalT2_K=1143.7357706111763"));
+verifyTrue(testCase, contains(summary, ...
+    "recordedTerminalRelativeError=0.015717925463703659"));
 end
 
 function testMissingSignalFieldFailsClosed(testCase)
@@ -231,14 +300,33 @@ required = [ ...
     """s2IntegralAbsTol"", 1e-10"
     "warning(""error"", ""HeXe:T_lo"")"
     "warning(""error"", ""HeXe:T_hi"")"
-    "warning(""error"", ""MATLAB:integral:MaxIntervalCountReached"")"
+    "warning(""error"", warningIds(index))"
+    "MATLAB:integral:MaxIntervalCountReached"
+    "MATLAB:integral:MinStepSize"
+    "MATLAB:integral:NonFiniteValue"
+    "startsWith(string(exception.identifier), ""MATLAB:integral:"")"
+    "restoreWarningStates"
     """steady53:H1aIntegrationNonconvergence"""];
 for index = 1:numel(required)
     verifyTrue(testCase, contains(source, required(index)));
 end
 verifyFalse(testCase, contains(source, 'warning("off"'));
+verifyFalse(testCase, contains(source, "lastwarn"));
 verifyFalse(testCase, contains(source, "endpointCachedResidual"));
 verifyEmpty(testCase, regexp(source, 'MaxIntervalCount\s*[,=]', 'once'));
+
+integralCalcPath = fullfile(matlabroot, "toolbox", "matlab", ...
+    "funfun", "private", "integralCalc.m");
+integralCalcSource = fileread(integralCalcPath);
+matches = regexp(integralCalcSource, ...
+    'warning\(message\(''(MATLAB:integral:[^'']+)''', 'tokens');
+actualWarningIds = sort(unique(string(cellfun( ...
+    @(match) match{1}, matches, "UniformOutput", false))));
+expectedWarningIds = sort([ ...
+    "MATLAB:integral:MaxIntervalCountReached"
+    "MATLAB:integral:MinStepSize"
+    "MATLAB:integral:NonFiniteValue"]);
+verifyEqual(testCase, actualWarningIds(:), expectedWarningIds(:));
 end
 
 function testForbiddenModelApisAreAbsentAndLoadIsRestricted(testCase)
@@ -280,6 +368,7 @@ options.modelPath = string(fullfile(root, "final_steady_24a.slx"));
 options.expectedModelSha256 = ...
     "5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d";
 options.outputDir = string(outputDir);
+options.integralFunction = @integral;
 end
 
 function diagrams = loadedBlockDiagrams()
@@ -311,4 +400,14 @@ end
 
 function quoted = shellQuote(value)
 quoted = "'" + replace(string(value), "'", "'\\''") + "'";
+end
+
+function value = nonMaxIntegralWarningStub(varargin)
+warning("MATLAB:integral:MinStepSize", ...
+    "Controlled non-Max integral warning fixture.");
+value = 0.4;
+end
+
+function value = constantIntegralStub(varargin)
+value = 0.4;
 end

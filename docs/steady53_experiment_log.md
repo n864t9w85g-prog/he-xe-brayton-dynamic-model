@@ -434,3 +434,45 @@
   `cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33`；
   `archive/pre-restart-20260824^{commit}` 仍为
   `8f625c268c35a95c18a626305c1aa6a79ae2ace7`。
+
+### 2026-08-25 H1a 规范复审：积分 warning 全闭锁与验收均值分离
+
+- ✅ TDD RED：新增两项聚焦回归后，修复前实测 `12 Passed, 2 Failed,
+  2 Incomplete`。一项以受控离线 fixture 触发非 Max warning
+  `MATLAB:integral:MinStepSize`；另一项要求把 `report.metrics` 的末窗均值/相对误差
+  与末时刻 signal 值/误差分开。没有加载或仿真 SLX。
+- ✅ 当前 MATLAB R2025a 的 `integralCalc.m` 中实际 `warning(message(...))` 调用的
+  `MATLAB:integral:*` ID 全集经测试核对恰为
+  `MaxIntervalCountReached`、`MinStepSize`、`NonFiniteValue`。离线分析器在每次 S2
+  积分调用前局部保存这三个 ID 的 warning 状态、全部提升为 error，并用
+  `onCleanup` 逐项恢复；任何捕获到的 `MATLAB:integral:*` 异常统一包装为
+  `steady53:H1aIntegrationNonconvergence`，原异常保留为直接 cause。未使用
+  `warning off`、`lastwarn` 后验放行、缓存、端点避让、区间拆分、
+  `MaxIntervalCount` 调整或替代算法。
+- ✅ 固定 MAT 的 `report.metrics` 现要求并读取 `meanValue` 与 `relativeError`：
+  `reportMetricMeanT2_K=1143.7357422849552 K`、
+  `reportMetricMeanError_K=18.264257715044778 K`、
+  `reportMetricRelativeError=0.015717949840830272`。这些验收末窗指标与末时刻
+  `recordedTerminalT2_K=1143.7357706111763 K`、
+  `recordedTerminalError_K=18.264229388823651 K`、
+  `recordedTerminalRelativeError=0.015717925463703659` 分字段记录；两种温度相差约
+  `2.83262211e-5 K`，不得混称为同一观测量。
+- ❓ 扩展比合同冲突保持未解决：当前不可变证据字段及本脚本仍使用
+  `turbine_lookup_expansion_ratio`，而已批准文字写作 `turbine_expansion_ratio`。
+  本轮只在代码、阻断消息和测试输出元数据中明确记录该冲突；状态仍为
+  **BLOCKED，等待用户批准修订**，没有自行改字段或宣称合同已解决。
+- ✅ GREEN：H1a 聚焦测试实测 `14 Passed, 0 Failed, 0 Incomplete`；明确不触及
+  SLX 的 spec/evaluator/evidence/H1a 四文件离线子集实测
+  `81 Passed, 0 Failed, 0 Incomplete`。完整 steady53 目录只做发现，不执行：共发现
+  `108` 项，既定 Task 8 RED 名称恰好 `1` 项。获批范围禁止 load/sim SLX，故完整
+  活动回归有意未运行；本条不是其余测试全绿声明。
+- ❓ 默认固定输入仍在 S2 的
+  `MATLAB:integral:MaxIntervalCountReached` 处严格 fail closed，正式输出目录仍不存在，
+  没有伪造或发布 CSV/TXT。此前 S1 只读局部值保持
+  `phiBar=0.39978932815006674`、`T2s=1089.5641955018075 K`、
+  `T2=1143.6630406569668 K`、`rootResidual=1.5916157281026244e-12 K`；完整 H1a
+  仍未完成，不能用作废 S2 值判断 H1a 是否足以解释偏差。H1b 未执行，模型未修改。
+- ✅ 静态/溯源复核：两个 H1a MATLAB 文件 `checkcode` 均为 0 项，禁止模型 API
+  扫描与 `git diff --check` 通过，Homebrew Python provenance 为 `6 tests, OK`。
+  `final_steady_24a.slx`、四个正式 MAT、固定输入 MAT 与归档 tag 的 hash 均保持前述
+  固定值不变。
