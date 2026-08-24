@@ -476,3 +476,35 @@
   扫描与 `git diff --check` 通过，Homebrew Python provenance 为 `6 tests, OK`。
   `final_steady_24a.slx`、四个正式 MAT、固定输入 MAT 与归档 tag 的 hash 均保持前述
   固定值不变。
+
+### 2026-08-25 H1a 输出发布复审：staging 后目录级无覆盖发布
+
+- ✅ 复审根因成立：旧实现先创建正式 `outputDir`、再依次写 CSV 和 summary；后者
+  失败会遗留正式半成品。旧 `fopen(...,"w","n","UTF-8")` 中的 `n` 只是 native
+  machine-format 缩写，不是 exclusive-create，本轮已删除相应实现与不实文案。
+- ✅ TDD RED：受控 test-only 输出失败钩子回归在实现前实测
+  `0 Passed, 1 Failed, 0 Incomplete`，实际得到 `steady53:H1aInvalidOptions` 而非预期
+  的受控 staging 失败，证明钩子合同和事务发布尚不存在。另加目标在预检查后并发
+  出现的竞态回归，修复前同样真实失败且会走旧发布路径。
+- ✅ 最小实现：输出失败钩子只能通过 `testOnly=true` 的完整 options 合同注入。
+  正式目录的同父目录内先建立带目标名前缀的唯一 staging，只在 staging 中完成
+  CSV、summary 写入、句柄关闭、可读性校验与两个 SHA-256 计算。受控 CSV 后/summary
+  前失败会精确清理本次 staging；正式目录和两个正式文件均不存在。
+- ✅ 最终发布不再调用 `/bin/mv -n`。采用 Java NIO `Files.move` 且不提供
+  `REPLACE_EXISTING`，以一次目录级 move 发布；受控竞态在预检查后创建目标目录和
+  sentinel 时，移动抛出目标碰撞，sentinel 未覆盖，staging 未嵌套到目标目录。
+  发布成功后再次计算正式 CSV/summary SHA-256，并要求与 staging 预计算值逐项相等；
+  发布后校验若失败，只清理经过父目录和精确叶名称双重验证的本次正式目录。
+- ✅ 成功发布回归验证正式目录一次出现、两文件存在可读、返回 hash 与磁盘复算 hash
+  一致且没有 staging 残留；既有目标 sentinel 碰撞回归继续证明不会静默覆盖。
+  H1a 聚焦测试现为 `17 Passed, 0 Failed, 0 Incomplete`；明确不触及 SLX 的
+  spec/evaluator/evidence/H1a 四文件离线子集为
+  `84 Passed, 0 Failed, 0 Incomplete`。两个 H1a MATLAB 文件 `checkcode` 均为
+  0 项，Homebrew Python provenance 为 `6 tests, OK`。
+- ❓ 默认固定输入仍在 S2 积分 warning 处 fail closed，因而正式固定 H1a 输出目录
+  仍不存在；本轮未发布正式 CSV/TXT。没有改变 S1/S2 方程、求根区间、积分容差、
+  expansion-ratio 口径或任何 SLX/MAT，也未执行 H1b。
+- ✅ 完整 steady53 测试目录只做发现、不执行：共 `111` 项，既定 Task 8 RED 名称
+  恰好 `1` 项；禁止 load/sim 的完整活动回归有意未运行。`git diff --check` 与禁止
+  模型 API 静态扫描通过；正式模型、四个正式 MAT、固定输入 MAT、归档 tag hash 均
+  保持前述固定值，正式固定 H1a 输出目录经磁盘复核仍不存在。

@@ -26,6 +26,10 @@ if ~isa(config.integralFunction, "function_handle")
     error("steady53:H1aInvalidOptions", ...
         "integralFunction must be a function handle.");
 end
+if ~isa(config.outputFailureHook, "function_handle")
+    error("steady53:H1aInvalidOptions", ...
+        "outputFailureHook must be a function handle.");
+end
 
 % The fixed input hash is the first content gate. No output directory or
 % result file is created before this check succeeds.
@@ -149,11 +153,23 @@ summaryText = makeSummaryText(config, inputMat, inputMatSha256, ...
     finalWindow_s, inputs, settings, sensitivity, ...
     baselineReproductionResidual_K, conclusion, ...
     loadedBlockDiagramsBefore);
-writeOutputs(outputDir, csvPath, summaryPath, ...
-    sensitivity, summaryText);
 assertReadOnlyState(modelPath, modelSha256, ...
     turbineTableMat, turbineTableSha256, loadedBlockDiagramsBefore);
 loadedBlockDiagramsAfter = loadedBlockDiagrams();
+
+restoreEnvironment(originalPath, originalWarnings);
+clear environmentCleanup
+pathRestored = strcmp(path, originalPath);
+warningStateRestored = isequaln(warning, originalWarnings);
+if ~pathRestored || ~warningStateRestored
+    error("steady53:H1aEnvironmentRestoreFailed", ...
+        "Path or warning state was not restored.");
+end
+
+% Publication is deliberately the final fallible external-state action.
+% All model/hash/environment checks have completed before this transaction.
+[csvSha256, summarySha256] = writeOutputs(outputDir, ...
+    sensitivity, summaryText, config.outputFailureHook);
 
 analysis = struct();
 analysis.runId = string(config.runId);
@@ -166,8 +182,8 @@ analysis.modelSha256 = modelSha256;
 analysis.outputDir = outputDir;
 analysis.csvPath = string(csvPath);
 analysis.summaryPath = string(summaryPath);
-analysis.csvSha256 = sha256File(csvPath);
-analysis.summarySha256 = sha256File(summaryPath);
+analysis.csvSha256 = csvSha256;
+analysis.summarySha256 = summarySha256;
 analysis.finalWindow_s = finalWindow_s;
 analysis.inputs = inputs;
 analysis.settings = settings;
@@ -180,16 +196,9 @@ analysis.loadedBlockDiagramsBefore = loadedBlockDiagramsBefore;
 analysis.loadedBlockDiagramsAfter = loadedBlockDiagramsAfter;
 analysis.h1bExecuted = false;
 analysis.modelModified = false;
-
-restoreEnvironment(originalPath, originalWarnings);
-clear environmentCleanup
-analysis.pathRestored = strcmp(path, originalPath);
-analysis.warningStateRestored = isequaln(warning, originalWarnings);
+analysis.pathRestored = pathRestored;
+analysis.warningStateRestored = warningStateRestored;
 analysis.persistentStateAfter = "cleared_uninitialized";
-if ~analysis.pathRestored || ~analysis.warningStateRestored
-    error("steady53:H1aEnvironmentRestoreFailed", ...
-        "Path or warning state was not restored.");
-end
 end
 
 function config = defaultConfig(root)
@@ -210,6 +219,7 @@ config.expectedModelSha256 = ...
 config.outputDir = string(fullfile(root, "tmp", "steady53", ...
     "task8_root_cause", "h1a", runId));
 config.integralFunction = @integral;
+config.outputFailureHook = @noOutputFailure;
 end
 
 function config = applyTestOnlyOptions(config, options)
@@ -222,7 +232,8 @@ end
 allowed = ["testOnly", "runId", "inputMat", ...
     "expectedInputSha256", "turbineTableMat", ...
     "expectedTurbineTableSha256", "modelPath", ...
-    "expectedModelSha256", "outputDir", "integralFunction"];
+    "expectedModelSha256", "outputDir", "integralFunction", ...
+    "outputFailureHook"];
 actual = string(fieldnames(options));
 if any(~ismember(actual, allowed))
     error("steady53:H1aInvalidOptions", ...
@@ -724,24 +735,164 @@ output = string(sprintf("phiBar=%.17g,T2s_K=%.17g,T2_K=%.17g,deltaT2FromBaseline
     row.relativeTargetError, row.rootResidual_K));
 end
 
-function writeOutputs(outputDir, csvPath, summaryPath, ...
-        sensitivity, summaryText)
-[created, message] = mkdir(outputDir);
-if ~created || ~isempty(message) && ~isfolder(outputDir)
+function [csvHash, summaryHash] = writeOutputs(outputDir, ...
+        sensitivity, summaryText, outputFailureHook)
+[outputParent, outputName, outputExtension] = fileparts(outputDir);
+outputParent = string(outputParent);
+outputLeaf = string(outputName) + string(outputExtension);
+if ~isfolder(outputParent) || strlength(outputLeaf) == 0
     error("steady53:H1aOutputFailed", ...
-        "Could not create output directory '%s': %s", ...
-        outputDir, message);
+        "The H1a output parent must already exist.");
 end
-writetable(sensitivity, csvPath);
-[fileId, message] = fopen(summaryPath, "w", "n", "UTF-8");
-if fileId < 0
+if isfolder(outputDir) || isfile(outputDir)
     error("steady53:H1aOutputExists", ...
-        "Could not exclusively create summary '%s': %s", ...
-        summaryPath, message);
+        "H1a output target already exists: '%s'.", outputDir);
 end
-fileCleanup = onCleanup(@() fclose(fileId));
-fprintf(fileId, "%s", summaryText);
-clear fileCleanup
+
+stagingPrefix = "." + outputLeaf + ".staging_";
+[~, uniqueLeaf] = fileparts(tempname(outputParent));
+stagingDir = fullfile(outputParent, stagingPrefix + string(uniqueLeaf));
+if isfolder(stagingDir) || isfile(stagingDir)
+    error("steady53:H1aOutputFailed", ...
+        "The unique H1a staging path unexpectedly exists.");
+end
+[created, message, messageId] = mkdir(stagingDir);
+if ~created || strlength(string(messageId)) > 0 || ~isfolder(stagingDir)
+    error("steady53:H1aOutputFailed", ...
+        "Could not create unique H1a staging directory '%s': %s", ...
+        stagingDir, message);
+end
+stagingCleanup = onCleanup(@() cleanupStagingDirectory( ...
+    stagingDir, outputParent, stagingPrefix));
+
+stagedCsvPath = fullfile(stagingDir, "h1a_sensitivity.csv");
+stagedSummaryPath = fullfile(stagingDir, "h1a_summary.txt");
+writetable(sensitivity, stagedCsvPath);
+outputFailureHook("afterCsvBeforeSummary", stagingDir);
+
+% The staging directory is uniquely created and empty, so ordinary create
+% semantics are sufficient here. The former native-machine-format token
+% "n" was never an exclusive-create flag and is intentionally not used.
+[fileId, message] = fopen(stagedSummaryPath, "w", "native", "UTF-8");
+if fileId < 0
+    error("steady53:H1aOutputFailed", ...
+        "Could not create staged summary '%s': %s", ...
+        stagedSummaryPath, message);
+end
+try
+    fprintf(fileId, "%s", summaryText);
+catch exception
+    fclose(fileId);
+    rethrow(exception);
+end
+closeStatus = fclose(fileId);
+if closeStatus ~= 0
+    error("steady53:H1aOutputFailed", ...
+        "Could not close staged summary '%s'.", stagedSummaryPath);
+end
+
+validateReadableOutput(stagedCsvPath);
+validateReadableOutput(stagedSummaryPath);
+csvHash = sha256File(stagedCsvPath);
+summaryHash = sha256File(stagedSummaryPath);
+
+% Recheck, then permit a test-only race fixture immediately before the
+% single directory-level no-replace move. Correctness cannot rely on this
+% precheck because another owner may create the target after it returns.
+if isfolder(outputDir) || isfile(outputDir)
+    error("steady53:H1aOutputExists", ...
+        "H1a output target appeared before publication: '%s'.", ...
+        outputDir);
+end
+outputFailureHook("beforePublish", stagingDir);
+moveDirectoryNoReplace(stagingDir, outputDir);
+try
+    if ~isfolder(outputDir) || ...
+            ~isfile(fullfile(outputDir, "h1a_sensitivity.csv")) || ...
+            ~isfile(fullfile(outputDir, "h1a_summary.txt"))
+        error("steady53:H1aOutputFailed", ...
+            "Published H1a output directory is incomplete.");
+    end
+    publishedCsvHash = sha256File(fullfile(outputDir, ...
+        "h1a_sensitivity.csv"));
+    publishedSummaryHash = sha256File(fullfile(outputDir, ...
+        "h1a_summary.txt"));
+    if publishedCsvHash ~= csvHash || ...
+            publishedSummaryHash ~= summaryHash
+        error("steady53:H1aOutputFailed", ...
+            "Published H1a output hashes differ from staged hashes.");
+    end
+catch exception
+    cleanupPublishedDirectory(outputDir, outputParent, outputLeaf);
+    rethrow(exception);
+end
+clear stagingCleanup
+end
+
+function validateReadableOutput(filePath)
+[fileId, message] = fopen(filePath, "r");
+if fileId < 0
+    error("steady53:H1aOutputFailed", ...
+        "Staged output is not readable '%s': %s", filePath, message);
+end
+closeStatus = fclose(fileId);
+if closeStatus ~= 0
+    error("steady53:H1aOutputFailed", ...
+        "Could not close staged output '%s' after validation.", filePath);
+end
+end
+
+function moveDirectoryNoReplace(stagingDir, outputDir)
+sourcePath = javaObject("java.io.File", char(stagingDir)).toPath();
+targetPath = javaObject("java.io.File", char(outputDir)).toPath();
+noReplaceOptions = javaArray("java.nio.file.CopyOption", 0);
+try
+    javaMethod("move", "java.nio.file.Files", ...
+        sourcePath, targetPath, noReplaceOptions);
+catch exception
+    if isfolder(outputDir) || isfile(outputDir)
+        collision = MException("steady53:H1aOutputExists", ...
+            "H1a output publication refused to overwrite '%s'.", ...
+            outputDir);
+        collision = addCause(collision, exception);
+        throw(collision);
+    end
+    publicationFailure = MException("steady53:H1aOutputFailed", ...
+        "Could not publish staged H1a output directory.");
+    publicationFailure = addCause(publicationFailure, exception);
+    throw(publicationFailure);
+end
+end
+
+function cleanupStagingDirectory(stagingDir, expectedParent, ...
+        expectedPrefix)
+if ~isfolder(stagingDir)
+    return
+end
+[actualParent, actualName, actualExtension] = fileparts(stagingDir);
+actualLeaf = string(actualName) + string(actualExtension);
+if string(actualParent) ~= string(expectedParent) || ...
+        ~startsWith(actualLeaf, string(expectedPrefix)) || ...
+        strlength(actualLeaf) <= strlength(string(expectedPrefix))
+    return
+end
+rmdir(stagingDir, "s");
+end
+
+function cleanupPublishedDirectory(outputDir, expectedParent, expectedLeaf)
+if ~isfolder(outputDir)
+    return
+end
+[actualParent, actualName, actualExtension] = fileparts(outputDir);
+actualLeaf = string(actualName) + string(actualExtension);
+if string(actualParent) ~= string(expectedParent) || ...
+        actualLeaf ~= string(expectedLeaf)
+    return
+end
+rmdir(outputDir, "s");
+end
+
+function noOutputFailure(varargin)
 end
 
 function assertReadOnlyState(modelPath, modelHash, ...

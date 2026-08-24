@@ -123,6 +123,13 @@ options = validTestOptions(testCase.TestData.root, outputDir);
 options.integralFunction = @constantIntegralStub;
 analysis = analyze_task8_h1a_readonly(options);
 
+verifyTrue(testCase, isfolder(outputDir));
+verifyTrue(testCase, isfile(analysis.csvPath));
+verifyTrue(testCase, isfile(analysis.summaryPath));
+verifyEqual(testCase, sha256File(analysis.csvPath), analysis.csvSha256);
+verifyEqual(testCase, sha256File(analysis.summaryPath), ...
+    analysis.summarySha256);
+verifyEmpty(testCase, stagingDirectories(outputDir));
 verifyEqual(testCase, analysis.inputs.reportMetricMeanT2_K, ...
     1143.7357422849552, "AbsTol", 1e-9);
 verifyEqual(testCase, analysis.inputs.reportMetricMeanError_K, ...
@@ -290,6 +297,57 @@ verifyFalse(testCase, isfile(fullfile(options.outputDir, ...
     "h1a_summary.txt")));
 end
 
+function testStagingFailureLeavesNoFormalOrPartialOutput(testCase)
+outputDir = fullfile(testCase.TestData.tempRoot, ...
+    "controlled_output_failure");
+options = validTestOptions(testCase.TestData.root, outputDir);
+options.integralFunction = @constantIntegralStub;
+options.outputFailureHook = @controlledOutputFailureStub;
+
+verifyError(testCase, @() analyze_task8_h1a_readonly(options), ...
+    "steady53:H1aControlledOutputFailure");
+verifyFalse(testCase, isfolder(outputDir));
+verifyFalse(testCase, isfile(fullfile(outputDir, ...
+    "h1a_sensitivity.csv")));
+verifyFalse(testCase, isfile(fullfile(outputDir, "h1a_summary.txt")));
+verifyEmpty(testCase, stagingDirectories(outputDir));
+end
+
+function testOutputFailureHookRequiresCompleteTestOnlyContract(testCase)
+outputDir = fullfile(testCase.TestData.tempRoot, ...
+    "incomplete_hook_contract");
+incomplete = struct("testOnly", true, ...
+    "outputFailureHook", @controlledOutputFailureStub);
+verifyError(testCase, @() analyze_task8_h1a_readonly(incomplete), ...
+    "steady53:H1aInvalidOptions");
+
+options = validTestOptions(testCase.TestData.root, outputDir);
+options.testOnly = false;
+verifyError(testCase, @() analyze_task8_h1a_readonly(options), ...
+    "steady53:H1aInvalidOptions");
+verifyFalse(testCase, isfolder(outputDir));
+end
+
+function testConcurrentTargetDirectoryIsNotOverwrittenOrNested(testCase)
+outputDir = fullfile(testCase.TestData.tempRoot, ...
+    "concurrent_target_collision");
+options = validTestOptions(testCase.TestData.root, outputDir);
+options.integralFunction = @constantIntegralStub;
+options.outputFailureHook = @(point, stagingDir) ...
+    createConcurrentTargetHook(point, stagingDir, outputDir);
+
+verifyError(testCase, @() analyze_task8_h1a_readonly(options), ...
+    "steady53:H1aOutputExists");
+sentinelPath = fullfile(outputDir, "concurrent_sentinel.txt");
+verifyTrue(testCase, isfile(sentinelPath));
+verifyEqual(testCase, string(fileread(sentinelPath)), ...
+    "concurrent owner" + newline);
+verifyFalse(testCase, isfile(fullfile(outputDir, ...
+    "h1a_sensitivity.csv")));
+verifyFalse(testCase, isfile(fullfile(outputDir, "h1a_summary.txt")));
+verifyEmpty(testCase, stagingDirectories(outputDir));
+end
+
 function testNumericalSettingsAndFailClosedPolicyAreFixed(testCase)
 source = fileread(fullfile(testCase.TestData.root, "tests", ...
     "steady53", "analyze_task8_h1a_readonly.m"));
@@ -314,6 +372,11 @@ verifyFalse(testCase, contains(source, 'warning("off"'));
 verifyFalse(testCase, contains(source, "lastwarn"));
 verifyFalse(testCase, contains(source, "endpointCachedResidual"));
 verifyEmpty(testCase, regexp(source, 'MaxIntervalCount\s*[,=]', 'once'));
+verifyTrue(testCase, contains(source, "java.nio.file.Files"));
+verifyTrue(testCase, contains(source, "noReplaceOptions"));
+verifyFalse(testCase, contains(source, "/bin/mv -n"));
+verifyEmpty(testCase, regexp(source, ...
+    'fopen\([^\n]+,\s*"w",\s*"n"', 'once'));
 
 integralCalcPath = fullfile(matlabroot, "toolbox", "matlab", ...
     "funfun", "private", "integralCalc.m");
@@ -369,6 +432,15 @@ options.expectedModelSha256 = ...
     "5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d";
 options.outputDir = string(outputDir);
 options.integralFunction = @integral;
+options.outputFailureHook = @noOutputFailureStub;
+end
+
+function entries = stagingDirectories(outputDir)
+[parentDir, outputName, outputExtension] = fileparts(outputDir);
+prefix = "." + string(outputName) + string(outputExtension) + ...
+    ".staging_";
+listing = dir(fullfile(parentDir, prefix + "*"));
+entries = string({listing.name});
 end
 
 function diagrams = loadedBlockDiagrams()
@@ -410,4 +482,28 @@ end
 
 function value = constantIntegralStub(varargin)
 value = 0.4;
+end
+
+function noOutputFailureStub(varargin)
+end
+
+function controlledOutputFailureStub(point, stagingDir)
+assert(string(point) == "afterCsvBeforeSummary");
+assert(isfolder(stagingDir));
+assert(isfile(fullfile(stagingDir, "h1a_sensitivity.csv")));
+assert(~isfile(fullfile(stagingDir, "h1a_summary.txt")));
+error("steady53:H1aControlledOutputFailure", ...
+    "Controlled test-only staging failure.");
+end
+
+function createConcurrentTargetHook(point, stagingDir, outputDir) %#ok<INUSD>
+if string(point) ~= "beforePublish"
+    return
+end
+mkdir(outputDir);
+sentinelPath = fullfile(outputDir, "concurrent_sentinel.txt");
+fileId = fopen(sentinelPath, "w");
+assert(fileId >= 0);
+fprintf(fileId, "concurrent owner\n");
+assert(fclose(fileId) == 0);
 end
