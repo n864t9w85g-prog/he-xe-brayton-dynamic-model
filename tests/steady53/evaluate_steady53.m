@@ -168,7 +168,7 @@ if isfield(audit, "warningIds")
 end
 
 if isfield(audit, "lookup")
-    failures = [failures; lookupFailures(audit.lookup)];
+    failures = [failures; lookupFailures(audit.lookup, s)];
 end
 
 if ~isfield(audit, "property") || ...
@@ -215,6 +215,8 @@ requiredFields = ["name", "data", "kind", "scaleFloor", "constant"];
 allowedKinds = ["temperature", "pressure", "power", "massFlow", ...
     "speed", "dimensionless", "other"];
 actualNames = string(fieldnames(signals));
+trustedMetadata = s.signalMetadata;
+trustedNames = trustedMetadata.name;
 
 if ~isstruct(entries)
     failures = ["audit:invalid:signalDynamics"; "signal:coverage"];
@@ -255,12 +257,6 @@ for index = 1:count
         kind(index) = string(entry.kind);
         scaleFloor(index) = double(entry.scaleFloor);
         constant(index) = entry.constant;
-        expectedFloor = signalScaleFloor(kind(index), s);
-        if scaleFloor(index) ~= expectedFloor
-            rowFailures(end + 1, 1) = ...
-                "signal:invalid:" + label; %#ok<AGROW>
-            entryValid = false;
-        end
     else
         rowFailures(end + 1, 1) = "signal:invalid:" + label; %#ok<AGROW>
     end
@@ -272,6 +268,33 @@ for index = 1:count
             entryValid = false;
         else
             validNames(end + 1, 1) = name(index); %#ok<AGROW>
+        end
+    end
+
+    if entryValid
+        trustedRow = trustedNames == name(index);
+        if nnz(trustedRow) ~= 1
+            rowFailures(end + 1, 1) = ...
+                "signal:metadata_unknown:" + name(index); %#ok<AGROW>
+            entryValid = false;
+        else
+            if kind(index) ~= trustedMetadata.kind(trustedRow)
+                rowFailures(end + 1, 1) = ...
+                    "signal:metadata_kind:" + name(index); %#ok<AGROW>
+            end
+            if constant(index) ~= trustedMetadata.constant(trustedRow)
+                rowFailures(end + 1, 1) = ...
+                    "signal:metadata_constant:" + name(index); %#ok<AGROW>
+            end
+            if scaleFloor(index) ~= trustedMetadata.scaleFloor(trustedRow)
+                rowFailures(end + 1, 1) = ...
+                    "signal:metadata_scaleFloor:" + name(index); %#ok<AGROW>
+            end
+            % The report and normalization use only the trusted spec row;
+            % caller-supplied metadata can be audited but cannot steer gates.
+            kind(index) = trustedMetadata.kind(trustedRow);
+            constant(index) = trustedMetadata.constant(trustedRow);
+            scaleFloor(index) = trustedMetadata.scaleFloor(trustedRow);
         end
     end
 
@@ -335,6 +358,10 @@ if numel(validNames) ~= numel(actualNames) || ...
         ~isequal(sort(validNames), sort(actualNames))
     failures(end + 1, 1) = "signal:coverage";
 end
+if numel(actualNames) ~= numel(trustedNames) || ...
+        ~isequal(sort(actualNames), sort(trustedNames))
+    failures(end + 1, 1) = "signal:contract";
+end
 
 output = table(name, kind, scaleFloor, constant, finalValue, ...
     windowMean, windowMin, windowMax, peakToPeakRel, trendRel, signalPass);
@@ -374,18 +401,18 @@ if ~valid
 end
 end
 
-function failures = lookupFailures(lookups)
+function failures = lookupFailures(lookups, s)
 failures = strings(0, 1);
 requiredFields = ["name", "inputMin", "inputMax", "bpMin", "bpMax"];
+requiredNames = s.requiredLookupNames;
 
 if ~isstruct(lookups)
     failures(end + 1, 1) = "audit:invalid:lookup";
+    failures = [failures; "lookup:missing:" + requiredNames];
     return
 end
-if ~all(isfield(lookups, requiredFields)) && isempty(lookups)
-    failures(end + 1, 1) = "lookup:invalid:1";
-    return
-end
+
+names = strings(numel(lookups), 1);
 
 for index = 1:numel(lookups)
     lookup = lookups(index);
@@ -401,11 +428,31 @@ for index = 1:numel(lookups)
         failures(end + 1, 1) = "lookup:invalid:" + label; %#ok<AGROW>
         continue
     end
+    names(index) = string(lookup.name);
 
     if lookup.inputMin < lookup.bpMin || lookup.inputMax > lookup.bpMax
         failures(end + 1, 1) = "lookup:" + string(lookup.name); %#ok<AGROW>
     end
 end
+
+for requiredName = requiredNames.'
+    count = nnz(names == requiredName);
+    if count == 0
+        failures(end + 1, 1) = ...
+            "lookup:missing:" + requiredName; %#ok<AGROW>
+    elseif count > 1
+        failures(end + 1, 1) = ...
+            "lookup:duplicate:" + requiredName; %#ok<AGROW>
+    end
+end
+validNames = unique(names(strlength(names) > 0), "stable");
+for actualName = validNames.'
+    if ~any(requiredNames == actualName)
+        failures(end + 1, 1) = ...
+            "lookup:unexpected:" + actualName; %#ok<AGROW>
+    end
+end
+failures = unique(failures, "stable");
 end
 
 function failures = stateFailures(states, s, t, windowMask, validTime)

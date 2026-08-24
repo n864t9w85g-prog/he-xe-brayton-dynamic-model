@@ -74,6 +74,19 @@ end
 clear c
 end
 
+function testManifestAndDerivedSignalsMatchTrustedSpecMetadata(testCase)
+[manifest, ~] = steady53_signal_manifest("final_steady_24a");
+s = steady53_spec();
+name = [string({manifest.name}).'; ...
+    "reactor_power"; "tac_electric_power"];
+kind = [string({manifest.kind}).'; "power"; "power"];
+constant = [[manifest.constant].'; false; false];
+scaleFloor = ones(numel(name), 1);
+actual = table(name, kind, constant, scaleFloor);
+
+verifyEqual(testCase, actual, s.signalMetadata);
+end
+
 function testStateManifestCoversEveryIntegratorExactlyOnce(testCase)
 modelPath = fullfile(testCase.TestData.root, "final_steady_24a.slx");
 load_system(modelPath);

@@ -30,18 +30,16 @@ end
 function testWarningsAndLookupExcursionsBothFail(testCase)
 [t, signals, audit, s] = nominalCase();
 audit.warningIds = "HeXe:T_hi";
-audit.lookup = struct( ...
-    "name", "compressor_speed", ...
-    "inputMin", 0.9, ...
-    "inputMax", 1.2, ...
-    "bpMin", 0.9, ...
-    "bpMax", 1.1);
+row = string({audit.lookup.name}) == "compressor_efficiency_speed";
+verifyEqual(testCase, nnz(row), 1);
+audit.lookup(row).inputMax = 1.2;
 
 report = evaluate_steady53(t, signals, audit, s);
 
 verifyFalse(testCase, report.pass);
 verifyTrue(testCase, any(report.failures == "warning:HeXe:T_hi"));
-verifyTrue(testCase, any(report.failures == "lookup:compressor_speed"));
+verifyTrue(testCase, any(report.failures == ...
+    "lookup:compressor_efficiency_speed"));
 end
 
 function testStateOutsideFluidDomainFails(testCase)
@@ -77,17 +75,14 @@ end
 
 function testNonMetricMassFlowDriftFailsSignalDynamics(testCase)
 [t, signals, audit, s] = nominalCase();
-name = "diagnostic_mdot";
+name = "hexe_mdot_turbine";
 values = repmat(12, size(t));
 inFinalWindow = t >= s.finalWindow_s(1);
 values(inFinalWindow) = linspace(12, 12.024, nnz(inFinalWindow)).';
 signals.(name) = values;
-audit.signalDynamics(end + 1) = struct( ...
-    "name", name, ...
-    "data", values, ...
-    "kind", "massFlow", ...
-    "scaleFloor", s.scale.massFlow_kg_s, ...
-    "constant", false);
+entry = string({audit.signalDynamics.name}) == name;
+verifyEqual(testCase, nnz(entry), 1);
+audit.signalDynamics(entry).data = values;
 
 report = evaluate_steady53(t, signals, audit, s);
 
@@ -148,17 +143,14 @@ end
 
 function testConstantSignalDriftStillFailsDynamics(testCase)
 [t, signals, audit, s] = nominalCase();
-name = "constant_diagnostic_mdot";
+name = "lithium_mdot_reactor";
 values = repmat(12, size(t));
 inFinalWindow = t >= s.finalWindow_s(1);
 values(inFinalWindow) = linspace(12, 12.024, nnz(inFinalWindow)).';
 signals.(name) = values;
-audit.signalDynamics(end + 1) = struct( ...
-    "name", name, ...
-    "data", values, ...
-    "kind", "massFlow", ...
-    "scaleFloor", s.scale.massFlow_kg_s, ...
-    "constant", true);
+entry = string({audit.signalDynamics.name}) == name;
+verifyEqual(testCase, nnz(entry), 1);
+audit.signalDynamics(entry).data = values;
 
 report = evaluate_steady53(t, signals, audit, s);
 
@@ -186,14 +178,59 @@ name = "reactor_inlet_T";
 entry = string({audit.signalDynamics.name}) == name;
 verifyEqual(testCase, nnz(entry), 1);
 
-for invalidFloor = [2 NaN]
-    candidate = audit;
-    candidate.signalDynamics(entry).scaleFloor = invalidFloor;
-    report = evaluate_steady53(t, signals, candidate, s);
-    verifyEqual(testCase, report.failures, [ ...
-        "signal:invalid:" + name
-        "signal:coverage"]);
+candidate = audit;
+candidate.signalDynamics(entry).scaleFloor = 2;
+report = evaluate_steady53(t, signals, candidate, s);
+verifyEqual(testCase, report.failures, ...
+    "signal:metadata_scaleFloor:" + name);
+
+candidate = audit;
+candidate.signalDynamics(entry).scaleFloor = NaN;
+report = evaluate_steady53(t, signals, candidate, s);
+verifyEqual(testCase, report.failures, [ ...
+    "signal:invalid:" + name
+    "signal:coverage"]);
 end
+
+function testSignalKindTamperFailsTrustedMetadata(testCase)
+[t, signals, audit, s] = nominalCase();
+name = "reactor_inlet_T";
+entry = string({audit.signalDynamics.name}) == name;
+verifyEqual(testCase, nnz(entry), 1);
+audit.signalDynamics(entry).kind = "pressure";
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, "signal:metadata_kind:" + name);
+end
+
+function testSignalConstantTamperFailsTrustedMetadata(testCase)
+[t, signals, audit, s] = nominalCase();
+name = "lithium_mdot_reactor";
+entry = string({audit.signalDynamics.name}) == name;
+verifyEqual(testCase, nnz(entry), 1);
+verifyTrue(testCase, audit.signalDynamics(entry).constant);
+audit.signalDynamics(entry).constant = false;
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, ...
+    "signal:metadata_constant:" + name);
+end
+
+function testCallerCannotAddSelfReportedSignalMetadata(testCase)
+[t, signals, audit, s] = nominalCase();
+name = "caller_defined_output";
+signals.(name) = ones(size(t));
+audit.signalDynamics(end + 1) = struct( ...
+    "name", name, "data", signals.(name), "kind", "other", ...
+    "scaleFloor", s.scale.other, "constant", false);
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, [ ...
+    "signal:metadata_unknown:" + name
+    "signal:contract"]);
 end
 
 function testSignalDynamicsCoverageFailsClosed(testCase)
@@ -219,30 +256,72 @@ end
 
 function testMissingAndInvalidLookupEntriesFailClosed(testCase)
 [t, signals, audit, s] = nominalCase();
-validLookup = struct( ...
-    "name", "compressor_speed", ...
-    "inputMin", 0.9, ...
-    "inputMax", 1.1, ...
-    "bpMin", 0.9, ...
-    "bpMax", 1.1);
+name = "compressor_efficiency_speed";
 
-audit.lookup = rmfield(validLookup, "inputMax");
+audit.lookup = rmfield(audit.lookup, "inputMax");
 verifyAuditFailure(testCase, t, signals, audit, s, ...
-    "lookup:invalid:compressor_speed");
+    "lookup:invalid:" + name);
 
-audit.lookup = validLookup;
-audit.lookup.inputMax = NaN;
+[~, ~, audit, ~] = nominalCase();
+row = string({audit.lookup.name}) == name;
+audit.lookup(row).inputMax = NaN;
 verifyAuditFailure(testCase, t, signals, audit, s, ...
-    "lookup:invalid:compressor_speed");
+    "lookup:invalid:" + name);
 
-audit.lookup = validLookup;
-audit.lookup.bpMin = 1.2;
+[~, ~, audit, ~] = nominalCase();
+row = string({audit.lookup.name}) == name;
+audit.lookup(row).bpMin = 1.2;
 verifyAuditFailure(testCase, t, signals, audit, s, ...
-    "lookup:invalid:compressor_speed");
+    "lookup:invalid:" + name);
 
-audit.lookup = rmfield(validLookup, "name");
+[~, ~, audit, ~] = nominalCase();
+audit.lookup = rmfield(audit.lookup, "name");
 verifyAuditFailure(testCase, t, signals, audit, s, ...
     "lookup:invalid:1");
+end
+
+function testEmptyLookupAuditFailsAllRequiredNames(testCase)
+[t, signals, audit, s] = nominalCase();
+audit.lookup = struct("name", {}, "inputMin", {}, "inputMax", {}, ...
+    "bpMin", {}, "bpMax", {});
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, ...
+    "lookup:missing:" + s.requiredLookupNames);
+end
+
+function testMissingLookupNameFailsExact(testCase)
+[t, signals, audit, s] = nominalCase();
+missing = "turbine_efficiency_mass_flow";
+audit.lookup(string({audit.lookup.name}) == missing) = [];
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, "lookup:missing:" + missing);
+end
+
+function testDuplicateLookupNameFailsExact(testCase)
+[t, signals, audit, s] = nominalCase();
+duplicate = "turbine_flow_speed";
+row = string({audit.lookup.name}) == duplicate;
+audit.lookup(end + 1) = audit.lookup(row);
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, "lookup:duplicate:" + duplicate);
+end
+
+function testUnexpectedLookupNameFailsExact(testCase)
+[t, signals, audit, s] = nominalCase();
+audit.lookup(end + 1) = struct( ...
+    "name", "caller_defined_lookup", ...
+    "inputMin", 0, "inputMax", 0, "bpMin", -1, "bpMax", 1);
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, ...
+    "lookup:unexpected:caller_defined_lookup");
 end
 
 function testIncompleteAndInvalidStatesFailClosed(testCase)
@@ -480,12 +559,12 @@ end
 
 function testLookupExactlyAtBoundaryPasses(testCase)
 [t, signals, audit, s] = nominalCase();
-audit.lookup = struct( ...
-    "name", "compressor_speed", ...
-    "inputMin", 0.9, ...
-    "inputMax", 1.1, ...
-    "bpMin", 0.9, ...
-    "bpMax", 1.1);
+row = string({audit.lookup.name}) == "compressor_efficiency_speed";
+verifyEqual(testCase, nnz(row), 1);
+audit.lookup(row).inputMin = 0.9;
+audit.lookup(row).inputMax = 1.1;
+audit.lookup(row).bpMin = 0.9;
+audit.lookup(row).bpMax = 1.1;
 
 report = evaluate_steady53(t, signals, audit, s);
 
@@ -584,12 +663,13 @@ signals = signalsForTime(t, s);
 audit = struct();
 % Contract: warningIds contains property-clamp warning IDs prefiltered by runner.
 audit.warningIds = strings(0, 1);
-audit.lookup = struct( ...
-    "name", {}, ...
-    "inputMin", {}, ...
-    "inputMax", {}, ...
-    "bpMin", {}, ...
-    "bpMax", {});
+lookupCount = numel(s.requiredLookupNames);
+audit.lookup = repmat(struct( ...
+    "name", "", "inputMin", 0, "inputMax", 0, ...
+    "bpMin", -1, "bpMax", 1), lookupCount, 1);
+for index = 1:lookupCount
+    audit.lookup(index).name = s.requiredLookupNames(index);
+end
 audit.property = struct( ...
     "HeXeMin_K", s.property.HeXe_K(1), ...
     "HeXeMax_K", s.property.HeXe_K(2), ...
@@ -602,17 +682,27 @@ audit.states = struct( ...
     "data", {}, ...
     "kind", {}, ...
     "signPolicy", {});
-names = string(fieldnames(signals));
-audit.signalDynamics = struct( ...
-    "name", cellstr(names), ...
-    "data", struct2cell(signals), ...
-    "kind", repmat({"other"}, numel(names), 1), ...
-    "scaleFloor", repmat({s.scale.other}, numel(names), 1), ...
-    "constant", repmat({false}, numel(names), 1));
+metadata = s.signalMetadata;
+audit.signalDynamics = repmat(struct( ...
+    "name", "", "data", [], "kind", "", ...
+    "scaleFloor", NaN, "constant", false), height(metadata), 1);
+for index = 1:height(metadata)
+    name = metadata.name(index);
+    audit.signalDynamics(index) = struct( ...
+        "name", name, ...
+        "data", signals.(name), ...
+        "kind", metadata.kind(index), ...
+        "scaleFloor", metadata.scaleFloor(index), ...
+        "constant", metadata.constant(index));
+end
 end
 
 function signals = signalsForTime(t, s)
 signals = struct();
+for row = 1:height(s.signalMetadata)
+    name = s.signalMetadata.name(row);
+    signals.(name) = ones(size(t));
+end
 for row = 1:height(s.metrics)
     name = s.metrics.name(row);
     signals.(name) = repmat(s.metrics.target(row), size(t));

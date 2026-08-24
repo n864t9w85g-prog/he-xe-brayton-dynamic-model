@@ -1,0 +1,10 @@
+success=true
+tFinal_s=500
+errorId=
+warningIds=
+HeXeMin_K=397.63292193188511
+HeXeMax_K=1515.3874157130094
+LithiumMin_K=1430.101596106595
+LithiumMax_K=1587.6158057099647
+massClosureRel=0.001145416202230606
+massClosureTol=9.9999999999999995e-07

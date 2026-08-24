@@ -73,8 +73,12 @@ s.stopTime_s = 500;
 s.finalWindow_s = [400 500];
 audit = auditForRun(testCase.TestData.root, result, s);
 report = evaluate_steady53(result.t, result.signals, audit, s);
-evidencePath = saveTask8Evidence(testCase.TestData.root, result, report, s);
-fprintf(1, "Task 8 structured evidence: %s\n", evidencePath);
+evidenceRoot = fullfile(testCase.TestData.root, "tmp", "steady53", "task8");
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, makeTask8RunId(), result, report, s);
+published = publish_task8_evidence(stage);
+fprintf(1, "Task 8 structured evidence: %s\n", published.rawMatPath);
+fprintf(1, "Task 8 evidence manifest: %s\n", published.manifestPath);
 fprintf(1, "Task 8 failures:\n%s\n", strjoin(report.failures, newline));
 verifyTrue(testCase, report.pass, strjoin(report.failures, newline));
 end
@@ -89,31 +93,27 @@ audit.signalDynamics = signalDynamicsAudit(result.signals, spec);
 end
 
 function entries = signalDynamicsAudit(signals, spec)
-[manifest, ~] = steady53_signal_manifest("final_steady_24a");
-count = numel(manifest) + 2;
+metadata = spec.signalMetadata;
+count = height(metadata);
 entries = repmat(struct( ...
     "name", "", ...
     "data", [], ...
     "kind", "", ...
     "scaleFloor", NaN, ...
     "constant", false), count, 1);
-for index = 1:numel(manifest)
+for index = 1:count
     entries(index) = dynamicsEntry( ...
-        manifest(index).name, signals, manifest(index).kind, ...
-        manifest(index).constant, spec);
+        metadata.name(index), signals, metadata.kind(index), ...
+        metadata.constant(index), metadata.scaleFloor(index));
 end
-entries(end - 1) = dynamicsEntry( ...
-    "reactor_power", signals, "power", false, spec);
-entries(end) = dynamicsEntry( ...
-    "tac_electric_power", signals, "power", false, spec);
 end
 
-function entry = dynamicsEntry(name, signals, kind, constant, spec)
+function entry = dynamicsEntry(name, signals, kind, constant, scaleFloor)
 entry = struct( ...
     "name", string(name), ...
     "data", signals.(string(name))(:), ...
     "kind", string(kind), ...
-    "scaleFloor", signalScaleFloor(kind, spec), ...
+    "scaleFloor", double(scaleFloor), ...
     "constant", logical(constant));
 end
 
@@ -205,100 +205,11 @@ denominator = max(abs(mean(data, 2)), 1);
 value = max((max(data, [], 2) - min(data, [], 2)) ./ denominator);
 end
 
-function evidencePath = saveTask8Evidence(root, result, report, spec)
-evidenceRoot = fullfile(root, "tmp", "steady53", "task8");
-if ~isfolder(evidenceRoot)
-    mkdir(evidenceRoot);
-end
-runId = "run_" + string(floor(posixtime(datetime("now", ...
-    "TimeZone", "UTC")) * 1000)) + "_" + string(char(java.util.UUID.randomUUID));
-runId = replace(runId, "-", "");
-runDirectory = fullfile(evidenceRoot, runId);
-mkdir(runDirectory);
-evidencePath = string(fullfile(runDirectory, "nominal_500_report.mat"));
-save(evidencePath, "result", "report", "spec", "-v7.3");
-writetable(report.metrics, fullfile(runDirectory, "metrics.csv"));
-writetable(struct2table(report.audit.lookup), ...
-    fullfile(runDirectory, "lookup_audit.csv"));
-writetable(stateWindowTable(result, spec), ...
-    fullfile(runDirectory, "state_window_audit.csv"));
-writetable(report.signalDynamics, ...
-    fullfile(runDirectory, "signal_window_audit.csv"));
-writelines(report.failures, fullfile(runDirectory, "failures.txt"));
-summary = [ ...
-    "success=" + string(result.success)
-    "tFinal_s=" + compose("%.17g", result.tFinal_s)
-    "errorId=" + result.errorId
-    "warningIds=" + strjoin(result.warningIds, ",")
-    "HeXeMin_K=" + compose("%.17g", report.audit.property.HeXeMin_K)
-    "HeXeMax_K=" + compose("%.17g", report.audit.property.HeXeMax_K)
-    "LithiumMin_K=" + compose("%.17g", report.audit.property.LithiumMin_K)
-    "LithiumMax_K=" + compose("%.17g", report.audit.property.LithiumMax_K)
-    "massClosureRel=" + compose("%.17g", report.audit.massClosureRel)
-    "massClosureTol=" + compose("%.17g", spec.massClosureTol)
-    ];
-writelines(summary, fullfile(runDirectory, "summary.txt"));
-end
-
-function output = stateWindowTable(result, spec)
-count = numel(result.states);
-path = strings(count, 1);
-fluid = strings(count, 1);
-kind = strings(count, 1);
-signPolicy = strings(count, 1);
-finalValue = nan(count, 1);
-windowMean = nan(count, 1);
-windowMin = nan(count, 1);
-windowMax = nan(count, 1);
-windowPeakToPeakRel = nan(count, 1);
-windowTrendRel = nan(count, 1);
-mask = result.t >= spec.finalWindow_s(1) & ...
-    result.t <= spec.finalWindow_s(2);
-for index = 1:count
-    state = result.states(index);
-    values = state.data(:);
-    windowValues = values(mask);
-    windowTime = result.t(mask);
-    scale = max(abs(mean(windowValues)), stateScaleFloor(state.kind, spec));
-    fit = polyfit(windowTime, windowValues, 1);
-    path(index) = state.path;
-    fluid(index) = state.fluid;
-    kind(index) = state.kind;
-    signPolicy(index) = state.signPolicy;
-    finalValue(index) = values(end);
-    windowMean(index) = mean(windowValues);
-    windowMin(index) = min(windowValues);
-    windowMax(index) = max(windowValues);
-    windowPeakToPeakRel(index) = ...
-        (windowMax(index) - windowMin(index)) / scale;
-    windowTrendRel(index) = abs(fit(1)) * ...
-        diff(spec.finalWindow_s) / scale;
-end
-output = table(path, fluid, kind, signPolicy, finalValue, windowMean, ...
-    windowMin, windowMax, windowPeakToPeakRel, windowTrendRel);
-end
-
-function scale = stateScaleFloor(kind, spec)
-scale = signalScaleFloor(kind, spec);
-end
-
-function scale = signalScaleFloor(kind, spec)
-switch string(kind)
-    case "temperature"
-        scale = spec.scale.temperature_K;
-    case "pressure"
-        scale = spec.scale.pressure_Pa;
-    case "power"
-        scale = spec.scale.power_W;
-    case "massFlow"
-        scale = spec.scale.massFlow_kg_s;
-    case "speed"
-        scale = spec.scale.speed_rpm;
-    case "dimensionless"
-        scale = spec.scale.dimensionless;
-    otherwise
-        scale = spec.scale.other;
-end
+function runId = makeTask8RunId()
+milliseconds = string(floor(posixtime(datetime("now", ...
+    "TimeZone", "UTC")) * 1000));
+uuid = replace(string(char(java.util.UUID.randomUUID())), "-", "");
+runId = "run_" + milliseconds + "_" + uuid;
 end
 
 function closeTestOwnedModel(model, wasLoaded)

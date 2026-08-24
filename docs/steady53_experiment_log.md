@@ -241,8 +241,8 @@
 - ✅ 最小修正：指标表新增明示 `windowPass`；37 行信号中的 21 个
   指标行直接复用已计算的 `peakToPeakRel/trendRel/windowPass`，因而精确复用
   `abs(target)` 口径；只有其余 16 行使用末窗均值与批准尺度下限的较大值。
-- ✅ 新回归精确覆盖数据不一致、常量漂移、重名审计、零/未批准
-  `scaleFloor` 失败。`constant=true` 只是元数据，常量漂移仍同时产生
+- ✅ 新回归精确覆盖数据不一致、常量漂移、重名审计、非法（`NaN`）/未批准
+  （`2`）的 `scaleFloor` 失败。`constant=true` 只是元数据，常量漂移仍同时产生
   `signal:peak_to_peak:*` 和 `signal:trend:*`。
 - ✅ TDD GREEN：5/5 精确复审测试通过；`test_evaluate_steady53` 发现
   33 项并实测 `33 Passed, 0 Failed, 0 Incomplete`。
@@ -266,3 +266,48 @@
   ✅ 事实；因此需要另选 `P(T)` 则是论文未定义的 ❓ 数值实现判断。
 - ❓ Task 8 仍为 RED/未完成；本轮没有修改正式 SLX、MAT、物理方程、
   参数、初值或验收门槛。
+
+## 2026-08-25 Task 8 质量复审修正：可信合同与不可变证据发布
+
+- ✅ `steady53_spec` 现固定 8 个必需查表审计名；evaluator 要求调用审计与该集合
+  精确相等且每项恰好一次。空集合、缺项、重项和未知额外项均 fail closed，
+  对应 4 类回归已由 RED 转为 GREEN。
+- ✅ `steady53_spec` 现固定 37 行可信信号元数据合同，逐名规定
+  `name/kind/constant/scaleFloor`，包括派生量 `reactor_power` 和
+  `tac_electric_power`。evaluator 不再信任调用者自报元数据；`kind`、
+  `constant`、合法但未批准的 `scaleFloor=2`、非法 `scaleFloor=NaN` 及未知信号
+  的篡改回归均 fail closed。
+- ✅ `steady53_signal_manifest` 的 35 行加两个派生量与上述 37 行规格合同进行
+  全表一致性回归；规格自身另以硬编码期望表验证名称唯一、类型集合、常量标记和
+  正有限尺度下限，避免可信合同退化为调用者自报。
+- ✅ Task 8 证据写入已拆为 staging 与排他发布两个可测 helper：同文件系统 staging
+  先写完整 MAT 和 6 个小文件、逐个计算 SHA-256，最后生成含 `runId`、源模型
+  hash、原始 MAT hash、小文件 hash、`status=completed`、`createdAt` 的 manifest；
+  发布时 manifest 最后出现。受控 runId 碰撞、目标文件碰撞、发布中断和旧证据
+  hash 不变 4 项回归均通过；碰撞精确报 `steady53:EvidenceAlreadyExists`，中断不会
+  产生 completed 目标或 current 假象。
+- ✅ 采用新 helper 的真实阻塞 `500 s` 运行 ID 为
+  `run_1787586447806_3d8eac4909284e1cb114e0911008dd2b`；精确选中 1 项并实测
+  `0 Passed, 1 Failed, 0 Incomplete`。仿真本身 `success=true`、`tFinal_s=500`、
+  `errorId=""`、`warningIds=[]`；失败仍为 23 项，首个为
+  `turbine_outlet_T:target`，最后为 `mass:closure`。
+- ✅ 新完整 MAT 位于
+  `tmp/steady53/task8/run_1787586447806_3d8eac4909284e1cb114e0911008dd2b/nominal_500_report.mat`，
+  SHA-256 为 `f0525396c7159eb6dff5e2f9bc3b2e0f54e66c0d3e94875ce43240a8042f0443`；
+  manifest 的源模型 SHA-256 为
+  `5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d`。
+  小型自包含证据位于
+  `docs/steady53_evidence/task8_red/run_1787586447806_3d8eac4909284e1cb114e0911008dd2b/`，
+  与临时运行目录逐文件一致；两个既有受控 run 未被覆盖或改写。
+- ✅ Root-Cause Addendum 的 H1a 只读分析仍精确绑定人工指定输入 run
+  `run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3` 及 MAT SHA-256
+  `4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b`；
+  草案明确拟读取字段、拟用只读脚本、输出路径及输出必须记录输入 MAT hash。
+  本轮不创建或运行该待批准脚本，也不授权临时 SLX 修改。
+- ✅ 完整 MATLAB 发现集共 76 项，断言且排除恰好 1 个预期 Task 8 RED 后，
+  活动集实测 `75 Passed, 0 Failed, 0 Incomplete`。带 Pillow 的 Homebrew Python
+  实测 `6 tests, OK`；系统 `/usr/bin/python3` 仍因缺少 Pillow 不能导入该测试，
+  未安装或改动依赖。
+- ✅ `checkcode` 对本轮 9 个相关 MATLAB 文件均报告 0 项；`git diff --check`
+  已执行且无空白错误。Task 8 仍为 RED/未完成；本轮没有修改正式 SLX、MAT、
+  物理方程、参数、初值或验收门槛。

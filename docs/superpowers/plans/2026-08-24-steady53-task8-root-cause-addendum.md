@@ -44,6 +44,10 @@ test_final_steady_acceptance/testNominalCoupledModelMatchesSection531By500Second
   `run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3`，实测仍为
   `0 Passed, 1 Failed, 0 Incomplete`；完整 MAT SHA-256 为
   `4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b`，未覆盖任何旧 run。
+- ✅ 可信审计合同和排他证据发布实现后，另行生成验证 run
+  `run_1787586447806_3d8eac4909284e1cb114e0911008dd2b`；其完整 MAT SHA-256 为
+  `f0525396c7159eb6dff5e2f9bc3b2e0f54e66c0d3e94875ce43240a8042f0443`，并有
+  `status=completed` 的 `manifest.json`。它不改变本补遗下述 H1a 已固定的输入 run。
 
 ## 3. RED 的自动覆盖口径
 
@@ -65,6 +69,11 @@ test_final_steady_acceptance/testNominalCoupledModelMatchesSection531By500Second
   转速 `1 rpm`、质量流量 `1 kg/s`、无量纲及其他量 `1`；
 - ✅ 审计名集与 `result.signals` 名集不全等、重名、数据不一致或尺度不符合固定
   规格时均 fail closed。
+- ✅ `steady53_spec.requiredLookupNames` 固定 8 个 lookup 名称；审计必须
+  集合精确相等且每项恰好一次，空、缺失、重名或未知额外项均 fail closed。
+- ✅ `steady53_spec.signalMetadata` 固定 37 行
+  `name/kind/constant/scaleFloor` 可信合同；evaluator 逐名比对调用审计，
+  并只用 spec 行进入报告与归一化，不依赖调用者自报。
 
 ✅ 最新报告实测 21/21 论文指标与 37/37 个结果信号的末窗波动/趋势门全部通过；
 最大相对峰峰值为 `4.52673514492192e-5`，最大相对趋势为
@@ -152,8 +161,43 @@ Eq. (2.30) 实际过程和理想过程的平均 cp̅ 作为增量变量单独计
 
 ## 7. 待批准的唯一只读 H1a 计划
 
-输入固定为新 500 s 运行报告中的透平末时刻 `T1/P1/P2/eta/cp1/cp2`。本轮只计算
-φ̅ 对 Eq. (2.28) `T2s` 及在当前 Eq. (2.30) 处理下 `T2` 的独立贡献。
+输入严格固定为：
+
+- run ID：`run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3`；
+- 输入 MAT：
+  `tmp/steady53/task8/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/nominal_500_report.mat`；
+- 输入 MAT SHA-256：
+  `4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b`。
+
+若 H1a 获得人工批准，待创建的唯一只读脚本路径固定为
+`tests/steady53/analyze_task8_h1a_readonly.m`；在批准前不创建、不执行该脚本。
+它必须只用 `load(inputMat,"result","report","spec")` 读取：
+
+- `result.t`；
+- `result.signals.turbine_inlet_T`、`result.signals.turbine_inlet_P`；
+- `result.signals.turbine_outlet_P`、`result.signals.turbine_outlet_T`；
+- `result.signals.turbine_lookup_mass_flow`、
+  `result.signals.turbine_lookup_speed_eff`；
+- `result.signals.turbine_expansion_ratio`；
+- `report.metrics` 中的 `turbine_outlet_T` 目标和当前误差；
+- `spec.finalWindow_s`。
+
+末时刻 `T1/P1/P2/T2` 从上述时序字段取值；`gamma/cp1/cp2` 只读调用
+`HeXe_property_simulink`复算。固定的当前 `eta` 由上述两个 lookup 输入与
+`turbine_table2.mat` 中的 `bp_mf/bp_speed/table_eff` 按当前查表方式只读复算；
+输出还必须记录该 lookup MAT 的 SHA-256。
+
+若获批执行，输出路径固定为：
+
+- `tmp/steady53/task8_root_cause/h1a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/h1a_sensitivity.csv`；
+- `tmp/steady53/task8_root_cause/h1a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/h1a_summary.txt`。
+
+`h1a_summary.txt` 必须记录输入 run ID、输入 MAT 精确路径和
+`inputMatSha256=4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b`；
+若执行时哈希不等则 fail closed，不产生 H1a 结果。
+
+本轮只计算 φ̅ 对 Eq. (2.28) `T2s` 及在当前 Eq. (2.30) 处理下
+`T2` 的独立贡献。
 `eta/cp1/cp2`、查表、MAT、模型、初值和其他部件全部固定。
 
 由于论文未定义 φ̅ 的唯一平均路径，只读报告必须并列、不代用户选择下列“数值实现选择”
