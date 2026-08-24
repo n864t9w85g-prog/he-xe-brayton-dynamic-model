@@ -62,6 +62,231 @@ verifyEqual(testCase, result.tFinal_s, 14000, "AbsTol", 1e-9);
 verifyEmpty(testCase, result.warningIds);
 end
 
+function testNominalCoupledModelMatchesSection531By500Seconds(testCase)
+modelPath = fullfile(testCase.TestData.root, "final_steady_24a.slx");
+result = run_steady53_case(modelPath, 500, true);
+verifyTrue(testCase, result.success, result.errorReport);
+verifyEqual(testCase, result.tFinal_s, 500);
+
+s = steady53_spec();
+s.stopTime_s = 500;
+s.finalWindow_s = [400 500];
+audit = auditForRun(testCase.TestData.root, result);
+report = evaluate_steady53(result.t, result.signals, audit, s);
+evidencePath = saveTask8Evidence(testCase.TestData.root, result, report, s);
+fprintf(1, "Task 8 structured evidence: %s\n", evidencePath);
+fprintf(1, "Task 8 failures:\n%s\n", strjoin(report.failures, newline));
+verifyTrue(testCase, report.pass, strjoin(report.failures, newline));
+end
+
+function audit = auditForRun(root, result)
+audit.warningIds = result.warningIds;
+audit.lookup = lookupAudit(root, result.signals);
+audit.property = propertyAudit(result);
+audit.massClosureRel = massClosure(result.signals);
+audit.states = result.states;
+end
+
+function audit = lookupAudit(root, signals)
+compressor = load(fullfile(root, "hexe_compressor_lookup.mat"), ...
+    "speed_bp", "m_ratio_bp");
+turbineFlow = load(fullfile(root, "turbine_table1.mat"), ...
+    "bp_speed", "bp_er");
+turbineEfficiency = load(fullfile(root, "turbine_table2.mat"), ...
+    "bp_speed", "bp_mf");
+
+audit = struct("name", {}, "inputMin", {}, "inputMax", {}, ...
+    "bpMin", {}, "bpMax", {});
+audit(end + 1) = margin("compressor_efficiency_speed", ...
+    signals.compressor_lookup_speed_eff, compressor.speed_bp);
+audit(end + 1) = margin("compressor_efficiency_flow", ...
+    signals.compressor_lookup_flow_eff, compressor.m_ratio_bp);
+audit(end + 1) = margin("compressor_pressure_ratio_speed", ...
+    signals.compressor_lookup_speed_pr, compressor.speed_bp);
+audit(end + 1) = margin("compressor_pressure_ratio_flow", ...
+    signals.compressor_lookup_flow_pr, compressor.m_ratio_bp);
+audit(end + 1) = margin("turbine_flow_expansion_ratio", ...
+    signals.turbine_lookup_expansion_ratio, turbineFlow.bp_er);
+audit(end + 1) = margin("turbine_flow_speed", ...
+    signals.turbine_lookup_speed_flow, turbineFlow.bp_speed);
+audit(end + 1) = margin("turbine_efficiency_mass_flow", ...
+    signals.turbine_lookup_mass_flow, turbineEfficiency.bp_mf);
+audit(end + 1) = margin("turbine_efficiency_speed", ...
+    signals.turbine_lookup_speed_eff, turbineEfficiency.bp_speed);
+end
+
+function audit = margin(name, values, breakpoints)
+audit = struct( ...
+    "name", string(name), ...
+    "inputMin", min(values), ...
+    "inputMax", max(values), ...
+    "bpMin", min(breakpoints), ...
+    "bpMax", max(breakpoints));
+end
+
+function property = propertyAudit(result)
+names = [ ...
+    "turbine_inlet_T"
+    "turbine_outlet_T"
+    "compressor_inlet_T"
+    "compressor_outlet_T"
+    "recuperator_hot_outlet_T"
+    "recuperator_cold_outlet_T"
+    ];
+hexe = zeros(0, 1);
+for name = names.'
+    hexe = [hexe; result.signals.(name)(:)]; %#ok<AGROW>
+end
+lithium = [result.signals.reactor_outlet_T(:); ...
+    result.signals.reactor_inlet_T(:)];
+for index = 1:numel(result.states)
+    if result.states(index).fluid == "HeXe"
+        hexe = [hexe; result.states(index).data(:)]; %#ok<AGROW>
+    elseif result.states(index).fluid == "Lithium"
+        lithium = [lithium; result.states(index).data(:)]; %#ok<AGROW>
+    end
+end
+property = struct( ...
+    "HeXeMin_K", min(hexe), ...
+    "HeXeMax_K", max(hexe), ...
+    "LithiumMin_K", min(lithium), ...
+    "LithiumMax_K", max(lithium));
+end
+
+function value = massClosure(signals)
+hexeNames = [ ...
+    "hexe_mdot_turbine"
+    "hexe_mdot_compressor"
+    "hexe_mdot_ihx"
+    "hexe_mdot_recup_hot"
+    "hexe_mdot_recup_cold"
+    ];
+lithiumNames = ["lithium_mdot_reactor"; "lithium_mdot_ihx"];
+value = max(groupClosure(signals, hexeNames), ...
+    groupClosure(signals, lithiumNames));
+end
+
+function value = groupClosure(signals, names)
+data = zeros(numel(signals.(names(1))), numel(names));
+for index = 1:numel(names)
+    data(:, index) = signals.(names(index))(:);
+end
+denominator = max(abs(mean(data, 2)), 1);
+value = max((max(data, [], 2) - min(data, [], 2)) ./ denominator);
+end
+
+function evidencePath = saveTask8Evidence(root, result, report, spec)
+evidenceRoot = fullfile(root, "tmp", "steady53", "task8");
+if ~isfolder(evidenceRoot)
+    mkdir(evidenceRoot);
+end
+runId = "run_" + string(floor(posixtime(datetime("now", ...
+    "TimeZone", "UTC")) * 1000)) + "_" + string(char(java.util.UUID.randomUUID));
+runId = replace(runId, "-", "");
+runDirectory = fullfile(evidenceRoot, runId);
+mkdir(runDirectory);
+evidencePath = string(fullfile(runDirectory, "nominal_500_report.mat"));
+save(evidencePath, "result", "report", "spec", "-v7.3");
+writetable(report.metrics, fullfile(runDirectory, "metrics.csv"));
+writetable(struct2table(report.audit.lookup), ...
+    fullfile(runDirectory, "lookup_audit.csv"));
+writetable(stateWindowTable(result, spec), ...
+    fullfile(runDirectory, "state_window_audit.csv"));
+writetable(signalWindowTable(result, spec), ...
+    fullfile(runDirectory, "signal_window_audit.csv"));
+writelines(report.failures, fullfile(runDirectory, "failures.txt"));
+summary = [ ...
+    "success=" + string(result.success)
+    "tFinal_s=" + compose("%.17g", result.tFinal_s)
+    "errorId=" + result.errorId
+    "warningIds=" + strjoin(result.warningIds, ",")
+    "HeXeMin_K=" + compose("%.17g", report.audit.property.HeXeMin_K)
+    "HeXeMax_K=" + compose("%.17g", report.audit.property.HeXeMax_K)
+    "LithiumMin_K=" + compose("%.17g", report.audit.property.LithiumMin_K)
+    "LithiumMax_K=" + compose("%.17g", report.audit.property.LithiumMax_K)
+    "massClosureRel=" + compose("%.17g", report.audit.massClosureRel)
+    "massClosureTol=" + compose("%.17g", spec.massClosureTol)
+    ];
+writelines(summary, fullfile(runDirectory, "summary.txt"));
+end
+
+function output = stateWindowTable(result, spec)
+count = numel(result.states);
+path = strings(count, 1);
+fluid = strings(count, 1);
+kind = strings(count, 1);
+signPolicy = strings(count, 1);
+finalValue = nan(count, 1);
+windowMean = nan(count, 1);
+windowMin = nan(count, 1);
+windowMax = nan(count, 1);
+windowPeakToPeakRel = nan(count, 1);
+windowTrendRel = nan(count, 1);
+mask = result.t >= spec.finalWindow_s(1) & ...
+    result.t <= spec.finalWindow_s(2);
+for index = 1:count
+    state = result.states(index);
+    values = state.data(:);
+    windowValues = values(mask);
+    windowTime = result.t(mask);
+    scale = max(abs(mean(windowValues)), stateScaleFloor(state.kind, spec));
+    fit = polyfit(windowTime, windowValues, 1);
+    path(index) = state.path;
+    fluid(index) = state.fluid;
+    kind(index) = state.kind;
+    signPolicy(index) = state.signPolicy;
+    finalValue(index) = values(end);
+    windowMean(index) = mean(windowValues);
+    windowMin(index) = min(windowValues);
+    windowMax(index) = max(windowValues);
+    windowPeakToPeakRel(index) = ...
+        (windowMax(index) - windowMin(index)) / scale;
+    windowTrendRel(index) = abs(fit(1)) * ...
+        diff(spec.finalWindow_s) / scale;
+end
+output = table(path, fluid, kind, signPolicy, finalValue, windowMean, ...
+    windowMin, windowMax, windowPeakToPeakRel, windowTrendRel);
+end
+
+function output = signalWindowTable(result, spec)
+names = string(fieldnames(result.signals));
+count = numel(names);
+name = strings(count, 1);
+finalValue = nan(count, 1);
+windowMean = nan(count, 1);
+windowMin = nan(count, 1);
+windowMax = nan(count, 1);
+mask = result.t >= spec.finalWindow_s(1) & ...
+    result.t <= spec.finalWindow_s(2);
+for index = 1:count
+    values = result.signals.(names(index))(:);
+    windowValues = values(mask);
+    name(index) = names(index);
+    finalValue(index) = values(end);
+    windowMean(index) = mean(windowValues);
+    windowMin(index) = min(windowValues);
+    windowMax(index) = max(windowValues);
+end
+output = table(name, finalValue, windowMean, windowMin, windowMax);
+end
+
+function scale = stateScaleFloor(kind, spec)
+switch string(kind)
+    case "temperature"
+        scale = spec.scale.temperature_K;
+    case "pressure"
+        scale = spec.scale.pressure_Pa;
+    case "power"
+        scale = spec.scale.power_W;
+    case "massFlow"
+        scale = spec.scale.massFlow_kg_s;
+    case "speed"
+        scale = spec.scale.speed_rpm;
+    otherwise
+        scale = spec.scale.other;
+end
+end
+
 function closeTestOwnedModel(model, wasLoaded)
 if ~wasLoaded && bdIsLoaded(model)
     close_system(model, 0);
