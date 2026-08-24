@@ -26,6 +26,45 @@ verifyEqual(testCase, metricTarget(s, "compressor_power"), 1231.6e3);
 verifyEqual(testCase, metricTarget(s, "tac_electric_power"), 1000.21e3);
 end
 
+function testMetricTableContract(testCase)
+s = steady53_spec();
+expectedNames = [
+    "reactor_inlet_T"
+    "reactor_outlet_T"
+    "turbine_inlet_T"
+    "turbine_inlet_P"
+    "turbine_outlet_T"
+    "turbine_outlet_P"
+    "compressor_inlet_T"
+    "compressor_inlet_P"
+    "compressor_outlet_T"
+    "compressor_outlet_P"
+    "recuperator_hot_outlet_T"
+    "recuperator_hot_outlet_P"
+    "recuperator_cold_outlet_T"
+    "recuperator_cold_outlet_P"
+    "cooler_cold_inlet_T"
+    "cooler_cold_outlet_T"
+    "reactor_power"
+    "turbine_power"
+    "compressor_power"
+    "tac_electric_power"
+    "rotor_speed"
+    ];
+
+verifyEqual(testCase, height(s.metrics), 21);
+verifyEqual(testCase, s.metrics.name, expectedNames);
+verifyEqual(testCase, numel(unique(s.metrics.name)), height(s.metrics));
+verifyEqual(testCase, s.metrics.Properties.VariableNames, ...
+    {'name', 'target', 'unit', 'relTol', 'settleDeadline_s'});
+
+speedRow = s.metrics.name == "rotor_speed";
+verifyEqual(testCase, nnz(speedRow), 1);
+verifyEqual(testCase, s.metrics.relTol(speedRow), 1 / 55090);
+verifyEqual(testCase, s.metrics.relTol(~speedRow), ...
+    repmat(s.outputRelTol, nnz(~speedRow), 1));
+end
+
 function target = metricTarget(s, name)
 row = s.metrics.name == name;
 assert(nnz(row) == 1, "Expected exactly one metric named '%s'.", name);

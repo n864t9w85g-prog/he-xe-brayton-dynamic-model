@@ -94,8 +94,10 @@ unit = [
     "rpm"
     ];
 
-relTol = repmat(s.outputRelTol, 21, 1);
-relTol(end) = s.speedAbsTol_rpm / target(end);
+relTol = repmat(s.outputRelTol, numel(name), 1);
+speedRow = name == "rotor_speed";
+assert(nnz(speedRow) == 1, "Expected exactly one rotor_speed metric.");
+relTol(speedRow) = s.speedAbsTol_rpm / target(speedRow);
 
 settleDeadline_s = [
     75
