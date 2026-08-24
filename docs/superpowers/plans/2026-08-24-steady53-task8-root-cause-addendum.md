@@ -1,14 +1,15 @@
 # Task 8 Root-Cause Addendum 草案：500 s 名义整机稳态点偏移
 
 **日期：** 2026-08-24
-**状态：** RED，未批准，停在 Root-Cause Checkpoint
+**状态：** RED；第 7 节只读 H1a 已于 2026-08-25 批准，S2 因物性域失效 BLOCKED
 **正式模型：** `final_steady_24a.slx`
 **正式模型 SHA-256：** `5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d`
 
 ## 1. 人工批准门
 
-本文档只是一份根因定位草案，不授权任何正式或临时模型修改。本轮唯一待批准范围是
-第 7 节的完全只读离线 H1a 分解。在用户明确批准前，不得：
+本文档不授权任何正式或临时模型修改。用户已于 2026-08-25 批准
+第 7 节的完全只读离线 H1a 分解，并批准其中的活动扩展比字段与外层根区间修订。
+该批准不放宽以下禁止事项：
 
 - 修改 `final_steady_24a.slx`、任何 `tmp` SLX 副本或模型内存中的方程；
 - 修改 `HeXe_property_simulink.m`、透平查表、任何 MAT、初值或效率；
@@ -159,7 +160,7 @@ Eq. (2.30) 实际过程和理想过程的平均 cp̅ 作为增量变量单独计
 **H2（❓）：** 如果分离的 H1a/H1b 仍不能解释偏差，再逐项核对
 `HeXe_property_simulink` 与论文 Eq. (2.8)–(2.17) 及其原始系数。本轮不执行 H2。
 
-## 7. 待批准的唯一只读 H1a 计划
+## 7. 2026-08-25 已批准的唯一只读 H1a 计划
 
 输入严格固定为：
 
@@ -169,8 +170,8 @@ Eq. (2.30) 实际过程和理想过程的平均 cp̅ 作为增量变量单独计
 - 输入 MAT SHA-256：
   `4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b`。
 
-若 H1a 获得人工批准，待创建的唯一只读脚本路径固定为
-`tests/steady53/analyze_task8_h1a_readonly.m`；在批准前不创建、不执行该脚本。
+已批准的唯一只读脚本路径固定为
+`tests/steady53/analyze_task8_h1a_readonly.m`。
 它必须只用 `load(inputMat,"result","report","spec")` 读取：
 
 - `result.t`；
@@ -178,7 +179,7 @@ Eq. (2.30) 实际过程和理想过程的平均 cp̅ 作为增量变量单独计
 - `result.signals.turbine_outlet_P`、`result.signals.turbine_outlet_T`；
 - `result.signals.turbine_lookup_mass_flow`、
   `result.signals.turbine_lookup_speed_eff`；
-- `result.signals.turbine_expansion_ratio`；
+- `result.signals.turbine_lookup_expansion_ratio`；
 - `report.metrics` 中的 `turbine_outlet_T` 目标和当前误差；
 - `spec.finalWindow_s`。
 
@@ -187,7 +188,7 @@ Eq. (2.30) 实际过程和理想过程的平均 cp̅ 作为增量变量单独计
 `turbine_table2.mat` 中的 `bp_mf/bp_speed/table_eff` 按当前查表方式只读复算；
 输出还必须记录该 lookup MAT 的 SHA-256。
 
-若获批执行，输出路径固定为：
+若两种候选都通过 fail-closed 门槛，输出路径固定为：
 
 - `tmp/steady53/task8_root_cause/h1a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/h1a_sensitivity.csv`；
 - `tmp/steady53/task8_root_cause/h1a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/h1a_summary.txt`。
@@ -214,10 +215,28 @@ S1/S2 都只是论文未指定的数值实现选择，不是已证实的物理�
 
 为保证只读数值可复现，候选工作表的数值设置固定为：
 
-- 外层 `T2s` 求根区间 `[100 K,T1]`，要求残差绝对值 `≤1e-9 K`；
+- 外层 `T2s` 求根区间由 `0<phiBar<1` 推导为 `[T1/pi,T1]`，从验证后的
+  `T1` 和活动 `pi=result.signals.turbine_lookup_expansion_ratio` 计算，不硬编码端点；
+  固定输入的预期区间为
+  `[664.1670261116656 K,1515.109678670083 K]`，要求 `pi>1`、物性和
+  `0<phi<1` 域全部有效，根残差绝对值 `≤1e-9 K`；
 - S2 的 `λ∈[0,1]` 积分使用 `RelTol=1e-8`、`AbsTol=1e-10`；
 - 物性越界、求根无括号区间或不收敛均 fail closed；
 - 只生成离线表格/文本，不调用 `set_param`，不保存或仿真任何 SLX。
+
+扩展比字段合同已于 2026-08-25 由用户明确修订：末值
+`2.2812178550028612` 的 `turbine_lookup_expansion_ratio` 是活动 Eq. (2.28) `pi`；
+`turbine_expansion_ratio=2.3620239539147176` 来自 Compressor `r`，不是活动
+Eq. (2.28) 输入。
+
+实际固定输入的真实 `@integral` 聚焦执行仍然 fail closed：S2 线性
+`(T,P)` 路径在 `T=992.38742737169468 K`、`P=1007910.8613125964 Pa`
+读到 `cp=-2992.6147173565741 J/(kg K)`、`gamma=0.93510394545186759`，
+对应 `phi=-0.069399829680723668`。该点违反 `cp>0`、`gamma>1`、
+`0<phi<1` 的必需域，因此完整 H1a-S2 状态为 **BLOCKED**，且正式 H1a
+输出不得发布。一次仅保留 finite/real 的诊断还触发
+`MATLAB:integral:MaxIntervalCountReached`（估计误差约 `2.2e-05`）；该诊断明确为
+**INVALID**，没有产生可接受的 S2 数值，不得用来判断 H1a 是否足量。
 
 H1a 只读结果审核后，用户才决定是否选择其中一个数值实现，进入第二份补遗的单变量
 临时 H1a 实验，或停止 H1。

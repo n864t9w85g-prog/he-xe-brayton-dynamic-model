@@ -508,3 +508,51 @@
   恰好 `1` 项；禁止 load/sim 的完整活动回归有意未运行。`git diff --check` 与禁止
   模型 API 静态扫描通过；正式模型、四个正式 MAT、固定输入 MAT、归档 tag hash 均
   保持前述固定值，正式固定 H1a 输出目录经磁盘复核仍不存在。
+
+### 2026-08-25 批准后 H1a-S2：推导根区间与物性域阻断
+
+- ✅ 人工批准修订：用户于 2026-08-25 明确批准将活动 Eq. (2.28)
+  扩展比字段固定为 `result.signals.turbine_lookup_expansion_ratio`，固定输入
+  末值为 `2.2812178550028612`。旧
+  `turbine_expansion_ratio=2.3620239539147176` 是 Compressor `r`，不是活动
+  Eq. (2.28) `pi`；原先的字段合同冲突因此已解除。本批准不授权修改
+  任何 SLX/MAT、物性方程或执行 H1b。
+- ✅ 根区间修订：外层 `T2s` 区间从验证后的活动量计算为
+  `[T1/pi,T1]`，不硬编码端点。固定输入实际为
+  `[664.16702611166556 K,1515.109678670083 K]`，与批准文本的约定值
+  `[664.1670261116656 K,1515.109678670083 K]` 一致。入口要求 `pi>1`，
+  物性函数每次调用要求 `cp>0`、`gamma>1`，每个 phi 评估要求
+  `0<phi<1`。
+- ✅ TDD RED→GREEN：先将真实 `@integral` 回归改为新合同，旧实现仍报
+  `[100 K,T1]`，实测 `0 Passed, 1 Failed, 1 Incomplete`。实现推导区间后，
+  一次仅检查 finite/real 的诊断使严格物性域回归实测
+  `0 Passed, 1 Failed, 0 Incomplete`；恢复 `cp>0`、`gamma>1`、`0<phi<1`
+  fail closed 后，单项真实积分回归与完整 H1a 聚焦回归分别为
+  `1 Passed, 0 Failed, 0 Incomplete` 与 `17 Passed, 0 Failed, 0 Incomplete`。
+- ✅ 新的精确 fail-closed 根因：固定输入的 S2 线性 `(T,P)` 路径在
+  `T=992.38742737169468 K`、`P=1007910.8613125964 Pa` 读到
+  `cp=-2992.6147173565741 J/(kg K)`、`gamma=0.93510394545186759`、
+  `phi=-0.069399829680723668`。该点同时违反三个必需物性域，分析器以
+  `steady53:H1aInvalidProperty` 在发布前失败关闭。
+- ❌ 为识别根因做过一次仅保留 finite/real 的受控诊断；它不符合批准
+  的物性/phi 域，明确标记为 **INVALID**。即使放宽后，真实 `integral`
+  仍触发 `MATLAB:integral:MaxIntervalCountReached`，报告估计误差约
+  `2.2e-05`。没有可接受的 S2 值，该诊断不得用于判断 H1a。
+- ❓ S1 不依赖 S2 路径积分，在新根区间内的只读局部值为
+  `phiBar=0.39978932815006674`、`T2s=1089.5641955018061 K`、
+  `T2=1143.6630406569657 K`、`rootResidual=2.2737367544323206e-13 K`、
+  `deltaT2FromBaseline=-0.072729954210672076 K`。它仍是论文未指定的数值实现
+  候选，不能单独完成 H1a。
+- ❓ 完整 H1a-S2 状态为 **BLOCKED/未完成**。正式固定 H1a 输出目录
+  仍不存在，本轮没有发布或伪造 CSV/TXT；既有 invalid attempt 目录未改动。
+  因为无有效 S2 结果，现在不能按数值判断 H1a 是否足以解释
+  `18.264229388823651 K` 末时刻偏差。H1b 未执行，模型与 MAT 未修改。
+- ✅ 许可范围内的最终验证：H1a 聚焦测试 `17 Passed, 0 Failed,
+  0 Incomplete`；明确不触及 SLX 的 spec/evaluator/evidence/H1a 四文件
+  离线子集 `84 Passed, 0 Failed, 0 Incomplete`。完整 steady53 目录只做
+  发现、不执行：共 `111` 项，既定 Task 8 RED 名称恰好 `1` 项；禁止
+  load/sim 的完整活动回归有意未运行，本条不是其余测试全绿声明。
+  两个 H1a MATLAB 文件 `checkcode` 均为 0 项；Homebrew Python provenance
+  `6 tests, OK`；禁止模型 API 扫描、受限 `load` 核对和 `git diff --check`
+  全部通过。正式模型、四个正式 MAT、固定输入 MAT 与归档 tag 均保持
+  前述固定 hash；正式 H1a 输出目录仍不存在。

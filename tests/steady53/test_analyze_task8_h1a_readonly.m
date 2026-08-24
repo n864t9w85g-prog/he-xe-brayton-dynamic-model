@@ -37,45 +37,51 @@ required = [ ...
     "h1a_summary.txt"
     "turbine_lookup_expansion_ratio"
     "turbine_expansion_ratio"
-    "H1a remains BLOCKED pending user approval"];
+    "2026-08-25"
+    "2.3620239539147176"
+    "Compressor r"];
 for index = 1:numel(required)
     verifyTrue(testCase, contains(source, required(index)));
 end
+verifyFalse(testCase, contains(source, ...
+    "expansionRatioContractConflict"));
+verifyFalse(testCase, contains(source, ...
+    "H1a remains BLOCKED pending user approval"));
 end
 
-function testFixedInputIntegrationNonconvergenceFailsBeforeOutput(testCase)
-outputDir = fullfile(testCase.TestData.root, "tmp", "steady53", ...
-    "task8_root_cause", "h1a", ...
-    "run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3");
+function testApprovedFixedInputRealIntegralFailsOnNonphysicalProperty(testCase)
+outputDir = fullfile(testCase.TestData.tempRoot, ...
+    "approved_real_integral");
+options = validTestOptions(testCase.TestData.root, outputDir);
+options.integralFunction = @integral;
 loadedBefore = loadedBlockDiagrams();
 protectedBefore = protectedHashes(testCase.TestData.root);
 pathBefore = path;
 warningsBefore = warning;
 
 try
-    analyze_task8_h1a_readonly();
-    verifyFail(testCase, "Expected fail-closed S2 integration warning.");
+    analyze_task8_h1a_readonly(options);
+    verifyFail(testCase, ...
+        "Expected nonphysical S2 path property to fail closed.");
 catch exception
     verifyEqual(testCase, string(exception.identifier), ...
-        "steady53:H1aIntegrationNonconvergence");
-    verifyEqual(testCase, numel(exception.cause), 1);
-    verifyEqual(testCase, string(exception.cause{1}.identifier), ...
-        "MATLAB:integral:MaxIntervalCountReached");
-    stackNames = string({exception.cause{1}.stack.name});
-    verifyTrue(testCase, any(contains(stackNames, "integralCalc")));
-    verifyTrue(testCase, contains(string(exception.message), ...
-        "phiBar=0.39978932815006674"));
-    verifyTrue(testCase, contains(string(exception.message), ...
-        "T2s_K=1089.5641955018075"));
-    verifyTrue(testCase, contains(string(exception.message), ...
-        "T2_K=1143.6630406569668"));
-    verifyTrue(testCase, contains(string(exception.message), ...
-        "rootResidual_K=1.5916157281026244e-12"));
+        "steady53:H1aInvalidProperty");
+    message = string(exception.message);
+    verifyTrue(testCase, contains(message, ...
+        "T=992.38742737169468 K"));
+    verifyTrue(testCase, contains(message, ...
+        "P=1007910.8613125964 Pa"));
+    verifyTrue(testCase, contains(message, ...
+        "cp=-2992.6147173565741"));
+    verifyTrue(testCase, contains(message, ...
+        "gamma=0.93510394545186759"));
 end
 
 verifyFalse(testCase, isfolder(outputDir));
-verifyFalse(testCase, isfile(fullfile(outputDir, "h1a_sensitivity.csv")));
+verifyFalse(testCase, isfile(fullfile(outputDir, ...
+    "h1a_sensitivity.csv")));
 verifyFalse(testCase, isfile(fullfile(outputDir, "h1a_summary.txt")));
+verifyEmpty(testCase, stagingDirectories(outputDir));
 verifyEqual(testCase, loadedBlockDiagrams(), loadedBefore);
 verifyEqual(testCase, protectedHashes(testCase.TestData.root), ...
     protectedBefore);
@@ -130,6 +136,16 @@ verifyEqual(testCase, sha256File(analysis.csvPath), analysis.csvSha256);
 verifyEqual(testCase, sha256File(analysis.summaryPath), ...
     analysis.summarySha256);
 verifyEmpty(testCase, stagingDirectories(outputDir));
+verifyEqual(testCase, analysis.inputs.expansionRatio, ...
+    2.2812178550028612, "AbsTol", 1e-15);
+expectedLower_K = analysis.inputs.T1_K / ...
+    analysis.inputs.expansionRatio;
+verifyEqual(testCase, analysis.settings.rootBracketLow_K, ...
+    expectedLower_K, "AbsTol", 1e-12);
+verifyEqual(testCase, analysis.settings.rootBracketLow_K, ...
+    664.1670261116656, "AbsTol", 1e-12);
+verifyEqual(testCase, analysis.settings.rootBracketHigh_K, ...
+    1515.109678670083, "AbsTol", 1e-12);
 verifyEqual(testCase, analysis.inputs.reportMetricMeanT2_K, ...
     1143.7357422849552, "AbsTol", 1e-9);
 verifyEqual(testCase, analysis.inputs.reportMetricMeanError_K, ...
@@ -166,6 +182,10 @@ verifyTrue(testCase, contains(summary, ...
     "recordedTerminalT2_K=1143.7357706111763"));
 verifyTrue(testCase, contains(summary, ...
     "recordedTerminalRelativeError=0.015717925463703659"));
+verifyTrue(testCase, contains(summary, ...
+    "expansionRatioFieldContractApprovedOn=2026-08-25"));
+verifyFalse(testCase, contains(summary, "ContractConflict"));
+verifyFalse(testCase, contains(summary, "BLOCKED pending user approval"));
 end
 
 function testMissingSignalFieldFailsClosed(testCase)
@@ -239,41 +259,26 @@ verifyError(testCase, @() analyze_task8_h1a_readonly(options), ...
 verifyFalse(testCase, isfolder(options.outputDir));
 end
 
-function testNoBracketFailsClosed(testCase)
+function testExpansionRatioMustExceedOne(testCase)
 payload = load(testCase.TestData.options.inputMat, ...
     "result", "report", "spec");
 result = payload.result;
 report = payload.report;
 spec = payload.spec;
 result.signals.turbine_outlet_P(end) = ...
-    2 * result.signals.turbine_inlet_P(end);
-result.signals.turbine_lookup_expansion_ratio(end) = 0.5;
-[cp1, gamma1] = HeXe_property_simulink( ...
-    result.signals.turbine_inlet_T(end), ...
-    result.signals.turbine_inlet_P(end));
-phi = 1 - 1 / gamma1;
-T2s = result.signals.turbine_inlet_T(end) * 0.5^(-phi);
-[cp2, ~] = HeXe_property_simulink(T2s, ...
-    result.signals.turbine_outlet_P(end));
-tablePayload = load(fullfile(testCase.TestData.root, ...
-    "turbine_table2.mat"), "bp_mf", "bp_speed", "table_eff");
-eta = interpn(tablePayload.bp_mf, tablePayload.bp_speed, ...
-    tablePayload.table_eff, ...
-    result.signals.turbine_lookup_mass_flow(end), ...
-    result.signals.turbine_lookup_speed_eff(end), "linear");
-result.signals.turbine_outlet_T(end) = ...
-    result.signals.turbine_inlet_T(end) - eta * cp2 * ...
-    (result.signals.turbine_inlet_T(end) - T2s) / cp1;
-clear("HeXe_property_simulink");
-inputMat = fullfile(testCase.TestData.tempRoot, "no_bracket.mat");
+    result.signals.turbine_inlet_P(end);
+result.signals.turbine_lookup_expansion_ratio(end) = 1;
+inputMat = fullfile(testCase.TestData.tempRoot, ...
+    "invalid_expansion_ratio.mat");
 save(inputMat, "result", "report", "spec", "-v7.3");
 options = validTestOptions(testCase.TestData.root, ...
-    fullfile(testCase.TestData.tempRoot, "no_bracket_output"));
+    fullfile(testCase.TestData.tempRoot, ...
+    "invalid_expansion_ratio_output"));
 options.inputMat = string(inputMat);
 options.expectedInputSha256 = sha256File(inputMat);
 
 verifyError(testCase, @() analyze_task8_h1a_readonly(options), ...
-    "steady53:H1aNoBracket");
+    "steady53:H1aInvalidInput");
 verifyFalse(testCase, isfolder(options.outputDir));
 end
 
@@ -352,7 +357,7 @@ function testNumericalSettingsAndFailClosedPolicyAreFixed(testCase)
 source = fileread(fullfile(testCase.TestData.root, "tests", ...
     "steady53", "analyze_task8_h1a_readonly.m"));
 required = [ ...
-    """rootBracketLow_K"", 100"
+    "inputs.T1_K / inputs.expansionRatio"
     """rootAbsResidualTolerance_K"", 1e-9"
     """s2IntegralRelTol"", 1e-8"
     """s2IntegralAbsTol"", 1e-10"
@@ -372,6 +377,8 @@ verifyFalse(testCase, contains(source, 'warning("off"'));
 verifyFalse(testCase, contains(source, "lastwarn"));
 verifyFalse(testCase, contains(source, "endpointCachedResidual"));
 verifyEmpty(testCase, regexp(source, 'MaxIntervalCount\s*[,=]', 'once'));
+verifyFalse(testCase, contains(source, '"rootBracketLow_K", 100'));
+verifyFalse(testCase, contains(source, "[100 K,T1]"));
 verifyTrue(testCase, contains(source, "java.nio.file.Files"));
 verifyTrue(testCase, contains(source, "noReplaceOptions"));
 verifyFalse(testCase, contains(source, "/bin/mv -n"));
@@ -405,7 +412,7 @@ verifyNotEmpty(testCase, regexp(source, ...
     'once'));
 end
 
-function testNoOfficialOutputIsPublishedWhenS2Blocks(testCase)
+function testNoOfficialOutputIsPublishedBeforeFormalDefaultRun(testCase)
 officialDir = fullfile(testCase.TestData.root, "tmp", "steady53", ...
     "task8_root_cause", "h1a", ...
     "run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3");
