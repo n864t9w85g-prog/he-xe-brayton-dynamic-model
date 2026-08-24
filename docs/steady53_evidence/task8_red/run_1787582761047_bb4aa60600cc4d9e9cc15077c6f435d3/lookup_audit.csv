@@ -1,0 +1,9 @@
+name,inputMin,inputMax,bpMin,bpMax
+compressor_efficiency_speed,1,1,0.9,1.1
+compressor_efficiency_flow,0.994186046511628,0.995325064247208,0.870997765905507,1.05358561168551
+compressor_pressure_ratio_speed,1,1,0.9,1.1
+compressor_pressure_ratio_flow,0.994186046511628,0.995325064247208,0.870997765905507,1.05358561168551
+turbine_flow_expansion_ratio,2.28108452333447,2.28216999539049,1.0811,7.2329
+turbine_flow_speed,55090,55090,27545.65,66107.74
+turbine_efficiency_mass_flow,11.9817934061098,11.9837137735364,4.143,12.565
+turbine_efficiency_speed,55090,55090,27545.65,66107.74

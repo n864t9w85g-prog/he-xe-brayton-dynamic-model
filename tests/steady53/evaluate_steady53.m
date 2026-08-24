@@ -20,6 +20,7 @@ relativeError = nan(metricCount, 1);
 peakToPeakRel = nan(metricCount, 1);
 trendRel = nan(metricCount, 1);
 settlingTime_s = nan(metricCount, 1);
+windowPass = false(metricCount, 1);
 metricPass = false(metricCount, 1);
 
 for row = 1:metricCount
@@ -64,6 +65,10 @@ for row = 1:metricCount
             if peakToPeakRel(row) > s.windowPeakToPeakTol
                 rowFailures(end + 1, 1) = name + ":peak_to_peak"; %#ok<AGROW>
             end
+            windowPass(row) = isfinite(peakToPeakRel(row)) && ...
+                peakToPeakRel(row) <= s.windowPeakToPeakTol && ...
+                isfinite(trendRel(row)) && ...
+                trendRel(row) <= s.windowTrendTol;
 
             withinTargetBand = abs(values - target(row)) / normalizer <= ...
                 s.metrics.relTol(row);
@@ -81,10 +86,10 @@ for row = 1:metricCount
 end
 
 metrics = table(metricName, target, meanValue, relativeError, ...
-    peakToPeakRel, trendRel, settlingTime_s, metricPass);
+    peakToPeakRel, trendRel, settlingTime_s, windowPass, metricPass);
 
 [auditFailureList, signalDynamics] = auditFailures( ...
-    audit, s, t, signals, windowMask, validTime);
+    audit, s, t, signals, windowMask, validTime, metrics);
 failures = [failures; auditFailureList];
 failures = unique(failures, "stable");
 
@@ -140,7 +145,7 @@ end
 end
 
 function [failures, signalDynamics] = auditFailures( ...
-        audit, s, t, signals, windowMask, validTime)
+        audit, s, t, signals, windowMask, validTime, metrics)
 failures = strings(0, 1);
 signalDynamics = emptySignalDynamicsTable();
 
@@ -195,7 +200,7 @@ if isfield(audit, "states")
 end
 if isfield(audit, "signalDynamics")
     [signalFailures, signalDynamics] = signalDynamicsFailures( ...
-        audit.signalDynamics, signals, s, t, windowMask, validTime);
+        audit.signalDynamics, signals, s, t, windowMask, validTime, metrics);
     failures = [failures; signalFailures];
 end
 
@@ -203,7 +208,7 @@ failures = unique(failures, "stable");
 end
 
 function [failures, output] = signalDynamicsFailures( ...
-        entries, signals, s, t, windowMask, validTime)
+        entries, signals, s, t, windowMask, validTime, metrics)
 failures = strings(0, 1);
 output = emptySignalDynamicsTable();
 requiredFields = ["name", "data", "kind", "scaleFloor", "constant"];
@@ -234,6 +239,7 @@ for index = 1:count
     entry = entries(index);
     label = auditEntryLabel(entry, "name", index);
     rowFailures = strings(0, 1);
+    dynamicsPass = false;
     entryValid = all(isfield(entry, requiredFields)) && ...
         validTextScalar(entry.name) && ...
         isnumeric(entry.data) && ~isempty(entry.data) && ...
@@ -287,15 +293,27 @@ for index = 1:count
         if validTime
             windowValues = values(windowMask);
             windowTime = t(windowMask);
-            normalizer = max(abs(mean(windowValues)), scaleFloor(index));
             windowMean(index) = mean(windowValues);
             windowMin(index) = min(windowValues);
             windowMax(index) = max(windowValues);
-            peakToPeakRel(index) = ...
-                (windowMax(index) - windowMin(index)) / normalizer;
-            fitCoefficients = polyfit(windowTime, windowValues, 1);
-            trendRel(index) = abs(fitCoefficients(1)) * ...
-                diff(s.finalWindow_s) / normalizer;
+            metricRow = metrics.metricName == name(index);
+            if nnz(metricRow) == 1
+                % One calculation contract: paper metrics reuse the values
+                % already computed above with abs(target) as denominator.
+                peakToPeakRel(index) = metrics.peakToPeakRel(metricRow);
+                trendRel(index) = metrics.trendRel(metricRow);
+                dynamicsPass = metrics.windowPass(metricRow);
+            else
+                normalizer = max(abs(windowMean(index)), scaleFloor(index));
+                peakToPeakRel(index) = ...
+                    (windowMax(index) - windowMin(index)) / normalizer;
+                fitCoefficients = polyfit(windowTime, windowValues, 1);
+                trendRel(index) = abs(fitCoefficients(1)) * ...
+                    diff(s.finalWindow_s) / normalizer;
+                dynamicsPass = ...
+                    peakToPeakRel(index) <= s.windowPeakToPeakTol && ...
+                    trendRel(index) <= s.windowTrendTol;
+            end
             if peakToPeakRel(index) > s.windowPeakToPeakTol
                 rowFailures(end + 1, 1) = ...
                     "signal:peak_to_peak:" + name(index); %#ok<AGROW>
@@ -309,7 +327,8 @@ for index = 1:count
 
     rowFailures = unique(rowFailures, "stable");
     failures = [failures; rowFailures]; %#ok<AGROW>
-    signalPass(index) = validTime && entryValid && isempty(rowFailures);
+    signalPass(index) = validTime && entryValid && dynamicsPass && ...
+        isempty(rowFailures);
 end
 
 if numel(validNames) ~= numel(actualNames) || ...

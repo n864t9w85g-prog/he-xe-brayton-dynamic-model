@@ -102,6 +102,100 @@ verifyEqual(testCase, row.scaleFloor, 1);
 verifyFalse(testCase, row.signalPass);
 end
 
+function testMetricSignalDynamicsUsesPaperTargetNormalizer(testCase)
+[t, signals, audit, s] = nominalCase();
+name = "turbine_inlet_P";
+target = metricTarget(s, name);
+inFinalWindow = t >= s.finalWindow_s(1);
+windowCount = nnz(inFinalWindow);
+windowValues = repmat(0.9901 * target, windowCount, 1);
+halfRange = 0.000999 * target / 2;
+windowValues([1 end]) = windowValues([1 end]) + halfRange;
+windowValues([2 end - 1]) = windowValues([2 end - 1]) - halfRange;
+signals.(name)(inFinalWindow) = windowValues;
+entry = string({audit.signalDynamics.name}) == name;
+verifyEqual(testCase, nnz(entry), 1);
+audit.signalDynamics(entry).data = signals.(name);
+
+report = evaluate_steady53(t, signals, audit, s);
+
+row = report.signalDynamics(report.signalDynamics.name == name, :);
+metricRow = report.metrics(report.metrics.metricName == name, :);
+verifyTrue(testCase, report.pass, strjoin(report.failures, newline));
+verifyEqual(testCase, height(row), 1);
+verifyEqual(testCase, row.windowMean, 0.9901 * target, ...
+    "AbsTol", 1e-9 * target);
+verifyEqual(testCase, row.peakToPeakRel, 0.000999, "AbsTol", 1e-12);
+verifyEqual(testCase, row.peakToPeakRel, metricRow.peakToPeakRel);
+verifyEqual(testCase, row.trendRel, metricRow.trendRel);
+verifyTrue(testCase, metricRow.windowPass);
+verifyTrue(testCase, row.signalPass);
+end
+
+function testSignalDynamicsDataMismatchFailsExact(testCase)
+[t, signals, audit, s] = nominalCase();
+name = "reactor_inlet_T";
+entry = string({audit.signalDynamics.name}) == name;
+verifyEqual(testCase, nnz(entry), 1);
+audit.signalDynamics(entry).data(1) = ...
+    audit.signalDynamics(entry).data(1) + 1;
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, ...
+    "signal:data_mismatch:" + name);
+end
+
+function testConstantSignalDriftStillFailsDynamics(testCase)
+[t, signals, audit, s] = nominalCase();
+name = "constant_diagnostic_mdot";
+values = repmat(12, size(t));
+inFinalWindow = t >= s.finalWindow_s(1);
+values(inFinalWindow) = linspace(12, 12.024, nnz(inFinalWindow)).';
+signals.(name) = values;
+audit.signalDynamics(end + 1) = struct( ...
+    "name", name, ...
+    "data", values, ...
+    "kind", "massFlow", ...
+    "scaleFloor", s.scale.massFlow_kg_s, ...
+    "constant", true);
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, [ ...
+    "signal:peak_to_peak:" + name
+    "signal:trend:" + name]);
+row = report.signalDynamics(report.signalDynamics.name == name, :);
+verifyTrue(testCase, row.constant);
+verifyFalse(testCase, row.signalPass);
+end
+
+function testDuplicateSignalAuditFailsExact(testCase)
+[t, signals, audit, s] = nominalCase();
+name = string(audit.signalDynamics(1).name);
+audit.signalDynamics(end + 1) = audit.signalDynamics(1);
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyEqual(testCase, report.failures, "signal:duplicate:" + name);
+end
+
+function testUnapprovedSignalScaleFloorFailsExact(testCase)
+[t, signals, audit, s] = nominalCase();
+name = "reactor_inlet_T";
+entry = string({audit.signalDynamics.name}) == name;
+verifyEqual(testCase, nnz(entry), 1);
+
+for invalidFloor = [2 NaN]
+    candidate = audit;
+    candidate.signalDynamics(entry).scaleFloor = invalidFloor;
+    report = evaluate_steady53(t, signals, candidate, s);
+    verifyEqual(testCase, report.failures, [ ...
+        "signal:invalid:" + name
+        "signal:coverage"]);
+end
+end
+
 function testSignalDynamicsCoverageFailsClosed(testCase)
 [t, signals, audit, s] = nominalCase();
 signals.unclassified_output = ones(size(t));

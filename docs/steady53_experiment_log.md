@@ -201,9 +201,11 @@
 - ✅ 论文 PDF 第 35 页（印刷页 20）Eq. (2.27) 是普朗特数定义
   `Pr = cp*mu/lambda`，未定义透平 φ̅；第 38–39 页（印刷页 23–24）Eq. (2.28)–(2.31)
   的透平上下文重新复核后，Eq. (2.28) 仍没有定义 φ̅ 的唯一平均路径/算子；
-  Eq. (2.30) 后的文本用
-  `∫cp(T)dT` 解释平均 cp̅，而当前物性函数为 `cp(T,P)`，因此直接计算仍需要
-  论文未给出的 `P(T)` 路径。
+  Eq. (2.30) 后的文本用 `∫cp(T)dT` 解释平均 cp̅。
+- ✅ 直接核实：当前 `HeXe_property_simulink(T,P)` 中 `P_Pa` 经
+  `P_RT -> rho_hat -> cp_mol` 路径进入 cp 计算，cp 同时使用温度与压力。
+- ❓ 数值实现判断：若使用当前 `cp(T,P)` 执行论文积分，必须另行
+  选择论文未给出的 `P(T)` 路径；本轮不代用户选择。
 - ✅ Root-Cause Addendum 已收窄为完全只读的 H1a 灵敏度分解：只计算
   Eq. (2.28) 的 φ̅ 对 `T2s/T2` 的独立增量，端点算术平均和明示线性
   `(T,P)` 路径积分作为两个并列的“数值实现选择”，不代用户选物理路径。
@@ -227,3 +229,40 @@
   `cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33`；
   `archive/pre-restart-20260824^{commit}` 仍为
   `8f625c268c35a95c18a626305c1aa6a79ae2ace7`。
+
+## 2026-08-24 Task 8 复审修正：论文 target 归一化合同
+
+- ✅ 根因定位：21 个论文指标在 `metrics` 门中使用 `abs(target)` 归一化，
+  但同名 `signalDynamics` 行曾使用 `max(abs(windowMean), scaleFloor)`，导致双门口径分叉。
+- ✅ TDD RED 边界用例构造 `windowMean=0.9901*target`、
+  `peakToPeak=0.000999*target`；修正前 5 个精确复审测试为
+  `4 Passed, 1 Failed, 0 Incomplete`，失败行被旧分母计为
+  `0.00100898899101109`。
+- ✅ 最小修正：指标表新增明示 `windowPass`；37 行信号中的 21 个
+  指标行直接复用已计算的 `peakToPeakRel/trendRel/windowPass`，因而精确复用
+  `abs(target)` 口径；只有其余 16 行使用末窗均值与批准尺度下限的较大值。
+- ✅ 新回归精确覆盖数据不一致、常量漂移、重名审计、零/未批准
+  `scaleFloor` 失败。`constant=true` 只是元数据，常量漂移仍同时产生
+  `signal:peak_to_peak:*` 和 `signal:trend:*`。
+- ✅ TDD GREEN：5/5 精确复审测试通过；`test_evaluate_steady53` 发现
+  33 项并实测 `33 Passed, 0 Failed, 0 Incomplete`。
+- ✅ 新真实阻塞 500 s 运行 ID 为
+  `run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3`；精确选中 1 项，实测
+  `0 Passed, 1 Failed, 0 Incomplete`，仿真本身 `success=true`、`tFinal_s=500`、
+  `errorId=""`、`warningIds=[]`。
+- ✅ 新完整 MAT SHA-256 为
+  `4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b`，位于该新 run
+  的 `tmp` 目录，未覆盖旧证据；小型受控摘要位于
+  `docs/steady53_evidence/task8_red/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/`。
+- ✅ 新报告的 21/21 指标末窗门和 37/37 结果信号末窗门全部通过。
+  最大相对峰峰值为 `4.52673514492192e-5`，最大相对趋势为
+  `4.48780756304835e-5`，均来自 `compressor_outlet_P`。
+- ✅ 失败集仍为 23 项，首个为 `turbine_outlet_T:target`，最后为
+  `mass:closure`；`1.145416202230606e-3 > 1e-6`，没有忽略 `t=0`或改阈值。
+- ✅ 标准发现集共 62 项，断言且排除恰好 1 个预期 Task 8 RED 后，活动集
+  实测 `61 Passed, 0 Failed, 0 Incomplete`。Python 溯源回归为 `6 tests, OK`；
+  `checkcode` 对 7 个相关 MATLAB 文件均为 0 项。
+- ✅ 证据等级已拆开：论文 `cp(T)` 与当前函数 `cp(T,P)` 是直接核实的
+  ✅ 事实；因此需要另选 `P(T)` 则是论文未定义的 ❓ 数值实现判断。
+- ❓ Task 8 仍为 RED/未完成；本轮没有修改正式 SLX、MAT、物理方程、
+  参数、初值或验收门槛。

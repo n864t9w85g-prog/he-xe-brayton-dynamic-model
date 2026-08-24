@@ -40,6 +40,10 @@ test_final_steady_acceptance/testNominalCoupledModelMatchesSection531By500Second
   `0 Passed, 1 Failed, 0 Incomplete`，没有覆盖旧证据。
 - ✅ 新完整 MAT 证据 SHA-256 为
   `53c72290496d319c33ef65fed75252f5e14254ae3b1765b9e566626762dfb9ea`。
+- ✅ 归一化合同复审后的最新运行 ID 为
+  `run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3`，实测仍为
+  `0 Passed, 1 Failed, 0 Incomplete`；完整 MAT SHA-256 为
+  `4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b`，未覆盖任何旧 run。
 
 ## 3. RED 的自动覆盖口径
 
@@ -53,13 +57,18 @@ test_final_steady_acceptance/testNominalCoupledModelMatchesSection531By500Second
   包括 7 个回路观测量及透平效率表的质量流量输入；
 - ✅ 每个信号保存 `kind`、`scaleFloor`、`constant`、`peakToPeakRel`、
   `trendRel` 和 `signalPass`；标记为常量的信号仍完整计算，不跳过；
+- ✅ 属于 21 个论文指标的信号行直接复用已计算的
+  `metric.peakToPeakRel/trendRel/windowPass`，共同使用 `abs(target)` 归一化；
+- ✅ 其余 16 个非指标信号使用
+  `max(abs(windowMean), approved scaleFloor)` 归一化；
 - ✅ 固定尺度下限按已批准规格使用：温度 `1 K`、压力 `1 Pa`、功率 `1 W`、
   转速 `1 rpm`、质量流量 `1 kg/s`、无量纲及其他量 `1`；
 - ✅ 审计名集与 `result.signals` 名集不全等、重名、数据不一致或尺度不符合固定
   规格时均 fail closed。
 
-✅ 新报告实测 37/37 个结果信号的末窗波动/趋势门全部通过；最大相对峰峰值为
-`4.52720121965087e-5`，最大相对趋势为 `4.48826962977559e-5`，均来自
+✅ 最新报告实测 21/21 论文指标与 37/37 个结果信号的末窗波动/趋势门全部通过；
+最大相对峰峰值为 `4.52673514492192e-5`，最大相对趋势为
+`4.48780756304835e-5`，均来自
 `compressor_outlet_P`。这只是本轮实测结果，不改变论文指标与质量闭合仍失败的结论。
 
 ## 4. 首个失败信号的路径、端口、单位与活动方程
@@ -95,9 +104,11 @@ T2 = T1 - (neta*cp2*(T1-T2s))/cp1;
 - ✅ Eq. (2.30) 将透平效率写为实际过程 1–2 和理想过程 1–2s 的平均 cp̅ 之比；
   随后段落用 ∫cp(T)dT 解释温度变化的焓差与平均 cp̅。
 - ✅ Eq. (2.31) 用实际过程平均 cp̅₁₋₂(T1−T2) 计算透平功。
-- ⚠️ 论文文本将 cp 写为 cp(T)，但当前 `HeXe_property_simulink(T,P)` 的 cp 数值
-  同时由温度与压力决定。因此，若直接用当前物性函数执行论文积分，仍需要一条论文
-  未给出的 P(T) 路径。
+- ✅ 直接核实：论文 Eq. (2.30) 后的文本将物性写为 cp(T)；当前
+  `HeXe_property_simulink(T,P)` 的活动实现中，`P_Pa` 经
+  `P_RT -> rho_hat -> cp_mol` 路径进入 cp 计算，因而 cp 同时使用温度与压力。
+- ❓ 数值实现判断：若用当前 `cp(T,P)` 物性函数执行论文的
+  `∫cp(T)dT`，必须另行选择 `P(T)` 路径；论文未给出该路径，本草案不代用户选择。
 
 因此，本草案不代用户选择物理路径，也不把任何数值平均候选写成论文已定义的唯一实现。
 
