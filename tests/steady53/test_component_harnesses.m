@@ -14,6 +14,9 @@ addpath(fullfile(root, "tests", "steady53"));
 fileGenRoot = string(tempname);
 mkdir(fileGenRoot);
 testCase.TestData.fileGenRoot = fileGenRoot;
+matrixRunsRoot = fullfile(root, "tmp", "steady53", ...
+    "components", "matrix_runs");
+testCase.TestData.matrixEvidence = beginMatrixEvidenceRun(matrixRunsRoot);
 Simulink.fileGenControl("set", ...
     "CacheFolder", fullfile(fileGenRoot, "cache"), ...
     "CodeGenFolder", fullfile(fileGenRoot, "codegen"), ...
@@ -108,15 +111,49 @@ end
 verifyEqual(testCase, sha256File(testCase.TestData.source), sourceHash);
 end
 
+function testMatrixEvidenceRunsAreUniqueAndImmutable(testCase)
+evidenceRoot = string(tempname);
+mkdir(evidenceRoot);
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+matrix500 = syntheticMatrix(500);
+matrix14000 = syntheticMatrix(14000);
+
+first = beginMatrixEvidenceRun(evidenceRoot);
+firstManifestHash = sha256File(first.manifestPath);
+saveMatrix(first, matrix500, 500);
+saveMatrix(first, matrix14000, 14000);
+firstPaths = [first.matrix500Mat first.matrix500Text ...
+    first.matrix14000Mat first.matrix14000Text];
+firstHashes = arrayfun(@sha256File, firstPaths);
+
+second = beginMatrixEvidenceRun(evidenceRoot);
+saveMatrix(second, matrix500, 500);
+saveMatrix(second, matrix14000, 14000);
+
+verifyNotEqual(testCase, first.runId, second.runId);
+verifyNotEqual(testCase, first.runDir, second.runDir);
+verifyTrue(testCase, all(isfile(firstPaths)));
+verifyTrue(testCase, all(startsWith(firstPaths, first.runDir + filesep)));
+verifyEqual(testCase, arrayfun(@sha256File, firstPaths), firstHashes);
+verifyEqual(testCase, sha256File(first.manifestPath), firstManifestHash);
+verifyError(testCase, @() saveMatrix(first, matrix500, 500), ...
+    "steady53:MatrixEvidenceAlreadyExists");
+clear cleanup
+end
+
 function testHarnessesRunBoundedFor500Seconds(testCase)
 matrix = runComponentMatrix(testCase, 500);
-saveMatrix(testCase.TestData.root, matrix, 500);
+published = saveMatrix(testCase.TestData.matrixEvidence, matrix, 500);
+verifyEqual(testCase, published.runDir, ...
+    testCase.TestData.matrixEvidence.runDir);
 verifyTrue(testCase, all([matrix.success]), matrixFailureMessage(matrix));
 end
 
 function testHarnessesRunBoundedFor14000Seconds(testCase)
 matrix = runComponentMatrix(testCase, 14000);
-saveMatrix(testCase.TestData.root, matrix, 14000);
+published = saveMatrix(testCase.TestData.matrixEvidence, matrix, 14000);
+verifyEqual(testCase, published.runDir, ...
+    testCase.TestData.matrixEvidence.runDir);
 verifyTrue(testCase, all([matrix.success]), matrixFailureMessage(matrix));
 end
 
@@ -185,19 +222,78 @@ for outputIndex = 1:numel(h.outputVariables)
 end
 end
 
-function saveMatrix(root, matrix, stopTime_s)
-outputDir = fullfile(root, "tmp", "steady53", "components");
-if ~isfolder(outputDir)
-    mkdir(outputDir);
+function evidence = beginMatrixEvidenceRun(matrixRunsRoot)
+matrixRunsRoot = string(matrixRunsRoot);
+if ~isfolder(matrixRunsRoot)
+    mkdir(matrixRunsRoot);
 end
-matPath = fullfile(outputDir, ...
-    "component_matrix_" + stopTime_s + ".mat");
-textPath = fullfile(outputDir, ...
-    "component_matrix_" + stopTime_s + ".txt");
-save(matPath, "matrix", "-v7.3");
-fileId = fopen(textPath, "w");
+runId = makeMatrixRunId();
+runDir = fullfile(matrixRunsRoot, runId);
+if isfolder(runDir) || isfile(runDir)
+    error("steady53:MatrixRunCollision", ...
+        "Unique matrix evidence run already exists: %s", runDir);
+end
+mkdir(runDir);
+evidence = struct( ...
+    "schemaVersion", 1, ...
+    "runId", runId, ...
+    "runDir", string(runDir), ...
+    "matrix500Mat", fullfile(runDir, "component_matrix_500.mat"), ...
+    "matrix500Text", fullfile(runDir, "component_matrix_500.txt"), ...
+    "matrix14000Mat", fullfile(runDir, "component_matrix_14000.mat"), ...
+    "matrix14000Text", fullfile(runDir, "component_matrix_14000.txt"), ...
+    "manifestPath", fullfile(runDir, "matrix_manifest.mat"), ...
+    "createdAt", utcTimestamp());
+manifest = evidence;
+stage = string(tempname(runDir)) + ".mat";
+stageCleanup = onCleanup(@() deleteOwnedFile(stage));
+save(stage, "manifest", "-v7.3");
+publishExclusive(stage, evidence.manifestPath);
+clear stageCleanup
+end
+
+function published = saveMatrix(evidence, matrix, stopTime_s)
+arguments
+    evidence (1, 1) struct
+    matrix struct
+    stopTime_s (1, 1) double
+end
+if stopTime_s == 500
+    matPath = string(evidence.matrix500Mat);
+    textPath = string(evidence.matrix500Text);
+elseif stopTime_s == 14000
+    matPath = string(evidence.matrix14000Mat);
+    textPath = string(evidence.matrix14000Text);
+else
+    error("steady53:UnsupportedMatrixStopTime", ...
+        "Matrix evidence supports only 500 s and 14000 s.");
+end
+if ~isfolder(evidence.runDir) || ~isfile(evidence.manifestPath)
+    error("steady53:MissingMatrixEvidenceRun", ...
+        "Matrix evidence run or manifest is missing: %s", evidence.runDir);
+end
+if isfile(matPath) || isfile(textPath)
+    error("steady53:MatrixEvidenceAlreadyExists", ...
+        "Matrix evidence target already exists in immutable run %s.", ...
+        evidence.runId);
+end
+
+metadata = struct( ...
+    "schemaVersion", evidence.schemaVersion, ...
+    "runId", evidence.runId, ...
+    "runDir", evidence.runDir, ...
+    "stopTime_s", stopTime_s, ...
+    "matPath", matPath, ...
+    "textPath", textPath, ...
+    "publishedAt", utcTimestamp());
+matStage = string(tempname(evidence.runDir)) + ".mat";
+textStage = string(tempname(evidence.runDir)) + ".txt";
+matCleanup = onCleanup(@() deleteOwnedFile(matStage));
+textCleanup = onCleanup(@() deleteOwnedFile(textStage));
+save(matStage, "matrix", "metadata", "-v7.3");
+fileId = fopen(textStage, "w");
 assert(fileId >= 0, "Could not create matrix text evidence.");
-cleanup = onCleanup(@() fclose(fileId));
+fileCleanup = onCleanup(@() fclose(fileId));
 fprintf(fileId, "component\tstopTime\tsuccess\ttFinal\tfailureTime\terrorId\twarningIds\n");
 for index = 1:numel(matrix)
     fprintf(fileId, "%s\t%.17g\t%d\t%.17g\t%.17g\t%s\t%s\n", ...
@@ -206,7 +302,55 @@ for index = 1:numel(matrix)
         matrix(index).failureTime_s, matrix(index).errorId, ...
         strjoin(matrix(index).warningIds, ","));
 end
-clear cleanup
+clear fileCleanup
+publishExclusive(matStage, matPath);
+clear matCleanup
+publishExclusive(textStage, textPath);
+clear textCleanup
+published = struct( ...
+    "runId", string(evidence.runId), ...
+    "runDir", string(evidence.runDir), ...
+    "stopTime_s", stopTime_s, ...
+    "matPath", matPath, ...
+    "textPath", textPath, ...
+    "matHash", sha256File(matPath), ...
+    "textHash", sha256File(textPath));
+end
+
+function publishExclusive(stage, destination)
+if isfile(destination)
+    error("steady53:MatrixEvidenceAlreadyExists", ...
+        "Matrix evidence target already exists: %s", destination);
+end
+[status, output] = system("ln " + shellQuote(stage) + " " + ...
+    shellQuote(destination));
+if status ~= 0
+    if isfile(destination)
+        error("steady53:MatrixEvidenceAlreadyExists", ...
+            "Matrix evidence target already exists: %s", destination);
+    end
+    error("steady53:MatrixEvidencePublishFailed", ...
+        "Could not exclusively publish %s: %s", destination, output);
+end
+deleteOwnedFile(stage);
+end
+
+function deleteOwnedFile(filePath)
+if isfile(filePath)
+    delete(filePath);
+end
+end
+
+function runId = makeMatrixRunId()
+milliseconds = string(round(posixtime(datetime("now", ...
+    "TimeZone", "UTC")) * 1000));
+uuid = replace(string(char(java.util.UUID.randomUUID())), "-", "");
+runId = "matrix_" + milliseconds + "_" + uuid;
+end
+
+function timestamp = utcTimestamp()
+timestamp = string(datetime("now", "TimeZone", "UTC", ...
+    "Format", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
 end
 
 function message = matrixFailureMessage(matrix)
@@ -437,6 +581,24 @@ end
 function closeIfLoaded(model)
 if strlength(string(model)) > 0 && bdIsLoaded(model)
     close_system(model, 0);
+end
+end
+
+function matrix = syntheticMatrix(stopTime_s)
+matrix = struct( ...
+    "component", "synthetic", ...
+    "stopTime", stopTime_s, ...
+    "success", true, ...
+    "tFinal", stopTime_s, ...
+    "failureTime_s", NaN, ...
+    "errorId", "", ...
+    "errorReport", "", ...
+    "warningIds", strings(0, 1));
+end
+
+function removeOwnedDirectory(directory)
+if isfolder(directory)
+    rmdir(directory, "s");
 end
 end
 

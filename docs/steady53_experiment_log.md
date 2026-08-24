@@ -68,5 +68,7 @@
 | `reactor` | PASS ✅ | PASS ✅ | `500` / `14000` s；无 error ID | 无 |
 | `TAC` | PASS ✅ | PASS ✅ | `500` / `14000` s；无 error ID | 无 |
 
-- ✅ 上表来自两个完整六部件矩阵；每个成功项均核对 `tout(end)` 精确达到请求时间、所有 To Workspace 输出为有限实数，且 `HeXe:T_lo` / `HeXe:T_hi` / 锂物性上下限四类 warning 均被提升为 error 而未触发。机器可读证据为 `tmp/steady53/components/component_matrix_500.mat` 和 `component_matrix_14000.mat`，不提交。
+- ✅ 上表来自两个完整六部件矩阵；每个成功项均核对 `tout(end)` 精确达到请求时间、所有 To Workspace 输出为有限实数，且 `HeXe:T_lo` / `HeXe:T_hi` / 锂物性上下限四类 warning 均被提升为 error 而未触发。本轮唯一证据运行 ID 为 `matrix_1787568568752_5ce116cedc764d6bae3a4dacbdda997d`，500 s 和 14000 s 四个机器可读文件及 manifest 共同位于 `tmp/steady53/components/matrix_runs/matrix_1787568568752_5ce116cedc764d6bae3a4dacbdda997d/`，不提交。
+- ✅ 矩阵证据发布已取消固定可覆盖路径。每次测试会话先生成唯一 `matrix_runs/<runId>/`；`.mat` 和 `.txt` 均先写唯一 stage，再通过同文件系统排他硬链接发布，目标存在即以 `steady53:MatrixEvidenceAlreadyExists` 失败。连续两次合成矩阵发布回归已核对 runDir 不同，且第一次的四个文件和 manifest 哈希保持不变。
+- ✅ 本轮不可变证据哈希：`component_matrix_500.mat=94fcfa1be0ffb87605eb31c7eb7cfcdeef8164a78e25f149a53dbff0ca945500`，`component_matrix_500.txt=4bf20c0921fc97594582ccf436fce61b6934370e22b1efa84778d3af19aa3fa7`，`component_matrix_14000.mat=d8c49237561cb51eb0ce6d19bc4b8aee81ed1bb57e86b61cfc672178a908a470`，`component_matrix_14000.txt=e933e35886c84c30e450bdc0ea581057e50b3f8b2638eece6f49e9b5a1db3330`，`matrix_manifest.mat=09381135af75c21d672da168580be832cfa7f4ab58d7699acfd0fbbd2539467d`。
 - ❓ 结论边界：恒边界下六个隔离部件均能完成 14000 s，因此本轮未由 Task 6 触发 Root-Cause Checkpoint。这不证明整机闭环已通过，不证明部件在整机互联边界下不会失稳，也不将“隔离运行通过”上升为任一具体根因结论。
