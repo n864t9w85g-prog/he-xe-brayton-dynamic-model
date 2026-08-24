@@ -9,15 +9,8 @@ arguments
 end
 
 failures = strings(0, 1);
-
-if isempty(t) || ~isfinite(t(end)) || t(end) ~= 14000
-    failures(end + 1, 1) = "time:not_14000";
-end
-
-windowMask = t >= s.finalWindow_s(1) & t <= s.finalWindow_s(2);
-if ~any(windowMask)
-    failures(end + 1, 1) = "time:no_final_window";
-end
+[timeFailures, validTime, windowMask] = validateTimeAxis(t, s);
+failures = [failures; timeFailures];
 
 metricCount = height(s.metrics);
 metricName = s.metrics.name;
@@ -43,11 +36,7 @@ for row = 1:metricCount
             rowFailures(end + 1, 1) = name + ":complex"; %#ok<AGROW>
         elseif any(~isfinite(values), "all")
             rowFailures(end + 1, 1) = name + ":nonfinite"; %#ok<AGROW>
-        elseif ~any(windowMask)
-            rowFailures(end + 1, 1) = name + ":target"; %#ok<AGROW>
-            rowFailures(end + 1, 1) = name + ":peak_to_peak"; %#ok<AGROW>
-            rowFailures(end + 1, 1) = name + ":trend"; %#ok<AGROW>
-        else
+        elseif validTime
             values = values(:);
             windowValues = values(windowMask);
             windowTime = t(windowMask);
@@ -88,13 +77,13 @@ for row = 1:metricCount
 
     rowFailures = unique(rowFailures, "stable");
     failures = [failures; rowFailures]; %#ok<AGROW>
-    metricPass(row) = isempty(rowFailures);
+    metricPass(row) = validTime && isempty(rowFailures);
 end
 
 metrics = table(metricName, target, meanValue, relativeError, ...
     peakToPeakRel, trendRel, settlingTime_s, metricPass);
 
-failures = [failures; auditFailures(audit, s)];
+failures = [failures; auditFailures(audit, s, t, windowMask, validTime)];
 failures = unique(failures, "stable");
 
 report = struct();
@@ -102,6 +91,32 @@ report.pass = isempty(failures);
 report.failures = failures;
 report.metrics = metrics;
 report.audit = audit;
+end
+
+function [failures, valid, windowMask] = validateTimeAxis(t, s)
+failures = strings(0, 1);
+windowMask = false(size(t));
+
+invalid = isempty(t) || ~isreal(t) || any(~isfinite(t), "all");
+if ~invalid
+    invalid = any(diff(t) <= 0) || t(1) > s.finalWindow_s(1);
+end
+
+wrongStop = isempty(t) || ~isreal(t(end)) || ~isfinite(t(end)) || ...
+    t(end) ~= s.stopTime_s;
+if wrongStop
+    failures(end + 1, 1) = "time:not_stop_time";
+end
+
+if ~invalid
+    windowMask = t >= s.finalWindow_s(1) & t <= s.finalWindow_s(2);
+    invalid = nnz(windowMask) < 2;
+end
+
+if invalid
+    failures(end + 1, 1) = "time:invalid";
+end
+valid = ~invalid && ~wrongStop;
 end
 
 function settlingTime_s = permanentSettlingTime(t, withinTargetBand)
@@ -119,7 +134,7 @@ else
 end
 end
 
-function failures = auditFailures(audit, s)
+function failures = auditFailures(audit, s, t, windowMask, validTime)
 failures = strings(0, 1);
 
 requiredAuditFields = ["warningIds", "lookup", "property", ...
@@ -131,6 +146,7 @@ for field = requiredAuditFields
 end
 
 if isfield(audit, "warningIds")
+    % warningIds is runner-prefiltered property-clamp IDs, not all warnings.
     [validWarningIds, warningIds] = normalizeWarningIds(audit.warningIds);
     if validWarningIds
         failures = [failures; "warning:" + warningIds];
@@ -153,6 +169,8 @@ if ~isfield(audit, "property") || ...
         "LithiumMin_K", "LithiumMax_K", s.property.Lithium_K)
     failures(end + 1, 1) = "property:Lithium";
 end
+% Lithium saturation-pressure coverage awaits runner propertyAudit data;
+% this evaluator intentionally assumes no pressure constant or correlation.
 
 if ~isfield(audit, "massClosureRel") || ...
         ~isnumeric(audit.massClosureRel) || ...
@@ -165,7 +183,8 @@ if ~isfield(audit, "massClosureRel") || ...
 end
 
 if isfield(audit, "states")
-    failures = [failures; stateFailures(audit.states, s)];
+    failures = [failures; stateFailures( ...
+        audit.states, s, t, windowMask, validTime)];
 end
 
 failures = unique(failures, "stable");
@@ -229,9 +248,12 @@ for index = 1:numel(lookups)
 end
 end
 
-function failures = stateFailures(states, s)
+function failures = stateFailures(states, s, t, windowMask, validTime)
 failures = strings(0, 1);
 requiredFields = ["path", "fluid", "data"];
+allowedFluids = ["HeXe", "Lithium", "none"];
+allowedKinds = ["temperature", "pressure", "power", "massFlow", ...
+    "speed", "dimensionless", "other"];
 
 if ~isstruct(states)
     failures(end + 1, 1) = "audit:invalid:states";
@@ -249,32 +271,119 @@ for index = 1:numel(states)
             ~validTextScalar(state.path) || ...
             ~validTextScalar(state.fluid) || ...
             ~isnumeric(state.data) || isempty(state.data) || ...
+            numel(state.data) ~= numel(t) || ...
             ~isreal(state.data) || any(~isfinite(state.data), "all")
         failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
         continue
     end
 
     fluid = string(state.fluid);
-    if fluid ~= "HeXe" && fluid ~= "Lithium"
+    if ~any(fluid == allowedFluids)
         failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
         continue
     end
 
-    data = state.data;
-    isTemperature = contains(path, "/T_") || contains(path, "T_rad_");
-    if isTemperature && any(data <= 0, "all")
+    if isfield(state, "kind")
+        if ~validTextScalar(state.kind) || ...
+                ~any(string(state.kind) == allowedKinds)
+            failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
+            continue
+        end
+        kind = string(state.kind);
+    else
+        kind = inferredStateKind(path, fluid);
+    end
+
+    if fluid ~= "none" && kind ~= "temperature"
+        failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
+        continue
+    end
+
+    nonnegative = false;
+    if isfield(state, "nonnegative")
+        if ~islogical(state.nonnegative) || ~isscalar(state.nonnegative)
+            failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
+            continue
+        end
+        nonnegative = state.nonnegative;
+    end
+
+    data = state.data(:);
+    if nonnegative && any(data < 0)
+        failures(end + 1, 1) = "state:negative:" + path; %#ok<AGROW>
+    end
+
+    if kind == "temperature" && any(data <= 0)
         failures(end + 1, 1) = "state:nonpositive:" + path; %#ok<AGROW>
     end
 
-    if fluid == "HeXe" && ...
-            (any(data < s.property.HeXe_K(1), "all") || ...
-             any(data > s.property.HeXe_K(2), "all"))
+    if kind == "temperature" && fluid == "HeXe" && ...
+            (any(data < s.property.HeXe_K(1)) || ...
+             any(data > s.property.HeXe_K(2)))
         failures(end + 1, 1) = "state:HeXe_domain:" + path; %#ok<AGROW>
-    elseif fluid == "Lithium" && ...
-            (any(data < s.property.Lithium_K(1), "all") || ...
-             any(data > s.property.Lithium_K(2), "all"))
+    elseif kind == "temperature" && fluid == "Lithium" && ...
+            (any(data < s.property.Lithium_K(1)) || ...
+             any(data > s.property.Lithium_K(2)))
         failures(end + 1, 1) = "state:Lithium_domain:" + path; %#ok<AGROW>
     end
+
+    if validTime
+        windowData = data(windowMask);
+        windowTime = t(windowMask);
+        normalizer = max(abs(mean(windowData)), stateScaleFloor(kind, s));
+        peakToPeakRel = (max(windowData) - min(windowData)) / normalizer;
+        fitCoefficients = polyfit(windowTime, windowData, 1);
+        trendRel = abs(fitCoefficients(1)) * ...
+            diff(s.finalWindow_s) / normalizer;
+
+        if peakToPeakRel > s.windowPeakToPeakTol
+            failures(end + 1, 1) = ...
+                "state:peak_to_peak:" + path; %#ok<AGROW>
+        end
+        if trendRel > s.windowTrendTol
+            failures(end + 1, 1) = "state:trend:" + path; %#ok<AGROW>
+        end
+    end
+end
+end
+
+function kind = inferredStateKind(path, fluid)
+if fluid == "HeXe" || fluid == "Lithium"
+    kind = "temperature";
+    return
+end
+
+lowerPath = lower(path);
+if contains(lowerPath, "/t_") || contains(lowerPath, "t_rad_") || ...
+        contains(lowerPath, "temperature")
+    kind = "temperature";
+elseif contains(lowerPath, "/p_") || contains(lowerPath, "pressure")
+    kind = "pressure";
+elseif contains(lowerPath, "power")
+    kind = "power";
+elseif contains(lowerPath, "massflow") || contains(lowerPath, "mass_flow")
+    kind = "massFlow";
+elseif contains(lowerPath, "speed") || contains(lowerPath, "rpm")
+    kind = "speed";
+else
+    kind = "other";
+end
+end
+
+function scaleFloor = stateScaleFloor(kind, s)
+switch kind
+    case "temperature"
+        scaleFloor = s.scale.temperature_K;
+    case "pressure"
+        scaleFloor = s.scale.pressure_Pa;
+    case "power"
+        scaleFloor = s.scale.power_W;
+    case "massFlow"
+        scaleFloor = s.scale.massFlow_kg_s;
+    case "speed"
+        scaleFloor = s.scale.speed_rpm;
+    otherwise
+        scaleFloor = s.scale.other;
 end
 end
 
