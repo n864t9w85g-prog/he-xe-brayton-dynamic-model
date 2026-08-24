@@ -3,6 +3,8 @@ tests = functiontests(localfunctions);
 end
 
 function setupOnce(testCase)
+testCase.TestData.loadedModelsBefore = loadedBlockDiagrams();
+testCase.TestData.ownedModels = strings(0, 1);
 root = fileparts(fileparts(fileparts(mfilename("fullpath"))));
 testCase.TestData.root = string(root);
 testCase.TestData.source = fullfile(root, "final_steady_24a.slx");
@@ -25,12 +27,34 @@ evalin("base", "run(" + matlabString(fullfile(root, "start.m")) + ")");
 end
 
 function teardownOnce(testCase)
-closeHarnessModels();
-restoreBaseWorkspace(testCase.TestData.base);
-restoreEnvironment(testCase.TestData.environment);
-if isfolder(testCase.TestData.fileGenRoot)
-    rmdir(testCase.TestData.fileGenRoot, "s");
+exceptions = cell(0, 1);
+tryCleanup(@() closeOwnedHarnessModels( ...
+    testCase.TestData.loadedModelsBefore, ...
+    testCase.TestData.ownedModels));
+tryCleanup(@() restoreBaseWorkspace(testCase.TestData.base));
+tryCleanup(@() path(testCase.TestData.environment.path));
+tryCleanup(@() cd(testCase.TestData.environment.pwd));
+tryCleanup(@() restoreWarningSnapshot( ...
+    testCase.TestData.environment.warnings));
+tryCleanup(@() restoreFileGenerationSnapshot( ...
+    testCase.TestData.environment.fileGeneration));
+tryCleanup(@() removeOwnedDirectory(testCase.TestData.fileGenRoot));
+if ~isempty(exceptions)
+    combined = MException("steady53:ComponentHarnessTeardownFailed", ...
+        "One or more component-harness teardown operations failed.");
+    for exceptionIndex = 1:numel(exceptions)
+        combined = addCause(combined, exceptions{exceptionIndex});
+    end
+    throw(combined)
 end
+
+    function tryCleanup(operation)
+        try
+            operation();
+        catch exception
+            exceptions{end + 1, 1} = exception;
+        end
+    end
 end
 
 function testBoundaryValuesSourcesAndGradesAreExplicit(testCase)
@@ -81,6 +105,7 @@ for component = components
     before = captureEnvironment();
     beforeBase = captureBaseWorkspace();
     h = create_component_harness(component);
+    registerOwnedModel(testCase, h.model);
     cleanup = onCleanup(@() closeIfLoaded(h.model));
 
     verifyTrue(testCase, startsWith(h.path, h.runDir + filesep));
@@ -141,6 +166,44 @@ verifyError(testCase, @() saveMatrix(first, matrix500, 500), ...
 clear cleanup
 end
 
+function testOwnedCleanupPreservesPreloadedDirtyUserModels(testCase)
+sourceModel = "final_steady_24a";
+verifyFalse(testCase, bdIsLoaded(sourceModel));
+load_system(testCase.TestData.source);
+originalStopTime = string(get_param(sourceModel, "StopTime"));
+sourceCleanup = onCleanup(@() restoreAndCloseSource( ...
+    sourceModel, originalStopTime));
+set_param(sourceModel, "StopTime", "801");
+verifyEqual(testCase, string(get_param(sourceModel, "Dirty")), "on");
+
+userModel = uniqueTestModelName("s53_user_");
+new_system(userModel);
+userCleanup = onCleanup(@() closeIfLoaded(userModel));
+add_block("simulink/Sources/Constant", userModel + "/UserValue", ...
+    "Value", "42");
+verifyEqual(testCase, string(get_param(userModel, "Dirty")), "on");
+
+suiteModel = uniqueTestModelName("s53_suite_");
+new_system(suiteModel);
+suiteCleanup = onCleanup(@() closeIfLoaded(suiteModel));
+add_block("simulink/Sources/Constant", suiteModel + "/OwnedValue", ...
+    "Value", "7");
+
+loadedBefore = [sourceModel; userModel];
+ownedModels = suiteModel;
+closeOwnedHarnessModels(loadedBefore, ownedModels);
+
+verifyTrue(testCase, bdIsLoaded(sourceModel));
+verifyEqual(testCase, string(get_param(sourceModel, "Dirty")), "on");
+verifyEqual(testCase, string(get_param(sourceModel, "StopTime")), "801");
+verifyTrue(testCase, bdIsLoaded(userModel));
+verifyEqual(testCase, string(get_param(userModel, "Dirty")), "on");
+verifyEqual(testCase, string(get_param(userModel + "/UserValue", "Value")), ...
+    "42");
+verifyFalse(testCase, bdIsLoaded(suiteModel));
+clear suiteCleanup userCleanup sourceCleanup
+end
+
 function testHarnessesRunBoundedFor500Seconds(testCase)
 matrix = runComponentMatrix(testCase, 500);
 published = saveMatrix(testCase.TestData.matrixEvidence, matrix, 500);
@@ -157,7 +220,7 @@ verifyEqual(testCase, published.runDir, ...
 verifyTrue(testCase, all([matrix.success]), matrixFailureMessage(matrix));
 end
 
-function matrix = runComponentMatrix(~, stopTime_s)
+function matrix = runComponentMatrix(testCase, stopTime_s)
 ids = propertyWarningIdentifiers();
 old = cell(size(ids));
 for index = 1:numel(ids)
@@ -178,6 +241,7 @@ for componentIndex = 1:numel(components)
     h = struct("model", "");
     try
         h = create_component_harness(component);
+        registerOwnedModel(testCase, h.model);
         modelCleanup = onCleanup(@() closeIfLoaded(h.model));
         out = sim(h.model, ...
             "StopTime", num2str(stopTime_s, "%.17g"), ...
@@ -521,16 +585,23 @@ snapshot = struct( ...
     "fileGeneration", Simulink.fileGenControl("getConfig"));
 end
 
-function restoreEnvironment(snapshot)
-path(snapshot.path);
-cd(snapshot.pwd);
-for index = 1:numel(snapshot.warnings)
-    warning(snapshot.warnings(index).state, ...
-        snapshot.warnings(index).identifier);
+function restoreWarningSnapshot(states)
+exceptions = cell(0, 1);
+for index = 1:numel(states)
+    try
+        warning(states(index).state, states(index).identifier);
+    catch exception
+        exceptions{end + 1, 1} = exception; %#ok<AGROW>
+    end
 end
+throwCleanupExceptions("steady53:WarningRestoreFailed", ...
+    "One or more warning states could not be restored.", exceptions);
+end
+
+function restoreFileGenerationSnapshot(config)
 Simulink.fileGenControl("set", ...
-    "CacheFolder", snapshot.fileGeneration.CacheFolder, ...
-    "CodeGenFolder", snapshot.fileGeneration.CodeGenFolder, ...
+    "CacheFolder", config.CacheFolder, ...
+    "CodeGenFolder", config.CodeGenFolder, ...
     "createDir", true);
 end
 
@@ -551,14 +622,31 @@ snapshot = struct("names", names, "values", {values});
 end
 
 function restoreBaseWorkspace(snapshot)
-current = string(evalin("base", "who"));
+exceptions = cell(0, 1);
+try
+    current = string(evalin("base", "who"));
+catch exception
+    current = strings(0, 1);
+    exceptions{end + 1, 1} = exception;
+end
 added = setdiff(current, snapshot.names);
 for index = 1:numel(added)
-    evalin("base", "clear " + added(index));
+    try
+        evalin("base", "clear " + added(index));
+    catch exception
+        exceptions{end + 1, 1} = exception; %#ok<AGROW>
+    end
 end
 for index = 1:numel(snapshot.names)
-    assignin("base", snapshot.names(index), snapshot.values{index});
+    try
+        assignin("base", snapshot.names(index), snapshot.values{index});
+    catch exception
+        exceptions{end + 1, 1} = exception; %#ok<AGROW>
+    end
 end
+throwCleanupExceptions("steady53:BaseRestoreFailed", ...
+    "One or more base-workspace values could not be restored.", ...
+    exceptions);
 end
 
 function verifyBaseEqual(testCase, actual, expected)
@@ -569,13 +657,47 @@ for index = 1:numel(actual.names)
 end
 end
 
-function closeHarnessModels()
-models = string(find_system("type", "block_diagram"));
-for model = models(:).'
-    if startsWith(model, "s53_") || model == "final_steady_24a"
+function registerOwnedModel(testCase, model)
+model = string(model);
+owned = string(testCase.TestData.ownedModels(:));
+if ~any(owned == model)
+    testCase.TestData.ownedModels(end + 1, 1) = model;
+end
+end
+
+function closeOwnedHarnessModels(loadedModelsBefore, ownedModels)
+loadedModelsBefore = string(loadedModelsBefore(:));
+ownedModels = unique(string(ownedModels(:)), "stable");
+current = loadedBlockDiagrams();
+createdBySuite = setdiff(current, loadedModelsBefore, "stable");
+toClose = intersect(createdBySuite, ownedModels, "stable");
+exceptions = cell(0, 1);
+for model = toClose(:).'
+    try
         closeIfLoaded(model);
+    catch exception
+        exceptions{end + 1, 1} = exception; %#ok<AGROW>
     end
 end
+throwCleanupExceptions("steady53:OwnedModelCloseFailed", ...
+    "One or more suite-owned harness models could not be closed.", ...
+    exceptions);
+end
+
+function models = loadedBlockDiagrams()
+models = string(find_system("Type", "block_diagram"));
+models = models(:);
+end
+
+function throwCleanupExceptions(identifier, message, exceptions)
+if isempty(exceptions)
+    return
+end
+combined = MException(identifier, message);
+for index = 1:numel(exceptions)
+    combined = addCause(combined, exceptions{index});
+end
+throw(combined)
 end
 
 function closeIfLoaded(model)
@@ -599,6 +721,18 @@ end
 function removeOwnedDirectory(directory)
 if isfolder(directory)
     rmdir(directory, "s");
+end
+end
+
+function model = uniqueTestModelName(prefix)
+token = replace(string(char(java.util.UUID.randomUUID())), "-", "");
+model = string(matlab.lang.makeValidName(prefix + extractBefore(token, 13)));
+end
+
+function restoreAndCloseSource(model, stopTime)
+if bdIsLoaded(model)
+    set_param(model, "StopTime", stopTime);
+    close_system(model, 0);
 end
 end
 
