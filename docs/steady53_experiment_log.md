@@ -311,3 +311,29 @@
 - ✅ `checkcode` 对本轮 9 个相关 MATLAB 文件均报告 0 项；`git diff --check`
   已执行且无空白错误。Task 8 仍为 RED/未完成；本轮没有修改正式 SLX、MAT、
   物理方程、参数、初值或验收门槛。
+
+## 2026-08-25 Task 8 发布器复审：固定 payload 合同
+
+- ✅ 根因确认：`c06602e` 的发布器虽然校验了 manifest 中已列出的 hash，发布循环却
+  仍由调用者可改写的 `stage.payloadFiles` 决定；同时没有要求 manifest 的小文件
+  名称集合完整且唯一。因此删除 payload 声明、删除/重复小文件 hash 或改变
+  `rawMatFile` 后仍可能发布 completed manifest。
+- ✅ TDD RED：8 个新增合同回归在修复前全部实测失败，覆盖删除/添加
+  `stage.payloadFiles` 项、删除/重复/加入未知 manifest 小文件 hash、篡改
+  `rawMatFile`、将 `stage.rawMatPath` 指向内容相同的其他文件，以及目标 payload
+  在发布 manifest 前被篡改。
+- ✅ 最小修复：必需集合固定为 `nominal_500_report.mat` 加 6 个小文件；
+  `stage.payloadFiles` 只作为必须精确匹配的兼容性声明，不再决定发布循环。
+  manifest 必须精确列出固定 raw MAT 名称与 6 个唯一小文件名，发布列表仅由已验证
+  manifest 派生；`stage.rawMatPath` 必须精确等于 `stageDir/nominal_500_report.mat`。
+- ✅ manifest 发布前再次核对目标目录恰有 7 个 payload，且每项实际 SHA-256 与
+  已验证 manifest 一致。碰撞、中断或二次核对失败时，目标目录即使保留也没有
+  `manifest.json`，测试明确将其判定为 `incomplete`。
+- ✅ 聚焦 evidence 测试实测 `12 Passed, 0 Failed, 0 Incomplete`。完整 MATLAB
+  发现集为 84 项，精确排除 1 个既定 Task 8 RED 后，活动集实测
+  `83 Passed, 0 Failed, 0 Incomplete`，即上轮 75 项加 8 个新增合同回归全部通过。
+  Python 溯源回归为 `6 tests, OK`；两个相关 MATLAB 文件 `checkcode` 均为 0 项。
+- ✅ 本轮没有重新生成或覆盖 500 s 证据；全部三个受控 evidence 目录相对
+  `c06602e` 无差异，当前原始 MAT SHA-256 仍为
+  `f0525396c7159eb6dff5e2f9bc3b2e0f54e66c0d3e94875ce43240a8042f0443`。
+  正式 SLX、4 个 MAT 和归档 tag hash 均不变。Task 8 仍为 RED/未完成。

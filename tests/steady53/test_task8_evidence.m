@@ -41,8 +41,8 @@ control = struct("targetCollisionFile", "metrics.csv");
 verifyError(testCase, @() publish_task8_evidence(stage, control), ...
     "steady53:EvidenceAlreadyExists");
 
-targetManifest = fullfile(stage.targetDir, "manifest.json");
-verifyFalse(testCase, isfile(targetManifest));
+verifyTrue(testCase, isfolder(stage.targetDir));
+verifyPublicationIncomplete(testCase, stage.targetDir);
 verifyTrue(testCase, isfile(stage.manifestPath));
 verifyEqual(testCase, string(jsondecode(fileread( ...
     stage.manifestPath)).status), ...
@@ -64,9 +64,136 @@ verifyError(testCase, @() publish_task8_evidence(stage, control), ...
 verifyTrue(testCase, isfolder(stage.stageDir));
 verifyTrue(testCase, isfile(stage.manifestPath));
 verifyTrue(testCase, isfolder(stage.targetDir));
-verifyFalse(testCase, isfile(fullfile(stage.targetDir, "manifest.json")));
+verifyPublicationIncomplete(testCase, stage.targetDir);
 verifyError(testCase, @() publish_task8_evidence(stage), ...
     "steady53:EvidenceAlreadyExists");
+clear cleanup
+end
+
+function testDeletedStagePayloadClaimIsRejectedBeforeReservation(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_deleted_payload_claim", result, report, spec);
+stage.payloadFiles(1) = [];
+
+verifyError(testCase, @() publish_task8_evidence(stage), ...
+    "steady53:InvalidEvidenceStage");
+verifyFalse(testCase, isfolder(stage.targetDir));
+verifyPublicationIncomplete(testCase, stage.targetDir);
+clear cleanup
+end
+
+function testUnknownStagePayloadClaimIsRejectedBeforeReservation(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_unknown_payload_claim", result, report, spec);
+stage.payloadFiles(end + 1, 1) = "unknown.txt";
+
+verifyError(testCase, @() publish_task8_evidence(stage), ...
+    "steady53:InvalidEvidenceStage");
+verifyFalse(testCase, isfolder(stage.targetDir));
+verifyPublicationIncomplete(testCase, stage.targetDir);
+clear cleanup
+end
+
+function testMissingManifestSmallHashIsRejectedWithoutCompletion(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_missing_small_hash", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest.smallFileHashes(1) = [];
+writeJson(stage.manifestPath, manifest);
+
+verifyError(testCase, @() publish_task8_evidence(stage), ...
+    "steady53:InvalidEvidenceStage");
+verifyPublicationIncomplete(testCase, stage.targetDir);
+clear cleanup
+end
+
+function testDuplicateManifestSmallHashIsRejectedWithoutCompletion(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_duplicate_small_hash", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest.smallFileHashes(end + 1) = manifest.smallFileHashes(1);
+writeJson(stage.manifestPath, manifest);
+
+verifyError(testCase, @() publish_task8_evidence(stage), ...
+    "steady53:InvalidEvidenceStage");
+verifyPublicationIncomplete(testCase, stage.targetDir);
+clear cleanup
+end
+
+function testChangedManifestRawNameIsRejectedWithoutCompletion(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_changed_raw_name", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest.rawMatFile = "different.mat";
+writeJson(stage.manifestPath, manifest);
+
+verifyError(testCase, @() publish_task8_evidence(stage), ...
+    "steady53:InvalidEvidenceStage");
+verifyPublicationIncomplete(testCase, stage.targetDir);
+clear cleanup
+end
+
+function testAlternateStageRawPathIsRejectedWithoutCompletion(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_alternate_raw_path", result, report, spec);
+alternatePath = fullfile(stage.stageDir, "alternate.mat");
+copyfile(stage.rawMatPath, alternatePath);
+stage.rawMatPath = string(alternatePath);
+
+verifyError(testCase, @() publish_task8_evidence(stage), ...
+    "steady53:InvalidEvidenceStage");
+verifyPublicationIncomplete(testCase, stage.targetDir);
+clear cleanup
+end
+
+function testUnknownManifestSmallHashIsRejectedWithoutCompletion(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_unknown_small_hash", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+copyfile(fullfile(stage.stageDir, "metrics.csv"), ...
+    fullfile(stage.stageDir, "unknown.csv"));
+manifest.smallFileHashes(1).name = "unknown.csv";
+writeJson(stage.manifestPath, manifest);
+
+verifyError(testCase, @() publish_task8_evidence(stage), ...
+    "steady53:InvalidEvidenceStage");
+verifyPublicationIncomplete(testCase, stage.targetDir);
+clear cleanup
+end
+
+function testTargetPayloadHashIsRecheckedBeforeCompletion(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_target_hash_recheck", result, report, spec);
+control = struct("tamperTargetBeforeManifest", "metrics.csv");
+
+verifyError(testCase, @() publish_task8_evidence(stage, control), ...
+    "steady53:InvalidEvidenceStage");
+verifyTrue(testCase, isfolder(stage.targetDir));
+verifyPublicationIncomplete(testCase, stage.targetDir);
 clear cleanup
 end
 
@@ -142,6 +269,30 @@ function removeOwnedDirectory(directory)
 if isfolder(directory)
     rmdir(directory, "s");
 end
+end
+
+function verifyPublicationIncomplete(testCase, directory)
+manifestPath = fullfile(directory, "manifest.json");
+verifyFalse(testCase, isfile(manifestPath));
+verifyEqual(testCase, publicationStatus(directory), "incomplete");
+end
+
+function status = publicationStatus(directory)
+manifestPath = fullfile(directory, "manifest.json");
+if ~isfile(manifestPath)
+    status = "incomplete";
+    return
+end
+manifest = jsondecode(fileread(manifestPath));
+status = string(manifest.status);
+end
+
+function writeJson(filePath, value)
+fileId = fopen(filePath, "w");
+assert(fileId >= 0, "Could not open JSON fixture: %s", filePath);
+cleanup = onCleanup(@() fclose(fileId));
+fprintf(fileId, "%s\n", jsonencode(value));
+clear cleanup
 end
 
 function hashes = hashPublishedFiles(directory)
