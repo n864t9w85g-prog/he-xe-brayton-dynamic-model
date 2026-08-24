@@ -204,7 +204,9 @@ validateOptions = shortOptions(tmpRoot, false);
 validateOptions.validateCurrentOnly = true;
 current = run_speed_hypothesis(validateOptions);
 
+verifyEqual(testCase, current.schemaVersion, 2);
 verifyEqual(testCase, string(current.runId), string(summary.runId));
+verifyFalse(testCase, current.cacheRebuilt);
 verifyEqual(testCase, sha256File(current.copyPath), ...
     string(current.copyHash));
 verifyEqual(testCase, sha256File(current.resultPath), ...
@@ -215,36 +217,122 @@ verifyEqual(testCase, sha256File(current.runResultPath), ...
     string(current.resultHash));
 
 writeText(current.resultPath, "tampered current result");
-verifyError(testCase, @() run_speed_hypothesis(validateOptions), ...
-    "steady53:CurrentEvidenceHashMismatch");
+repaired = run_speed_hypothesis(validateOptions);
+verifyTrue(testCase, repaired.cacheRebuilt);
+verifyEqual(testCase, sha256File(repaired.resultPath), ...
+    string(repaired.resultHash));
+delete(repaired.copyPath);
+repaired = run_speed_hypothesis(validateOptions);
+verifyTrue(testCase, repaired.cacheRebuilt);
+verifyEqual(testCase, sha256File(repaired.copyPath), ...
+    string(repaired.copyHash));
+
+markerPath = fullfile(tmpRoot, "speed55090_current.mat");
+pristine = load(markerPath, "current");
+tamperCases = { ...
+    "status", "tampered"; ...
+    "completedAt", "1999-01-01T00:00:00.000Z"; ...
+    "runDirectory", string(tempname); ...
+    "runId", "run_tampered"; ...
+    "runCopyPath", string(tempname) + ".slx"; ...
+    "runResultPath", string(tempname) + ".mat"};
+for index = 1:size(tamperCases, 1)
+    current = pristine.current;
+    current.(tamperCases{index, 1}) = tamperCases{index, 2};
+    save(markerPath, "current");
+    verifyError(testCase, @() run_speed_hypothesis(validateOptions), ...
+        "steady53:MarkerMismatch", ...
+        "Marker field was accepted: " + tamperCases{index, 1});
+    current = pristine.current;
+    save(markerPath, "current");
+end
+finalCurrent = run_speed_hypothesis(validateOptions);
+verifyEqual(testCase, string(finalCurrent.runId), string(summary.runId));
 clear cleanup
 end
 
-function testStrictLegacyAdoptionSurvivesNewToolFailure(testCase)
+function testPublicationInterruptionsPreserveOrRecoverAuthority(testCase)
 tmpRoot = string(tempname);
 cleanup = onCleanup(@() removeTestDirectory(tmpRoot));
-legacyRun = run_speed_hypothesis(shortOptions(tmpRoot, false));
-fixedCopy = fullfile(tmpRoot, "final_steady_speed55090.slx");
-fixedResult = fullfile(tmpRoot, "speed55090_result.mat");
-copyfile(legacyRun.explorationCopyPath, fixedCopy);
-copyfile(legacyRun.resultPath, fixedResult);
-
-options = shortOptions(tmpRoot, true);
-options.injectFailureAt = "after_copy";
-verifyError(testCase, @() run_speed_hypothesis(options), ...
-    "steady53:InjectedSpeedHypothesisFailure");
 validateOptions = shortOptions(tmpRoot, false);
 validateOptions.validateCurrentOnly = true;
-current = run_speed_hypothesis(validateOptions);
-verifyTrue(testCase, startsWith(string(current.runId), "legacy_"));
-loaded = load(current.resultPath, "summary");
-verifyTrue(testCase, loaded.summary.adoptedLegacy);
-verifyEqual(testCase, string(loaded.summary.runId), ...
-    string(current.runId));
-verifyEqual(testCase, sha256File(current.copyPath), ...
-    string(current.copyHash));
-verifyEqual(testCase, sha256File(current.resultPath), ...
-    string(current.resultHash));
+
+baseline = run_speed_hypothesis(shortOptions(tmpRoot, true));
+oldCurrent = run_speed_hypothesis(validateOptions);
+verifyEqual(testCase, string(oldCurrent.runId), string(baseline.runId));
+
+beforeMarker = shortOptions(tmpRoot, true);
+beforeMarker.stopTime_s = 1.05;
+beforeMarker.injectFailureAt = "before_marker_move";
+verifyError(testCase, @() run_speed_hypothesis(beforeMarker), ...
+    "steady53:InjectedSpeedHypothesisFailure");
+stillOld = run_speed_hypothesis(validateOptions);
+verifyEqual(testCase, string(stillOld.runId), string(oldCurrent.runId));
+verifyFalse(testCase, stillOld.cacheRebuilt);
+
+afterMarker = shortOptions(tmpRoot, true);
+afterMarker.stopTime_s = 1.1;
+afterMarker.injectFailureAt = "after_marker_move_before_cache";
+verifyError(testCase, @() run_speed_hypothesis(afterMarker), ...
+    "steady53:InjectedSpeedHypothesisFailure");
+newCurrent = run_speed_hypothesis(validateOptions);
+verifyNotEqual(testCase, string(newCurrent.runId), string(stillOld.runId));
+verifyTrue(testCase, newCurrent.cacheRebuilt);
+verifyEqual(testCase, sha256File(newCurrent.copyPath), ...
+    string(newCurrent.copyHash));
+verifyEqual(testCase, sha256File(newCurrent.resultPath), ...
+    string(newCurrent.resultHash));
+
+afterCopy = shortOptions(tmpRoot, true);
+afterCopy.stopTime_s = 1.2;
+afterCopy.injectFailureAt = "after_current_copy_move";
+verifyError(testCase, @() run_speed_hypothesis(afterCopy), ...
+    "steady53:InjectedSpeedHypothesisFailure");
+copyInterrupted = run_speed_hypothesis(validateOptions);
+verifyNotEqual(testCase, string(copyInterrupted.runId), ...
+    string(newCurrent.runId));
+verifyTrue(testCase, copyInterrupted.cacheRebuilt);
+verifyEqual(testCase, sha256File(copyInterrupted.copyPath), ...
+    string(copyInterrupted.copyHash));
+verifyEqual(testCase, sha256File(copyInterrupted.resultPath), ...
+    string(copyInterrupted.resultHash));
+
+nextOptions = shortOptions(tmpRoot, true);
+nextOptions.stopTime_s = 1.3;
+next = run_speed_hypothesis(nextOptions);
+finalCurrent = run_speed_hypothesis(validateOptions);
+verifyEqual(testCase, string(finalCurrent.runId), string(next.runId));
+verifyFalse(testCase, finalCurrent.cacheRebuilt);
+clear cleanup
+end
+
+function testMarkerlessPairIsRejectedEvenWithSynchronizedSelfReport(testCase)
+tmpRoot = string(tempname);
+cleanup = onCleanup(@() removeTestDirectory(tmpRoot));
+unpublishedRun = run_speed_hypothesis(shortOptions(tmpRoot, false));
+fixedCopy = fullfile(tmpRoot, "final_steady_speed55090.slx");
+fixedResult = fullfile(tmpRoot, "speed55090_result.mat");
+copyfile(unpublishedRun.explorationCopyPath, fixedCopy);
+load_system(fixedCopy);
+modelCleanup = onCleanup(@() closeIfLoaded("final_steady_speed55090"));
+set_param("final_steady_speed55090/Constant14", "Value", "1087001");
+save_system("final_steady_speed55090", fixedCopy);
+clear modelCleanup
+forgedCopyHash = sha256File(fixedCopy);
+loaded = load(unpublishedRun.resultPath, "result", "summary");
+result = loaded.result;
+summary = loaded.summary;
+result.copyHash = forgedCopyHash;
+summary.copyHash = forgedCopyHash;
+summary.explorationCopyHash = forgedCopyHash;
+save(fixedResult, "result", "summary", "-v7.3");
+
+verifyError(testCase, @() run_speed_hypothesis( ...
+    shortOptions(tmpRoot, true)), ...
+    "steady53:UnownedExplorationArtifact");
+verifyFalse(testCase, isfile(fullfile( ...
+    tmpRoot, "speed55090_current.mat")));
+verifyEqual(testCase, sha256File(fixedCopy), forgedCopyHash);
 clear cleanup
 end
 
