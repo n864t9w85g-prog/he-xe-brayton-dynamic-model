@@ -22,8 +22,8 @@ function testActualComponentSpeedIsPaperNominal(testCase)
 model = "final_steady_24a";
 modelPath = fullfile(testCase.TestData.root, model + ".slx");
 wasLoaded = bdIsLoaded(model);
-load_system(modelPath);
 cleanup = onCleanup(@() closeTestOwnedModel(model, wasLoaded));
+load_system(modelPath);
 
 actual = str2double(get_param(model + "/TAC/Constant", "Value"));
 compressorMap = load(fullfile(testCase.TestData.root, ...
