@@ -74,3 +74,15 @@
 - ✅ 质量审查所有权回归：测试启动前已加载模型集合在 `setupOnce` 第一批记录，工装模型另行显式登记所有权；`teardownOnce` 仅关闭“不在启动前集合中且由本套件显式登记”的模型，不再依赖 `s53_*` 前缀。实际预加载回归在边界测试及 suite teardown 后保留正式模型 `Dirty=on, StopTime=801` 和用户 `s53_user_*` 模型 `Dirty=on, Value=42`；两者均未保存。
 - ✅ `teardownOnce` 的已有模型关闭、base workspace、path、pwd、warning、Simulink file-generation 和套件临时目录恢复现分步 best-effort 执行；任一步失败不会阻断后续步骤，最后才以 `steady53:ComponentHarnessTeardownFailed` 聚合报告。
 - ❓ 结论边界：恒边界下六个隔离部件均能完成 14000 s，因此本轮未由 Task 6 触发 Root-Cause Checkpoint。这不证明整机闭环已通过，不证明部件在整机互联边界下不会失稳，也不将“隔离运行通过”上升为任一具体根因结论。
+
+## 2026-08-24 正式稳态模型 TAC 设计转速最小修正
+
+- ✅ 修改前备份与状态门：`final_steady_24a.slx` SHA-256 为 `08b903324a5bf60a16d7b019fd83de7e7937242627e592ba7368404a817dc27a`；`archive/pre-restart-20260824^{commit}` 仍解析为 `8f625c268c35a95c18a626305c1aa6a79ae2ace7`；修改前工作树无已跟踪变更。完整快照输出位于 `tmp/steady53/task7_prechange_snapshot.txt`，不提交。
+- ✅ 真实 RED：在新 MATLAB 进程中精确选中且断言只有一个 `testActualComponentSpeedIsPaperNominal` 测试，读得实际值 `66100 rpm`、期望值 `55090±1 rpm`，以绝对差 `11010 rpm` 失败；同时归一化转速 `1.199854783082229` 超过活动表上限 `1.1`。证据位于 `tmp/steady53/task7_speed_red.txt`，不提交。
+- ✅ 测试选择器口径修正：计划文档里仅传短 `Name` 的 `runtests` 命令在本 MATLAB R2025a 环境实际选中 `0` 项，不能作为 RED/GREEN 证据。本轮改用完整测试名 `test_final_steady_acceptance/testActualComponentSpeedIsPaperNominal`，并在运行前断言 `numel(suite)==1`。
+- ✅ 正式模型单一修改：只将 `final_steady_24a/TAC/Constant.Value` 从 `66100` 改为 `55090 rpm`。未修改任何 `.mat` 查表，未增加模块、连线、控制器、校正反馈或拟合参数。修改后模型 SHA-256 为 `5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d`。
+- ✅ GREEN：同一个精确选中的转速测试在新 MATLAB 进程中返回 `1 Passed, 0 Failed, 0 Incomplete`；实际转速和 `N_design` 均为 `55090 rpm`，归一化转速为 `1.0`，位于 `speed_bp=[0.9,1.1]` 内。证据位于 `tmp/steady53/task7_speed_green.txt`，不提交。
+- ✅ 保存前后 SLX 语义对比覆盖 `1233` 个块和 `1097` 条连线：块集合、块类型、DialogParameter 模式和连线端口签名相同，唯一 DialogParameter 差异为 `/TAC/Constant::Value`。模型 `StopTime=800`、`Solver=ode15s`、`RelTol=1e-3` 修改前后不变。机器可读摘要位于 `tmp/steady53/task7_semantic_audit.txt`，不提交。
+- ✅ 正式整机 500 s 阻塞运行：`run_steady53_case` 在内存中把四类 He-Xe/锂物性警告提升为 error，并使用阻塞式 `sim(SimulationInput)`。本轮实测 `success=true`、`tFinal_s=500`、`errorId=""`、`warningIds=[]`；运行前后模型 SHA-256 均为 `5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d`。控制台与时序证据分别位于 `tmp/steady53/task7_whole_system_500_console.txt` 和 `tmp/steady53/task7_whole_system_500.mat`，不提交。
+- ✅ 回归与交付边界检查：稳态规格、验收判定器、阻塞运行器及精确选中的转速验收共 `41 Passed, 0 Failed, 0 Incomplete`；`checkcode` 对 `test_final_steady_acceptance.m` 和 `run_steady53_case.m` 均为 `0` 项；非 `tmp/` 的全部 `.mat` SHA-256 清单修改前后无差异；archive tag 的标签对象和解析 commit 均未变。
+- ❓ 结论边界：本轮证明正式模型在已批准的单一转速修正后可阻塞运行到 `500 s`，并且压气机归一化转速回到活动表定义域。这不证明整机已达到论文稳态数值，不证明图 5.18–5.19 稳定时间通过，不证明最终窗口/守恒/查表裕度通过，也不证明 `14000 s` 可达。
