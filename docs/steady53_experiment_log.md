@@ -365,3 +365,72 @@
   兼容验证，结果 `CURRENT_EVIDENCE_PUBLISH_COMPAT=PASS`；临时目录随后删除，未生成或
   覆盖任何受控 run。三个 evidence 目录、正式 SLX、4 个 MAT 与归档 tag 均不变。
   Task 8 仍为 RED/未完成。
+
+## 2026-08-25 Task 8A/H1a：Eq. (2.28) 只读分析被 S2 积分不收敛阻断
+
+- ✅ 范围与 TDD RED：本轮只创建
+  `tests/steady53/analyze_task8_h1a_readonly.m` 及对应测试，不加载或仿真任何 SLX，
+  不修改任何 SLX、MAT、物性方程、模型参数、初值或验收阈值。函数缺失测试先实测
+  `0 Passed, 1 Failed, 0 Incomplete`，随后完整合同测试在函数缺失时实测
+  `0 Passed, 14 Failed, 14 Incomplete`；RED 证据位于
+  `tmp/steady53/task8_root_cause/h1a_tdd/`，不提交。
+- ✅ 固定输入身份门：默认输入仍精确绑定
+  `run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/nominal_500_report.mat`，
+  SHA-256 为
+  `4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b`；
+  输入哈希不符、所需字段缺失、`t` 非严格递增、`finalWindow_s` 非法、输出碰撞、
+  物性越界和无根括号均在产生结果文件前 fail closed。输入 MAT 的活动读取语句仅为
+  `load(inputMat,"result","report","spec")`。
+- ✅ 当前单点基线复算在进入 S2 前通过 `1e-9 K` 门：末时刻
+  `T1=1515.109678670083 K`、`P1=1538809.8025948156 Pa`、
+  `P2=674556.26792509283 Pa`、记录 `T2=1143.7357706111763 K`；
+  `eta=0.87286960881076081` 由当前二维线性查表复算，`cp1=519.65678111047418`、
+  `cp2=519.65806622669288 J/(kg K)`，基线方程复算残差为 `0 K`。
+- ❓ H1a-S1 的只读局部结果在 S2 阻断前已收敛：
+  `phiBar=0.39978932815006674`、`T2s=1089.5641955018075 K`、
+  `T2=1143.6630406569668 K`、相对单点基线增量
+  `-0.0727299542095352 K`、求根残差
+  `1.5916157281026244e-12 K`。S1 是论文未指定的数值实现候选；该局部结果不能单独
+  完成 H1a，也不构成物理正确性证据。
+- ✅ 严格阻断事实：S2 使用批准的线性 `(T,P)` 路径、
+  `integral(...,RelTol=1e-8,AbsTol=1e-10)` 和固定 `fzero` 区间
+  `[100 K,T1]` 时，在下界评估触发精确 warning ID
+  `MATLAB:integral:MaxIntervalCountReached`，报告误差近似范围为 `2.0e-05`。
+  当前入口将该 warning 升为 error，并以
+  `steady53:H1aIntegrationNonconvergence` 包装、保留原 cause 后 fail closed；默认
+  执行证据为 `tmp/steady53/task8_root_cause/h1a_tdd/default_fail_closed.txt`。
+- ❌ 一次早期实现曾压制并缓存上述 100 K 端点 warning；这违反“不收敛 fail
+  closed”，其 S2 数值已经作废，禁止用于接受、拒绝或量化 H1a。该次两个原文件未被
+  删除，而是完整移入
+  `tmp/steady53/task8_root_cause/h1a/invalid_attempt_max_interval_20260825T014358CST/`；
+  原 `h1a_sensitivity.csv` SHA-256 为
+  `c3d05ed2fb24b435e9ac23c8ad7e830ffcf4c13ef33c0504a5ff41977296c280`，
+  原 `h1a_summary.txt` SHA-256 为
+  `8d76fa024fc0fe3728a9454c397f50253e97b45f1807969f73ff34ba22b3a962`，
+  自描述 `INVALID_ATTEMPT.txt` SHA-256 为
+  `e4c3fd413fe7f547ec93ba9a3ca683d0787e72c8e2ce9b0931f8394ee8910ffd`。
+- ✅ 纠正后的默认执行没有创建正式固定输出目录
+  `tmp/steady53/task8_root_cause/h1a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/`，
+  因而没有有效的 `h1a_sensitivity.csv` 或 `h1a_summary.txt` 可交付。
+  未改变根区间、未扫描子区间、未分段积分、未改变 `MaxIntervalCount`、未换算法。
+- ❓ 结论边界：完整 H1a 为 **BLOCKED/未完成**。S2 没有有效结果，因此不能根据
+  作废的早期 S2 数值声称 H1a 已被证伪，也不能判断 H1a 是否足以解释
+  `18.264229388823651 K` 的末时刻差值。H1b 未执行，模型未修改。
+- ✅ 允许范围内的最终验证：MATLAB 活动发现集共 `106` 项，精确发现且断言既定
+  Task 8 RED
+  `test_final_steady_acceptance/testNominalCoupledModelMatchesSection531By500Seconds`
+  恰好 `1` 项；只运行经静态核实不触及 SLX 的 spec/evaluator/evidence/H1a 离线子集，
+  实测 `79 Passed, 0 Failed, 0 Incomplete`。完整活动 SLX 回归有意未运行，因为本次
+  人工批准范围明确禁止 load/sim SLX；本条不是“其余 105 项全绿”的声明。
+- ✅ `/opt/homebrew/bin/python3` 溯源回归实测 `6 tests, OK`；`checkcode` 对两个
+  新增 MATLAB 文件均为 `0` 项，静态扫描未发现 `set_param/load_system/sim/save_system`，
+  `git diff --check` 通过。
+- ✅ 保护状态复核：`final_steady_24a.slx` SHA-256 仍为
+  `5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d`；
+  四个 MAT SHA-256 仍依次为
+  `f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579`、
+  `3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304`、
+  `10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d`、
+  `cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33`；
+  `archive/pre-restart-20260824^{commit}` 仍为
+  `8f625c268c35a95c18a626305c1aa6a79ae2ace7`。
