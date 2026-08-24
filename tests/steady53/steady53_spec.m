@@ -18,6 +18,7 @@ s.scale.pressure_Pa = 1;
 s.scale.massFlow_kg_s = 1;
 s.scale.power_W = 1;
 s.scale.speed_rpm = 1;
+s.scale.dimensionless = 1;
 s.scale.other = 1;
 
 s.speedAbsTol_rpm = 1;

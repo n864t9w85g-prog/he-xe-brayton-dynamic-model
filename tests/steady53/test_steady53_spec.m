@@ -14,6 +14,13 @@ verifyEqual(testCase, s.massClosureTol, 1e-6);
 verifyEqual(testCase, s.property.HeXe_K, [100 2000]);
 verifyEqual(testCase, s.property.Lithium_K, [453.7 1608]);
 verifyEqual(testCase, s.requiredIndependentRuns, 2);
+verifyEqual(testCase, s.scale.temperature_K, 1);
+verifyEqual(testCase, s.scale.pressure_Pa, 1);
+verifyEqual(testCase, s.scale.massFlow_kg_s, 1);
+verifyEqual(testCase, s.scale.power_W, 1);
+verifyEqual(testCase, s.scale.speed_rpm, 1);
+verifyEqual(testCase, s.scale.dimensionless, 1);
+verifyEqual(testCase, s.scale.other, 1);
 end
 
 function testRequiredNominalMetricTargets(testCase)

@@ -63,7 +63,7 @@ end
 function testMissingAuditFieldsFailClosed(testCase)
 [t, signals, audit, s] = nominalCase();
 requiredFields = ["warningIds", "lookup", "property", ...
-    "massClosureRel", "states"];
+    "massClosureRel", "states", "signalDynamics"];
 
 for field = requiredFields
     incompleteAudit = rmfield(audit, field);
@@ -73,6 +73,43 @@ for field = requiredFields
     verifyTrue(testCase, any(report.failures == ...
         "audit:missing:" + field));
 end
+end
+
+function testNonMetricMassFlowDriftFailsSignalDynamics(testCase)
+[t, signals, audit, s] = nominalCase();
+name = "diagnostic_mdot";
+values = repmat(12, size(t));
+inFinalWindow = t >= s.finalWindow_s(1);
+values(inFinalWindow) = linspace(12, 12.024, nnz(inFinalWindow)).';
+signals.(name) = values;
+audit.signalDynamics(end + 1) = struct( ...
+    "name", name, ...
+    "data", values, ...
+    "kind", "massFlow", ...
+    "scaleFloor", s.scale.massFlow_kg_s, ...
+    "constant", false);
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyFalse(testCase, report.pass);
+verifyTrue(testCase, any(report.failures == ...
+    "signal:peak_to_peak:" + name));
+verifyTrue(testCase, any(report.failures == "signal:trend:" + name));
+row = report.signalDynamics(report.signalDynamics.name == name, :);
+verifyEqual(testCase, height(row), 1);
+verifyEqual(testCase, row.kind, "massFlow");
+verifyEqual(testCase, row.scaleFloor, 1);
+verifyFalse(testCase, row.signalPass);
+end
+
+function testSignalDynamicsCoverageFailsClosed(testCase)
+[t, signals, audit, s] = nominalCase();
+signals.unclassified_output = ones(size(t));
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyFalse(testCase, report.pass);
+verifyTrue(testCase, any(report.failures == "signal:coverage"));
 end
 
 function testInvalidWarningIdsFailClosed(testCase)
@@ -471,6 +508,13 @@ audit.states = struct( ...
     "data", {}, ...
     "kind", {}, ...
     "signPolicy", {});
+names = string(fieldnames(signals));
+audit.signalDynamics = struct( ...
+    "name", cellstr(names), ...
+    "data", struct2cell(signals), ...
+    "kind", repmat({"other"}, numel(names), 1), ...
+    "scaleFloor", repmat({s.scale.other}, numel(names), 1), ...
+    "constant", repmat({false}, numel(names), 1));
 end
 
 function signals = signalsForTime(t, s)

@@ -83,13 +83,16 @@ end
 metrics = table(metricName, target, meanValue, relativeError, ...
     peakToPeakRel, trendRel, settlingTime_s, metricPass);
 
-failures = [failures; auditFailures(audit, s, t, windowMask, validTime)];
+[auditFailureList, signalDynamics] = auditFailures( ...
+    audit, s, t, signals, windowMask, validTime);
+failures = [failures; auditFailureList];
 failures = unique(failures, "stable");
 
 report = struct();
 report.pass = isempty(failures);
 report.failures = failures;
 report.metrics = metrics;
+report.signalDynamics = signalDynamics;
 report.audit = audit;
 end
 
@@ -136,11 +139,13 @@ else
 end
 end
 
-function failures = auditFailures(audit, s, t, windowMask, validTime)
+function [failures, signalDynamics] = auditFailures( ...
+        audit, s, t, signals, windowMask, validTime)
 failures = strings(0, 1);
+signalDynamics = emptySignalDynamicsTable();
 
 requiredAuditFields = ["warningIds", "lookup", "property", ...
-    "massClosureRel", "states"];
+    "massClosureRel", "states", "signalDynamics"];
 for field = requiredAuditFields
     if ~isfield(audit, field)
         failures(end + 1, 1) = "audit:missing:" + field; %#ok<AGROW>
@@ -188,8 +193,142 @@ if isfield(audit, "states")
     failures = [failures; stateFailures( ...
         audit.states, s, t, windowMask, validTime)];
 end
+if isfield(audit, "signalDynamics")
+    [signalFailures, signalDynamics] = signalDynamicsFailures( ...
+        audit.signalDynamics, signals, s, t, windowMask, validTime);
+    failures = [failures; signalFailures];
+end
 
 failures = unique(failures, "stable");
+end
+
+function [failures, output] = signalDynamicsFailures( ...
+        entries, signals, s, t, windowMask, validTime)
+failures = strings(0, 1);
+output = emptySignalDynamicsTable();
+requiredFields = ["name", "data", "kind", "scaleFloor", "constant"];
+allowedKinds = ["temperature", "pressure", "power", "massFlow", ...
+    "speed", "dimensionless", "other"];
+actualNames = string(fieldnames(signals));
+
+if ~isstruct(entries)
+    failures = ["audit:invalid:signalDynamics"; "signal:coverage"];
+    return
+end
+
+count = numel(entries);
+name = strings(count, 1);
+kind = strings(count, 1);
+scaleFloor = nan(count, 1);
+constant = false(count, 1);
+finalValue = nan(count, 1);
+windowMean = nan(count, 1);
+windowMin = nan(count, 1);
+windowMax = nan(count, 1);
+peakToPeakRel = nan(count, 1);
+trendRel = nan(count, 1);
+signalPass = false(count, 1);
+validNames = strings(0, 1);
+
+for index = 1:count
+    entry = entries(index);
+    label = auditEntryLabel(entry, "name", index);
+    rowFailures = strings(0, 1);
+    entryValid = all(isfield(entry, requiredFields)) && ...
+        validTextScalar(entry.name) && ...
+        isnumeric(entry.data) && ~isempty(entry.data) && ...
+        numel(entry.data) == numel(t) && isreal(entry.data) && ...
+        all(isfinite(entry.data), "all") && ...
+        validTextScalar(entry.kind) && ...
+        any(string(entry.kind) == allowedKinds) && ...
+        validFiniteScalar(entry.scaleFloor) && entry.scaleFloor > 0 && ...
+        islogical(entry.constant) && isscalar(entry.constant);
+
+    if entryValid
+        name(index) = string(entry.name);
+        kind(index) = string(entry.kind);
+        scaleFloor(index) = double(entry.scaleFloor);
+        constant(index) = entry.constant;
+        expectedFloor = signalScaleFloor(kind(index), s);
+        if scaleFloor(index) ~= expectedFloor
+            rowFailures(end + 1, 1) = ...
+                "signal:invalid:" + label; %#ok<AGROW>
+            entryValid = false;
+        end
+    else
+        rowFailures(end + 1, 1) = "signal:invalid:" + label; %#ok<AGROW>
+    end
+
+    if entryValid
+        if any(validNames == name(index))
+            rowFailures(end + 1, 1) = ...
+                "signal:duplicate:" + name(index); %#ok<AGROW>
+            entryValid = false;
+        else
+            validNames(end + 1, 1) = name(index); %#ok<AGROW>
+        end
+    end
+
+    if entryValid
+        if ~isfield(signals, name(index))
+            rowFailures(end + 1, 1) = "signal:coverage"; %#ok<AGROW>
+            entryValid = false;
+        elseif ~isequaln(double(entry.data(:)), ...
+                double(signals.(name(index))(:)))
+            rowFailures(end + 1, 1) = ...
+                "signal:data_mismatch:" + name(index); %#ok<AGROW>
+            entryValid = false;
+        end
+    end
+
+    if entryValid
+        values = double(entry.data(:));
+        finalValue(index) = values(end);
+        if validTime
+            windowValues = values(windowMask);
+            windowTime = t(windowMask);
+            normalizer = max(abs(mean(windowValues)), scaleFloor(index));
+            windowMean(index) = mean(windowValues);
+            windowMin(index) = min(windowValues);
+            windowMax(index) = max(windowValues);
+            peakToPeakRel(index) = ...
+                (windowMax(index) - windowMin(index)) / normalizer;
+            fitCoefficients = polyfit(windowTime, windowValues, 1);
+            trendRel(index) = abs(fitCoefficients(1)) * ...
+                diff(s.finalWindow_s) / normalizer;
+            if peakToPeakRel(index) > s.windowPeakToPeakTol
+                rowFailures(end + 1, 1) = ...
+                    "signal:peak_to_peak:" + name(index); %#ok<AGROW>
+            end
+            if trendRel(index) > s.windowTrendTol
+                rowFailures(end + 1, 1) = ...
+                    "signal:trend:" + name(index); %#ok<AGROW>
+            end
+        end
+    end
+
+    rowFailures = unique(rowFailures, "stable");
+    failures = [failures; rowFailures]; %#ok<AGROW>
+    signalPass(index) = validTime && entryValid && isempty(rowFailures);
+end
+
+if numel(validNames) ~= numel(actualNames) || ...
+        ~isequal(sort(validNames), sort(actualNames))
+    failures(end + 1, 1) = "signal:coverage";
+end
+
+output = table(name, kind, scaleFloor, constant, finalValue, ...
+    windowMean, windowMin, windowMax, peakToPeakRel, trendRel, signalPass);
+failures = unique(failures, "stable");
+end
+
+function output = emptySignalDynamicsTable()
+output = table("Size", [0 11], "VariableTypes", ...
+    ["string", "string", repmat("double", 1, 1), "logical", ...
+     repmat("double", 1, 6), "logical"], ...
+    "VariableNames", ["name", "kind", "scaleFloor", "constant", ...
+     "finalValue", "windowMean", "windowMin", "windowMax", ...
+     "peakToPeakRel", "trendRel", "signalPass"]);
 end
 
 function [valid, warningIds] = normalizeWarningIds(value)
@@ -343,6 +482,10 @@ end
 end
 
 function scaleFloor = stateScaleFloor(kind, s)
+scaleFloor = signalScaleFloor(kind, s);
+end
+
+function scaleFloor = signalScaleFloor(kind, s)
 switch kind
     case "temperature"
         scaleFloor = s.scale.temperature_K;
@@ -354,6 +497,8 @@ switch kind
         scaleFloor = s.scale.massFlow_kg_s;
     case "speed"
         scaleFloor = s.scale.speed_rpm;
+    case "dimensionless"
+        scaleFloor = s.scale.dimensionless;
     otherwise
         scaleFloor = s.scale.other;
 end

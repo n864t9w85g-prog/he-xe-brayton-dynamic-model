@@ -71,7 +71,7 @@ verifyEqual(testCase, result.tFinal_s, 500);
 s = steady53_spec();
 s.stopTime_s = 500;
 s.finalWindow_s = [400 500];
-audit = auditForRun(testCase.TestData.root, result);
+audit = auditForRun(testCase.TestData.root, result, s);
 report = evaluate_steady53(result.t, result.signals, audit, s);
 evidencePath = saveTask8Evidence(testCase.TestData.root, result, report, s);
 fprintf(1, "Task 8 structured evidence: %s\n", evidencePath);
@@ -79,12 +79,42 @@ fprintf(1, "Task 8 failures:\n%s\n", strjoin(report.failures, newline));
 verifyTrue(testCase, report.pass, strjoin(report.failures, newline));
 end
 
-function audit = auditForRun(root, result)
+function audit = auditForRun(root, result, spec)
 audit.warningIds = result.warningIds;
 audit.lookup = lookupAudit(root, result.signals);
 audit.property = propertyAudit(result);
 audit.massClosureRel = massClosure(result.signals);
 audit.states = result.states;
+audit.signalDynamics = signalDynamicsAudit(result.signals, spec);
+end
+
+function entries = signalDynamicsAudit(signals, spec)
+[manifest, ~] = steady53_signal_manifest("final_steady_24a");
+count = numel(manifest) + 2;
+entries = repmat(struct( ...
+    "name", "", ...
+    "data", [], ...
+    "kind", "", ...
+    "scaleFloor", NaN, ...
+    "constant", false), count, 1);
+for index = 1:numel(manifest)
+    entries(index) = dynamicsEntry( ...
+        manifest(index).name, signals, manifest(index).kind, ...
+        manifest(index).constant, spec);
+end
+entries(end - 1) = dynamicsEntry( ...
+    "reactor_power", signals, "power", false, spec);
+entries(end) = dynamicsEntry( ...
+    "tac_electric_power", signals, "power", false, spec);
+end
+
+function entry = dynamicsEntry(name, signals, kind, constant, spec)
+entry = struct( ...
+    "name", string(name), ...
+    "data", signals.(string(name))(:), ...
+    "kind", string(kind), ...
+    "scaleFloor", signalScaleFloor(kind, spec), ...
+    "constant", logical(constant));
 end
 
 function audit = lookupAudit(root, signals)
@@ -192,7 +222,7 @@ writetable(struct2table(report.audit.lookup), ...
     fullfile(runDirectory, "lookup_audit.csv"));
 writetable(stateWindowTable(result, spec), ...
     fullfile(runDirectory, "state_window_audit.csv"));
-writetable(signalWindowTable(result, spec), ...
+writetable(report.signalDynamics, ...
     fullfile(runDirectory, "signal_window_audit.csv"));
 writelines(report.failures, fullfile(runDirectory, "failures.txt"));
 summary = [ ...
@@ -248,29 +278,11 @@ output = table(path, fluid, kind, signPolicy, finalValue, windowMean, ...
     windowMin, windowMax, windowPeakToPeakRel, windowTrendRel);
 end
 
-function output = signalWindowTable(result, spec)
-names = string(fieldnames(result.signals));
-count = numel(names);
-name = strings(count, 1);
-finalValue = nan(count, 1);
-windowMean = nan(count, 1);
-windowMin = nan(count, 1);
-windowMax = nan(count, 1);
-mask = result.t >= spec.finalWindow_s(1) & ...
-    result.t <= spec.finalWindow_s(2);
-for index = 1:count
-    values = result.signals.(names(index))(:);
-    windowValues = values(mask);
-    name(index) = names(index);
-    finalValue(index) = values(end);
-    windowMean(index) = mean(windowValues);
-    windowMin(index) = min(windowValues);
-    windowMax(index) = max(windowValues);
-end
-output = table(name, finalValue, windowMean, windowMin, windowMax);
+function scale = stateScaleFloor(kind, spec)
+scale = signalScaleFloor(kind, spec);
 end
 
-function scale = stateScaleFloor(kind, spec)
+function scale = signalScaleFloor(kind, spec)
 switch string(kind)
     case "temperature"
         scale = spec.scale.temperature_K;
@@ -282,6 +294,8 @@ switch string(kind)
         scale = spec.scale.massFlow_kg_s;
     case "speed"
         scale = spec.scale.speed_rpm;
+    case "dimensionless"
+        scale = spec.scale.dimensionless;
     otherwise
         scale = spec.scale.other;
 end
