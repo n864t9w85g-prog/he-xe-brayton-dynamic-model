@@ -99,7 +99,9 @@ windowMask = false(size(t));
 
 invalid = isempty(t) || ~isreal(t) || any(~isfinite(t), "all");
 if ~invalid
-    invalid = any(diff(t) <= 0) || t(1) > s.finalWindow_s(1);
+    % Section 5.3.1 and the later 500 s pre-acceptance runs start at 0 s.
+    invalid = t(1) ~= 0 || any(diff(t) <= 0) || ...
+        t(1) > s.finalWindow_s(1);
 end
 
 wrongStop = isempty(t) || ~isreal(t(end)) || ~isfinite(t(end)) || ...
@@ -250,10 +252,14 @@ end
 
 function failures = stateFailures(states, s, t, windowMask, validTime)
 failures = strings(0, 1);
-requiredFields = ["path", "fluid", "data"];
+% Runner contract: every recorded Integrator must provide kind and
+% signPolicy. Unclassified states cannot enter formal acceptance; this
+% evaluator never defaults them to other/signed or infers them from paths.
+requiredFields = ["path", "fluid", "data", "kind", "signPolicy"];
 allowedFluids = ["HeXe", "Lithium", "none"];
 allowedKinds = ["temperature", "pressure", "power", "massFlow", ...
     "speed", "dimensionless", "other"];
+allowedSignPolicies = ["positive", "nonnegative", "signed"];
 
 if ~isstruct(states)
     failures(end + 1, 1) = "audit:invalid:states";
@@ -272,7 +278,11 @@ for index = 1:numel(states)
             ~validTextScalar(state.fluid) || ...
             ~isnumeric(state.data) || isempty(state.data) || ...
             numel(state.data) ~= numel(t) || ...
-            ~isreal(state.data) || any(~isfinite(state.data), "all")
+            ~isreal(state.data) || any(~isfinite(state.data), "all") || ...
+            ~validTextScalar(state.kind) || ...
+            ~any(string(state.kind) == allowedKinds) || ...
+            ~validTextScalar(state.signPolicy) || ...
+            ~any(string(state.signPolicy) == allowedSignPolicies)
         failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
         continue
     end
@@ -283,38 +293,23 @@ for index = 1:numel(states)
         continue
     end
 
-    if isfield(state, "kind")
-        if ~validTextScalar(state.kind) || ...
-                ~any(string(state.kind) == allowedKinds)
-            failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
-            continue
-        end
-        kind = string(state.kind);
-    else
-        kind = inferredStateKind(path, fluid);
-    end
+    kind = string(state.kind);
+    signPolicy = string(state.signPolicy);
 
     if fluid ~= "none" && kind ~= "temperature"
         failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
         continue
     end
-
-    nonnegative = false;
-    if isfield(state, "nonnegative")
-        if ~islogical(state.nonnegative) || ~isscalar(state.nonnegative)
-            failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
-            continue
-        end
-        nonnegative = state.nonnegative;
+    if kind == "temperature" && signPolicy ~= "positive"
+        failures(end + 1, 1) = "state:invalid:" + path; %#ok<AGROW>
+        continue
     end
 
     data = state.data(:);
-    if nonnegative && any(data < 0)
-        failures(end + 1, 1) = "state:negative:" + path; %#ok<AGROW>
-    end
-
-    if kind == "temperature" && any(data <= 0)
+    if signPolicy == "positive" && any(data <= 0)
         failures(end + 1, 1) = "state:nonpositive:" + path; %#ok<AGROW>
+    elseif signPolicy == "nonnegative" && any(data < 0)
+        failures(end + 1, 1) = "state:negative:" + path; %#ok<AGROW>
     end
 
     if kind == "temperature" && fluid == "HeXe" && ...
@@ -344,29 +339,6 @@ for index = 1:numel(states)
             failures(end + 1, 1) = "state:trend:" + path; %#ok<AGROW>
         end
     end
-end
-end
-
-function kind = inferredStateKind(path, fluid)
-if fluid == "HeXe" || fluid == "Lithium"
-    kind = "temperature";
-    return
-end
-
-lowerPath = lower(path);
-if contains(lowerPath, "/t_") || contains(lowerPath, "t_rad_") || ...
-        contains(lowerPath, "temperature")
-    kind = "temperature";
-elseif contains(lowerPath, "/p_") || contains(lowerPath, "pressure")
-    kind = "pressure";
-elseif contains(lowerPath, "power")
-    kind = "power";
-elseif contains(lowerPath, "massflow") || contains(lowerPath, "mass_flow")
-    kind = "massFlow";
-elseif contains(lowerPath, "speed") || contains(lowerPath, "rpm")
-    kind = "speed";
-else
-    kind = "other";
 end
 end
 
