@@ -197,6 +197,143 @@ verifyPublicationIncomplete(testCase, stage.targetDir);
 clear cleanup
 end
 
+function testMissingManifestSchemaVersionIsRejected(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_missing_schema", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest = rmfield(manifest, "schemaVersion");
+writeJson(stage.manifestPath, manifest);
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
+function testWrongManifestSchemaVersionIsRejected(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_wrong_schema", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest.schemaVersion = 2;
+writeJson(stage.manifestPath, manifest);
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
+function testMissingManifestSourceHashIsRejected(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_missing_source_hash", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest = rmfield(manifest, "sourceModelHash");
+writeJson(stage.manifestPath, manifest);
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
+function testInvalidManifestSourceHashIsRejected(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_invalid_source_hash", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest.sourceModelHash = "not-a-sha256";
+writeJson(stage.manifestPath, manifest);
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
+function testManifestSourceHashMismatchWithRawResultIsRejected(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_source_hash_mismatch", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest.sourceModelHash = string(repmat('b', 1, 64));
+writeJson(stage.manifestPath, manifest);
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
+function testRawResultBeforeAfterHashMismatchIsRejected(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_raw_hash_mismatch", result, report, spec);
+rewriteRawResultHashes(stage, string(repmat('a', 1, 64)), ...
+    string(repmat('b', 1, 64)));
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
+function testMissingManifestCreatedAtIsRejected(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_missing_created_at", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest = rmfield(manifest, "createdAt");
+writeJson(stage.manifestPath, manifest);
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
+function testInvalidManifestCreatedAtIsRejected(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_invalid_created_at", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest.createdAt = "not-a-time";
+writeJson(stage.manifestPath, manifest);
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
+function testNonUtcManifestCreatedAtIsRejected(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_non_utc_created_at", result, report, spec);
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest.createdAt = "2026-08-25T08:00:00.000+08:00";
+writeJson(stage.manifestPath, manifest);
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
+function testTargetDirectoryMustMatchManifestRunId(testCase)
+evidenceRoot = ownedTempDirectory();
+cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
+[result, report, spec] = syntheticEvidence();
+stage = create_task8_evidence_stage( ...
+    evidenceRoot, "run_target_identity", result, report, spec);
+stage.targetDir = string(fullfile(evidenceRoot, "run_different_target"));
+
+verifyRejectedWithoutCompletion(testCase, stage);
+clear cleanup
+end
+
 function testManifestHashesAndOlderRunRemainImmutable(testCase)
 evidenceRoot = ownedTempDirectory();
 cleanup = onCleanup(@() removeOwnedDirectory(evidenceRoot));
@@ -277,6 +414,12 @@ verifyFalse(testCase, isfile(manifestPath));
 verifyEqual(testCase, publicationStatus(directory), "incomplete");
 end
 
+function verifyRejectedWithoutCompletion(testCase, stage)
+verifyError(testCase, @() publish_task8_evidence(stage), ...
+    "steady53:InvalidEvidenceStage");
+verifyPublicationIncomplete(testCase, stage.targetDir);
+end
+
 function status = publicationStatus(directory)
 manifestPath = fullfile(directory, "manifest.json");
 if ~isfile(manifestPath)
@@ -293,6 +436,16 @@ assert(fileId >= 0, "Could not open JSON fixture: %s", filePath);
 cleanup = onCleanup(@() fclose(fileId));
 fprintf(fileId, "%s\n", jsonencode(value));
 clear cleanup
+end
+
+function rewriteRawResultHashes(stage, beforeHash, afterHash)
+contents = load(stage.rawMatPath, "result", "report", "spec");
+contents.result.modelHashBefore = beforeHash;
+contents.result.modelHashAfter = afterHash;
+save(stage.rawMatPath, "-struct", "contents", "-v7.3");
+manifest = jsondecode(fileread(stage.manifestPath));
+manifest.rawMatHash = sha256File(stage.rawMatPath);
+writeJson(stage.manifestPath, manifest);
 end
 
 function hashes = hashPublishedFiles(directory)

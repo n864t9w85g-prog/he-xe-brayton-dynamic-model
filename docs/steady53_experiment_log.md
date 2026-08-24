@@ -337,3 +337,31 @@
   `c06602e` 无差异，当前原始 MAT SHA-256 仍为
   `f0525396c7159eb6dff5e2f9bc3b2e0f54e66c0d3e94875ce43240a8042f0443`。
   正式 SLX、4 个 MAT 和归档 tag hash 均不变。Task 8 仍为 RED/未完成。
+
+## 2026-08-25 Task 8 发布器复审：manifest 来源身份合同
+
+- ✅ 根因确认：`72d8e40` 已固定 payload 名称和 hash，但发布器仍未强制
+  `schemaVersion/sourceModelHash/createdAt`，也没有从 raw MAT 读取
+  `result.modelHashBefore/modelHashAfter`；调用者还可把已验证 manifest 发布到与
+  run ID 不一致的 `stage.targetDir`。
+- ✅ TDD RED：10 个新增回归在修复前全部实测失败，覆盖 schemaVersion 缺失/错误、
+  sourceModelHash 缺失/非法/与 raw MAT 不符、raw MAT 内 before/after 不一致、
+  createdAt 缺失/非法/非 UTC，以及 target 目录与 manifest run ID 不一致；所有用例
+  都要求不得产生目标 `manifest.json` 或 completed 状态。
+- ✅ 最小修复：发布前强制 `schemaVersion==1`；`sourceModelHash` 必须是 64 位
+  十六进制，并与 raw MAT 内 `result.modelHashBefore`、`result.modelHashAfter` 三方
+  相等，同时要求 before==after。raw MAT 的 SHA-256 先通过 manifest 校验，再读取
+  其中的 `result`，不采用 stage 中自报的模型 hash。
+- ✅ `createdAt` 必须存在、非空，并严格符合含毫秒和尾随 `Z` 的 UTC 格式
+  `yyyy-MM-ddTHH:mm:ss.SSSZ`，且能被 UTC datetime 实际解析。
+- ✅ manifest run ID 必须为安全的 `run_*` 标识，并与 `stage.runId`、
+  `.staging_<runId>` 目录名以及同父目录下的目标 `<runId>` 路径全部一致；
+  manifest 路径也必须精确为 `stageDir/manifest.json`。
+- ✅ 聚焦 evidence 测试实测 `22 Passed, 0 Failed, 0 Incomplete`。完整 MATLAB
+  发现集为 94 项，精确排除 1 个既定 Task 8 RED 后，活动集实测
+  `93 Passed, 0 Failed, 0 Incomplete`，即上轮 83 项加 10 个新增来源身份回归全部通过。
+  Python 溯源回归为 `6 tests, OK`；两个相关 MATLAB 文件 `checkcode` 均为 0 项。
+- ✅ 使用当前真实 500 s MAT 和既有 manifest 在系统临时目录完成一次发布合同
+  兼容验证，结果 `CURRENT_EVIDENCE_PUBLISH_COMPAT=PASS`；临时目录随后删除，未生成或
+  覆盖任何受控 run。三个 evidence 目录、正式 SLX、4 个 MAT 与归档 tag 均不变。
+  Task 8 仍为 RED/未完成。

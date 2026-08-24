@@ -10,14 +10,9 @@ end
 
 required = ["runId", "stageDir", "targetDir", "rawMatPath", ...
     "manifestPath", "payloadFiles"];
-if ~all(isfield(stage, required)) || ~isfolder(stage.stageDir) || ...
-        ~isfile(stage.manifestPath)
+if ~all(isfield(stage, required)) || ~isfolder(stage.stageDir)
     error("steady53:InvalidEvidenceStage", ...
         "Task 8 evidence stage is missing required files or metadata.");
-end
-if isfile(stage.targetDir) || isfolder(stage.targetDir)
-    error("steady53:EvidenceAlreadyExists", ...
-        "Task 8 evidence target already exists: %s", stage.targetDir);
 end
 
 [rawMatFile, smallFiles] = evidenceFileContract();
@@ -25,22 +20,29 @@ requiredPayloadFiles = [rawMatFile; smallFiles];
 verifyExactFileSet(stage.payloadFiles, requiredPayloadFiles, ...
     "Task 8 stage payload claim does not match the fixed contract.");
 
-manifest = jsondecode(fileread(stage.manifestPath));
-if ~isfield(manifest, "status") || string(manifest.status) ~= "completed" || ...
-        ~isfield(manifest, "runId") || ...
-        string(manifest.runId) ~= string(stage.runId)
+manifestPath = string(fullfile(stage.stageDir, "manifest.json"));
+if ~isscalar(string(stage.manifestPath)) || ...
+        ismissing(string(stage.manifestPath)) || ...
+        string(stage.manifestPath) ~= manifestPath || ~isfile(manifestPath)
     error("steady53:InvalidEvidenceStage", ...
-        "Task 8 evidence manifest is not a completed matching stage.");
+        "Task 8 stage manifest path does not match its fixed staged path.");
 end
+manifest = jsondecode(fileread(manifestPath));
+targetDir = verifiedManifestEnvelope(stage, manifest);
 [payloadFiles, payloadHashes] = verifiedStagePayloads( ...
     stage, manifest, rawMatFile, smallFiles);
-validatedManifestHash = sha256File(stage.manifestPath);
+validatedManifestHash = sha256File(manifestPath);
 
-[status, output] = system("mkdir " + shellQuote(stage.targetDir));
+if isfile(targetDir) || isfolder(targetDir)
+    error("steady53:EvidenceAlreadyExists", ...
+        "Task 8 evidence target already exists: %s", targetDir);
+end
+
+[status, output] = system("mkdir " + shellQuote(targetDir));
 if status ~= 0
-    if isfile(stage.targetDir) || isfolder(stage.targetDir)
+    if isfile(targetDir) || isfolder(targetDir)
         error("steady53:EvidenceAlreadyExists", ...
-            "Task 8 evidence target already exists: %s", stage.targetDir);
+            "Task 8 evidence target already exists: %s", targetDir);
     end
     error("steady53:EvidencePublishFailed", ...
         "Could not reserve Task 8 evidence target: %s", output);
@@ -48,7 +50,7 @@ end
 
 if isfield(testControl, "targetCollisionFile")
     collisionName = safeFileName(testControl.targetCollisionFile);
-    collisionPath = fullfile(stage.targetDir, collisionName);
+    collisionPath = fullfile(targetDir, collisionName);
     fileId = fopen(collisionPath, "w");
     if fileId < 0
         error("steady53:EvidencePublishFailed", ...
@@ -61,7 +63,7 @@ linkedCount = 0;
 for index = 1:numel(payloadFiles)
     name = payloadFiles(index);
     source = fullfile(stage.stageDir, name);
-    destination = fullfile(stage.targetDir, name);
+    destination = fullfile(targetDir, name);
     publishFileExclusive(source, destination);
     linkedCount = linkedCount + 1;
     if isfield(testControl, "interruptAfterFiles") && ...
@@ -77,25 +79,72 @@ if isfield(testControl, "tamperTargetBeforeManifest")
         error("steady53:InvalidEvidenceStage", ...
             "Controlled target tamper must name a required payload.");
     end
-    tamperFile(fullfile(stage.targetDir, tamperName));
+    tamperFile(fullfile(targetDir, tamperName));
 end
 
 % Completion is visible only after every payload has been published.
-verifyPublishedPayloads(stage.targetDir, payloadFiles, payloadHashes);
-if sha256File(stage.manifestPath) ~= validatedManifestHash
+verifyPublishedPayloads(targetDir, payloadFiles, payloadHashes);
+if sha256File(manifestPath) ~= validatedManifestHash
     error("steady53:InvalidEvidenceStage", ...
         "Task 8 manifest changed after validation.");
 end
-publishFileExclusive(stage.manifestPath, ...
-    fullfile(stage.targetDir, "manifest.json"));
+publishFileExclusive(manifestPath, fullfile(targetDir, "manifest.json"));
 
 published = struct( ...
-    "runId", string(stage.runId), ...
-    "runDir", string(stage.targetDir), ...
-    "rawMatPath", string(fullfile(stage.targetDir, rawMatFile)), ...
-    "manifestPath", string(fullfile(stage.targetDir, "manifest.json")), ...
+    "runId", string(manifest.runId), ...
+    "runDir", targetDir, ...
+    "rawMatPath", string(fullfile(targetDir, rawMatFile)), ...
+    "manifestPath", string(fullfile(targetDir, "manifest.json")), ...
     "rawMatHash", string(manifest.rawMatHash));
 rmdir(stage.stageDir, "s");
+end
+
+function targetDir = verifiedManifestEnvelope(stage, manifest)
+if ~isfield(manifest, "schemaVersion") || ...
+        ~isnumeric(manifest.schemaVersion) || ...
+        ~isscalar(manifest.schemaVersion) || manifest.schemaVersion ~= 1
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 evidence manifest requires schemaVersion 1.");
+end
+if ~isfield(manifest, "status") || ...
+        ~isscalar(string(manifest.status)) || ...
+        ismissing(string(manifest.status)) || ...
+        string(manifest.status) ~= "completed"
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 evidence manifest is not completed.");
+end
+if ~isfield(manifest, "runId")
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 evidence manifest lacks a run ID.");
+end
+runId = safeRunId(manifest.runId);
+if ~isscalar(string(stage.runId)) || ismissing(string(stage.runId)) || ...
+        string(stage.runId) ~= runId
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 stage and manifest run IDs do not match.");
+end
+stageDir = string(stage.stageDir);
+stageDirName = string(java.io.File(char(stageDir)).getName());
+if stageDirName ~= ".staging_" + runId
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 staging directory does not match the manifest run ID.");
+end
+targetDir = string(fullfile(fileparts(stageDir), runId));
+if ~isscalar(string(stage.targetDir)) || ...
+        ismissing(string(stage.targetDir)) || ...
+        string(stage.targetDir) ~= targetDir
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 target directory does not match the manifest run ID.");
+end
+if ~isfield(manifest, "sourceModelHash") || ...
+        ~validHash(manifest.sourceModelHash)
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 evidence manifest lacks a valid source model hash.");
+end
+if ~isfield(manifest, "createdAt") || ~validUtcTimestamp(manifest.createdAt)
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 evidence manifest lacks a valid UTC creation timestamp.");
+end
 end
 
 function [rawMatFile, smallFiles] = evidenceFileContract()
@@ -132,6 +181,7 @@ if ~isfield(manifest, "rawMatHash") || ...
     error("steady53:InvalidEvidenceStage", ...
         "Task 8 raw MAT hash does not match its manifest.");
 end
+verifyRawModelIdentity(expectedRawPath, manifest.sourceModelHash);
 if ~isfield(manifest, "smallFileHashes") || ...
         ~isstruct(manifest.smallFileHashes) || ...
         ~all(isfield(manifest.smallFileHashes, ["name", "sha256"]))
@@ -165,6 +215,29 @@ for index = 1:numel(payloadFiles)
         error("steady53:InvalidEvidenceStage", ...
             "Task 8 staged payload hash mismatch: %s", payloadFiles(index));
     end
+end
+end
+
+function verifyRawModelIdentity(rawMatPath, sourceModelHash)
+try
+    contents = load(rawMatPath, "result");
+catch exception
+    error("steady53:InvalidEvidenceStage", ...
+        "Could not read Task 8 raw MAT result: %s", exception.message);
+end
+if ~isfield(contents, "result") || ~isstruct(contents.result) || ...
+        ~isscalar(contents.result) || ...
+        ~all(isfield(contents.result, ["modelHashBefore", "modelHashAfter"]))
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 raw MAT lacks result model hashes.");
+end
+beforeHash = contents.result.modelHashBefore;
+afterHash = contents.result.modelHashAfter;
+if ~validHash(beforeHash) || ~validHash(afterHash) || ...
+        lower(string(beforeHash)) ~= lower(string(afterHash)) || ...
+        lower(string(beforeHash)) ~= lower(string(sourceModelHash))
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 raw MAT model hashes do not match the manifest source hash.");
 end
 end
 
@@ -235,6 +308,33 @@ if ~isscalar(name) || ismissing(name) || strlength(name) == 0 || ...
         name ~= string(java.io.File(char(name)).getName())
     error("steady53:InvalidEvidenceStage", ...
         "Task 8 evidence contains an unsafe file name.");
+end
+end
+
+function runId = safeRunId(value)
+runId = string(value);
+if ~isscalar(runId) || ismissing(runId) || ...
+        isempty(regexp(runId, '^run_[A-Za-z0-9_]+$', 'once'))
+    error("steady53:InvalidEvidenceStage", ...
+        "Task 8 evidence manifest contains an invalid run ID.");
+end
+end
+
+function valid = validUtcTimestamp(value)
+timestamp = string(value);
+valid = false;
+if ~isscalar(timestamp) || ismissing(timestamp) || strlength(timestamp) == 0 || ...
+        isempty(regexp(timestamp, ...
+        '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$', 'once'))
+    return
+end
+try
+    parsed = datetime(timestamp, ...
+        "InputFormat", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", ...
+        "TimeZone", "UTC");
+    valid = ~isnat(parsed);
+catch
+    valid = false;
 end
 end
 
