@@ -100,3 +100,20 @@
 - ✅ 当前活动回归：标准 `runtests('tests/steady53')` 实测 `50 Passed, 0 Failed, 0 Incomplete`，涵盖 Task 6 完整矩阵、Task 5 当前生命周期、规格/判定器/运行器以及正式模型的转速与 `14000 s` 无求解器/物性错误可达性回归。Python 溯源回归为 `6 tests, OK`；本轮修改的四个活动 MATLAB 文件 `checkcode` 均为零问题。
 - ✅ 交付边界：本节没有修改正式 SLX、任何 `.mat` 或物理参数；`final_steady_24a.slx` SHA-256 仍为 `5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d`，`archive/pre-restart-20260824^{commit}` 仍为 `8f625c268c35a95c18a626305c1aa6a79ae2ace7`。
 - ❓ 结论边界：本节证明测试工具已与晋升后的 `55090 rpm` 正式基线对齐，并且活动套件能识别旧 Task 5 为历史已应用假设。虽然本轮活动可达性回归实测到正式整机 `tout(end)=14000 s`，但这仍不是论文表 5.2 终值、图 5.18–5.19 稳定时间、最终窗口漂移、守恒或查表裕度的 Task 8/9 验收结论。
+
+## 2026-08-24 物性警告 persistent latch 的诊断状态隔离
+
+- ✅ 根因复现：`HeXe_property_simulink` 以 persistent `warned_lo_hexe/warned_hi_hexe` 抑制重复警告，`Lithium_property_simulink` 以 persistent `warned_lo/warned_hi` 做同样处理。在同一 MATLAB 会话中先将对应 warning 设为 `off` 并调用越界物性后，latch 已被置位；随后改成 `warning(error)` 不会重新发出警告。这是诊断告警状态泄漏，不是物性方程或钳位边界的变化。
+- ✅ TDD RED：修复前运行 helper、runner、验收所有权和 Task 6 故障工装四项测试，实测 `0 Passed, 4 Failed, 1 Incomplete`。Task 6 的明确越界工装在四个已污染 latch 下均错误返回 `success=true` 且 `warningIds=[]`；`run_steady53_case` 的故障注入同样可被隐藏。完整证据为 `tmp/steady53/property_state/tdd_red.txt`，不提交。
+- ✅ 最小状态治理：新 helper `reset_steady53_property_warning_state` 只执行 `clear("HeXe_property_simulink", "Lithium_property_simulink")`，把两个外部函数的一次性警告抑制 latch 恢复为“未初始化”。该 helper 不编辑物性文件，不改钳位上下限、关联式、模型参数或任何保存文件。
+- ✅ runner 隔离：`run_steady53_case` 在每次隔离仿真的 `warning(error)` 之前先重置 latch；仿真完成或失败后，先关闭本调用所有的模型，再清回两个函数的未初始化诊断状态，最后恢复调用者的 warning 设置。runner 仍在所有副作用之前拒绝预加载模型。
+- ✅ Task 6 隔离：矩阵在每个部件 `sim` 前重置 latch，并用 cleanup 在部件模型关闭后再清回未初始化状态。因此 IHX、回热器、预冷器、辐射器、反应堆和 TAC 不再共享上一个 case 的告警抑制 latch。
+- ✅ 四 ID 污染/逆序回归：直接 helper 测试和逆序 runner 测试覆盖 `HeXe:T_lo`、`HeXe:T_hi`、`Lithium_property_simulink:TemperatureBelowRange`、`Lithium_property_simulink:TemperatureAboveRange`。每个已污染 latch 重置后均以原 warning ID 失败；runner 每个故障结果均满足 `success=false`、`errorId=<对应ID>`、`warningIds=<对应ID>` 且正式模型运行前后哈希不变。
+- ✅ 真实工装故障注入：Task 6 在 TAC 的 He-Xe 输入常数和 IHX 的锂温度积分器初值上构造明确越界；对于每个已污染 ID，目标部件必须以正确 warning ID 失败，同一完整矩阵的其余五个部件仍必须运行成功。四种注入均通过该回归。
+- ✅ 验收入口所有权：`test_final_steady_acceptance` 的 14000 s 运行已删除主动 `close_system`，统一通过 `run_final_steady_reachability` 委托 runner 执行。预加载正式模型并在内存把 `TAC/Constant` 改为 `55091`后，入口精确以 `steady53:ModelAlreadyLoaded` 拒绝，模型仍保持 loaded、`Dirty=on`、参数 `55091`，磁盘哈希不变；入口未关闭、保存或覆盖用户模型。
+- ✅ 历史发现隔离：Task 5 归档测试再以 R100 重命名为 `docs/archive/steady53/task5/historical_run_speed_hypothesis_tests.m`，文件内容不变。仓库根目录递归 `TestSuite.fromFolder(...,'IncludingSubfolders',true)` 和标准活动发现均得到 `54` 项，其中旧 Task 5 测试为 `0`项。README 明确历史复核仍需在 `a84b680` 的原路径进行。
+- ✅ 当前标准活动回归：`runtests('tests/steady53')` 实测 `54 Passed, 0 Failed, 0 Incomplete`，包含四 ID 污染/逆序回归、Task 6 完整六部件 `500 s/14000 s` 矩阵、正式整机 14000 s 可达性、所有权与环境恢复。Python 溯源回归仍为 `6 tests, OK`，八个本轮相关活动 MATLAB 文件 `checkcode` 均为零问题。
+- ✅ 最终矩阵 run：`matrix_1787575403176_9e7f25628b6c410c9a48f090104d28e3`；六部件在 500 s 和 14000 s 均为 `success=true`、精确到达请求时间、`errorId=""`、`warningIds=[]`。证据 SHA-256 为：`component_matrix_500.mat=2c5172e823e7cdce7d5345f04b6273ac635b2d2e11b3649e08c3cb58675ceafd`、`component_matrix_500.txt=4bf20c0921fc97594582ccf436fce61b6934370e22b1efa84778d3af19aa3fa7`、`component_matrix_14000.mat=d73f5f23733de4c1de4a6020d821fc96cdfdb85522f2025d5d7eee2885bd06ff`、`component_matrix_14000.txt=e933e35886c84c30e450bdc0ea581057e50b3f8b2638eece6f49e9b5a1db3330`、`matrix_manifest.mat=fca507c9d15173ac86e5c910ed1aa5f6f5bbcc6d21acb1c3c80fc14ea199d2ae`。
+- ✅ 独立证据口径：先前在新 MATLAB 进程的干净初始状态下得到的 500 s/14000 s 可达性和部件矩阵结果仍保留；该历史证据没有被改写。从本修复开始，运行器和 Task 6 矩阵还额外证明结果与同会话之前的物性告警 latch 历史无关。
+- ✅ 交付边界：本节未修改 `final_steady_24a.slx`、He-Xe/锂物性文件、任何 `.mat`、钳位范围、物理方程或模型参数。正式模型 SHA-256 仍为 `5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d`，`archive/pre-restart-20260824^{commit}` 仍为 `8f625c268c35a95c18a626305c1aa6a79ae2ace7`。
+- ❓ 结论边界：该修复只消除“告警抑制 persistent 状态导致诊断假阳性”。它不改物性模型或整机物理，也不将 14000 s 无错误可达性上升为论文表 5.2、图 5.18–5.19、最终窗口、守恒或查表裕度通过。

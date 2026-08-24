@@ -46,11 +46,8 @@ end
 
 function testModelReaches14000WithoutPropertyOrSolverFailure(testCase)
 model = "final_steady_24a";
-if bdIsLoaded(model)
-    close_system(model, 0);
-end
 modelPath = fullfile(testCase.TestData.root, model + ".slx");
-result = run_steady53_case(modelPath, 14000, false);
+result = run_final_steady_reachability(modelPath, 14000, false);
 
 fprintf(1, ['14000 s run success: %d\n' ...
     'tFinal_s: %.17g\n' ...

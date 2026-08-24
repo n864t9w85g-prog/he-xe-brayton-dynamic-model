@@ -224,7 +224,37 @@ verifyEqual(testCase, published.runDir, ...
 verifyTrue(testCase, all([matrix.success]), matrixFailureMessage(matrix));
 end
 
-function matrix = runComponentMatrix(testCase, stopTime_s)
+function testPoisonedWarningLatchesCannotHideInjectedFaults(testCase)
+faults = [ ...
+    propertyFault("HeXe:T_hi", "TAC", "Input_002", "Value", 2001); ...
+    propertyFault("Lithium_property_simulink:TemperatureAboveRange", ...
+        "IHX", "DUT/IHX_region_1/T_h1_average_Integrator", ...
+        "InitialCondition", 1609); ...
+    propertyFault("HeXe:T_lo", "TAC", "Input_003", "Value", 99); ...
+    propertyFault("Lithium_property_simulink:TemperatureBelowRange", ...
+        "IHX", "DUT/IHX_region_1/T_h1_average_Integrator", ...
+        "InitialCondition", 453)];
+cleanup = onCleanup(@clearPropertyFunctions);
+for fault = faults(:).'
+    poisonPropertyWarningLatch(fault.id);
+    matrix = runComponentMatrix(testCase, 1, fault);
+    target = matrix([matrix.component] == fault.component);
+    verifyNumElements(testCase, target, 1);
+    verifyFalse(testCase, target.success, ...
+        "Poisoned warning latch hid fault " + fault.id);
+    verifyEqual(testCase, target.warningIds, fault.id);
+    verifyTrue(testCase, all([matrix( ...
+        [matrix.component] ~= fault.component).success]), ...
+        matrixFailureMessage(matrix));
+end
+clear cleanup
+end
+
+function matrix = runComponentMatrix(testCase, stopTime_s, fault)
+if nargin < 3
+    fault = struct("id", "", "component", "", ...
+        "blockPath", "", "parameter", "", "value", NaN);
+end
 ids = propertyWarningIdentifiers();
 old = cell(size(ids));
 for index = 1:numel(ids)
@@ -246,7 +276,11 @@ for componentIndex = 1:numel(components)
     try
         h = create_component_harness(component);
         registerOwnedModel(testCase, h.model);
+        reset_steady53_property_warning_state();
+        propertyCleanup = onCleanup( ...
+            @reset_steady53_property_warning_state);
         modelCleanup = onCleanup(@() closeIfLoaded(h.model));
+        applyPropertyFault(h, component, fault);
         out = sim(h.model, ...
             "StopTime", num2str(stopTime_s, "%.17g"), ...
             "ReturnWorkspaceOutputs", "on");
@@ -254,6 +288,7 @@ for componentIndex = 1:numel(components)
         matrix(componentIndex).tFinal = double(out.tout(end));
         matrix(componentIndex).success = true;
         clear modelCleanup
+        clear propertyCleanup
     catch exception
         matrix(componentIndex).errorId = string(exception.identifier);
         matrix(componentIndex).errorReport = string(getReport( ...
@@ -264,9 +299,53 @@ for componentIndex = 1:numel(components)
         if strlength(h.model) > 0
             closeIfLoaded(h.model);
         end
+        reset_steady53_property_warning_state();
     end
 end
 clear warningCleanup
+end
+
+function fault = propertyFault(id, component, blockPath, parameter, value)
+fault = struct("id", string(id), "component", string(component), ...
+    "blockPath", string(blockPath), "parameter", string(parameter), ...
+    "value", double(value));
+end
+
+function applyPropertyFault(h, component, fault)
+if strlength(fault.id) == 0 || component ~= fault.component
+    return
+end
+set_param(h.model + "/" + fault.blockPath, fault.parameter, ...
+    num2str(fault.value, "%.17g"));
+end
+
+function poisonPropertyWarningLatch(identifier)
+clearPropertyFunctions();
+old = warning("query", identifier);
+cleanup = onCleanup(@() warning(old.state, old.identifier));
+warning("off", identifier);
+invokePropertyFault(identifier);
+clear cleanup
+end
+
+function invokePropertyFault(identifier)
+switch string(identifier)
+    case "HeXe:T_hi"
+        HeXe_property_simulink(2001, 1e6);
+    case "HeXe:T_lo"
+        HeXe_property_simulink(99, 1e6);
+    case "Lithium_property_simulink:TemperatureAboveRange"
+        Lithium_property_simulink(1609, 1e6);
+    case "Lithium_property_simulink:TemperatureBelowRange"
+        Lithium_property_simulink(453, 1e6);
+    otherwise
+        error("steady53:UnknownPropertyFault", ...
+            "Unknown property fault ID '%s'.", identifier);
+end
+end
+
+function clearPropertyFunctions()
+clear("HeXe_property_simulink", "Lithium_property_simulink");
 end
 
 function validateOutput(out, h, stopTime_s)

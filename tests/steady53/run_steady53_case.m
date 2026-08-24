@@ -50,6 +50,7 @@ baseNeedsRestore = false;
 baseSnapshot = struct();
 warningsNeedRestore = false;
 oldWarnings = {};
+propertyStateNeedsReset = false;
 modelNeedsClose = false;
 cleanupExceptions = cell(0, 1);
 primaryException = [];
@@ -75,6 +76,12 @@ try
     baseNeedsRestore = true;
     evalin("base", "run(" + matlabString(startPath) + ")");
 
+    % These functions persist only one-shot warning-suppression latches.
+    % Rearm them before warning(error) so a prior call in the same MATLAB
+    % session cannot hide an out-of-domain state from this isolated run.
+    propertyStateNeedsReset = true;
+    reset_steady53_property_warning_state();
+
     oldWarnings = cell(size(propertyIds));
     for index = 1:numel(propertyIds)
         oldWarnings{index} = warning("query", propertyIds(index));
@@ -89,6 +96,10 @@ try
     % user-owned loaded model.
     modelNeedsClose = true;
     load_system(modelPath);
+
+    if isfield(testControl, "propertyFaultId")
+        injectPropertyFault(testControl.propertyFaultId);
+    end
 
     [manifest, stateMeta] = steady53_signal_manifest(model);
     stateLogNames = compose( ...
@@ -169,18 +180,26 @@ if ~isempty(cleanupExceptions)
 end
 
     function cleanupAll()
-        if warningsNeedRestore
-            warningsNeedRestore = false;
-            try
-                restoreWarnings(oldWarnings);
-            catch exception
-                cleanupExceptions{end + 1, 1} = exception;
-            end
-        end
         if modelNeedsClose
             modelNeedsClose = false;
             try
                 closeLoadedModel(model);
+            catch exception
+                cleanupExceptions{end + 1, 1} = exception;
+            end
+        end
+        if propertyStateNeedsReset
+            propertyStateNeedsReset = false;
+            try
+                reset_steady53_property_warning_state();
+            catch exception
+                cleanupExceptions{end + 1, 1} = exception;
+            end
+        end
+        if warningsNeedRestore
+            warningsNeedRestore = false;
+            try
+                restoreWarnings(oldWarnings);
             catch exception
                 cleanupExceptions{end + 1, 1} = exception;
             end
@@ -220,6 +239,23 @@ end
             end
         end
     end
+end
+
+function injectPropertyFault(identifier)
+identifier = string(identifier);
+switch identifier
+    case "HeXe:T_hi"
+        HeXe_property_simulink(2001, 1e6);
+    case "HeXe:T_lo"
+        HeXe_property_simulink(99, 1e6);
+    case "Lithium_property_simulink:TemperatureAboveRange"
+        Lithium_property_simulink(1609, 1e6);
+    case "Lithium_property_simulink:TemperatureBelowRange"
+        Lithium_property_simulink(453, 1e6);
+    otherwise
+        error("steady53:UnsupportedPropertyFault", ...
+            "Unsupported diagnostic property fault ID '%s'.", identifier);
+end
 end
 
 function result = emptyResult(before)

@@ -1,5 +1,7 @@
 # Task 5 55090 rpm 单变量实验归档
 
+`historical_run_speed_hypothesis_tests.m` 保留正式基线晋升前的测试源码；
+其非 `test` 前缀名称用于防止仓库递归测试发现把这 9 项旧基线测试计入当前绿灯。
 本目录保留正式基线晋升前的 Task 5 实验工具和测试源码，不属于
 `tests/steady53` 当前活动验收套件。
 
