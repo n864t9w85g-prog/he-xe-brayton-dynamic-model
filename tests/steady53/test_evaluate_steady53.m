@@ -2,12 +2,6 @@ function tests = test_evaluate_steady53
 tests = functiontests(localfunctions);
 end
 
-function setupOnce(~)
-testFile = mfilename("fullpath");
-repositoryRoot = fileparts(fileparts(fileparts(testFile)));
-addpath(repositoryRoot);
-end
-
 function testNominalSteadyDataPasses(testCase)
 [t, signals, audit, s] = nominalCase();
 
@@ -64,6 +58,113 @@ verifyTrue(testCase, any(report.failures == ...
     "state:HeXe_domain:model/recuperator/T_hot"));
 end
 
+function testMissingAuditFieldsFailClosed(testCase)
+[t, signals, audit, s] = nominalCase();
+requiredFields = ["warningIds", "lookup", "property", ...
+    "massClosureRel", "states"];
+
+for field = requiredFields
+    incompleteAudit = rmfield(audit, field);
+    report = evaluate_steady53(t, signals, incompleteAudit, s);
+
+    verifyFalse(testCase, report.pass);
+    verifyTrue(testCase, any(report.failures == ...
+        "audit:missing:" + field));
+end
+end
+
+function testInvalidWarningIdsFailClosed(testCase)
+[t, signals, audit, s] = nominalCase();
+audit.warningIds = struct("unexpected", true);
+
+report = evaluate_steady53(t, signals, audit, s);
+
+verifyFalse(testCase, report.pass);
+verifyTrue(testCase, any(report.failures == ...
+    "audit:invalid:warningIds"));
+end
+
+function testMissingAndInvalidLookupEntriesFailClosed(testCase)
+[t, signals, audit, s] = nominalCase();
+validLookup = struct( ...
+    "name", "compressor_speed", ...
+    "inputMin", 0.9, ...
+    "inputMax", 1.1, ...
+    "bpMin", 0.9, ...
+    "bpMax", 1.1);
+
+audit.lookup = rmfield(validLookup, "inputMax");
+verifyAuditFailure(testCase, t, signals, audit, s, ...
+    "lookup:invalid:compressor_speed");
+
+audit.lookup = validLookup;
+audit.lookup.inputMax = NaN;
+verifyAuditFailure(testCase, t, signals, audit, s, ...
+    "lookup:invalid:compressor_speed");
+
+audit.lookup = validLookup;
+audit.lookup.bpMin = 1.2;
+verifyAuditFailure(testCase, t, signals, audit, s, ...
+    "lookup:invalid:compressor_speed");
+
+audit.lookup = rmfield(validLookup, "name");
+verifyAuditFailure(testCase, t, signals, audit, s, ...
+    "lookup:invalid:1");
+end
+
+function testIncompleteAndInvalidStatesFailClosed(testCase)
+[t, signals, audit, s] = nominalCase();
+validState = struct( ...
+    "path", "model/recuperator/T_hot", ...
+    "fluid", "HeXe", ...
+    "data", repmat(1000, size(t)));
+
+audit.states = rmfield(validState, "fluid");
+verifyAuditFailure(testCase, t, signals, audit, s, ...
+    "state:invalid:model/recuperator/T_hot");
+
+audit.states = validState;
+audit.states.data = [];
+verifyAuditFailure(testCase, t, signals, audit, s, ...
+    "state:invalid:model/recuperator/T_hot");
+
+audit.states = validState;
+audit.states.data = "not numeric";
+verifyAuditFailure(testCase, t, signals, audit, s, ...
+    "state:invalid:model/recuperator/T_hot");
+
+audit.states = rmfield(validState, "path");
+verifyAuditFailure(testCase, t, signals, audit, s, ...
+    "state:invalid:1");
+end
+
+function testInvalidPropertyFieldsFailClosed(testCase)
+[t, signals, audit, s] = nominalCase();
+
+audit.property = rmfield(audit.property, "HeXeMin_K");
+verifyAuditFailure(testCase, t, signals, audit, s, "property:HeXe");
+
+[~, ~, audit, ~] = nominalCase();
+audit.property.HeXeMin_K = [100 101];
+verifyAuditFailure(testCase, t, signals, audit, s, "property:HeXe");
+
+[~, ~, audit, ~] = nominalCase();
+audit.property.LithiumMax_K = Inf;
+verifyAuditFailure(testCase, t, signals, audit, s, "property:Lithium");
+
+[~, ~, audit, ~] = nominalCase();
+audit.property.LithiumMin_K = 1000;
+audit.property.LithiumMax_K = 900;
+verifyAuditFailure(testCase, t, signals, audit, s, "property:Lithium");
+end
+
+function testNegativeMassClosureFails(testCase)
+[t, signals, audit, s] = nominalCase();
+audit.massClosureRel = -eps;
+
+verifyAuditFailure(testCase, t, signals, audit, s, "mass:closure");
+end
+
 function [t, signals, audit, s] = nominalCase()
 s = steady53_spec();
 t = (0:10:s.stopTime_s).';
@@ -82,8 +183,10 @@ audit.lookup = struct( ...
     "bpMin", {}, ...
     "bpMax", {});
 audit.property = struct( ...
-    "HeXe_K", s.property.HeXe_K, ...
-    "Lithium_K", s.property.Lithium_K);
+    "HeXeMin_K", s.property.HeXe_K(1), ...
+    "HeXeMax_K", s.property.HeXe_K(2), ...
+    "LithiumMin_K", s.property.Lithium_K(1), ...
+    "LithiumMax_K", s.property.Lithium_K(2));
 audit.massClosureRel = 0;
 audit.states = struct("path", {}, "fluid", {}, "data", {});
 end
@@ -92,4 +195,10 @@ function target = metricTarget(s, name)
 row = s.metrics.name == name;
 assert(nnz(row) == 1, "Expected exactly one metric named '%s'.", name);
 target = s.metrics.target(row);
+end
+
+function verifyAuditFailure(testCase, t, signals, audit, s, expectedFailure)
+report = evaluate_steady53(t, signals, audit, s);
+verifyFalse(testCase, report.pass);
+verifyTrue(testCase, any(report.failures == expectedFailure));
 end
