@@ -77,12 +77,12 @@ add_block(sourceModel + "/" + component, model + "/DUT", ...
 behavioralChanges = strings(0, 1);
 if component == "TAC"
     speedPath = model + "/DUT/Constant";
-    if string(get_param(speedPath, "Value")) ~= "66100"
+    actualSpeed = str2double(get_param(speedPath, "Value"));
+    if ~isfinite(actualSpeed) || abs(actualSpeed - 55090) > 1
         error("steady53:UnexpectedSourceSpeed", ...
-            "Expected copied TAC speed 66100 rpm at %s.", speedPath);
+            "Expected promoted TAC source speed 55090 +/- 1 rpm at %s.", ...
+            speedPath);
     end
-    set_param(speedPath, "Value", "55090");
-    behavioralChanges = "DUT/Constant.Value: 66100 -> 55090 rpm";
 end
 
 inputNames = orderedPortNames(model + "/DUT", "Inport");

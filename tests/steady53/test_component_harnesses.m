@@ -128,7 +128,11 @@ for component = components
         numel(h.outputNames));
 
     set_param(h.model, "SimulationCommand", "update");
-    verifyDutSemanticDelta(testCase, h, component == "TAC");
+    verifyDutMatchesSource(testCase, h);
+    if component == "TAC"
+        verifyEqual(testCase, str2double(get_param( ...
+            h.model + "/DUT/Constant", "Value")), 55090, "AbsTol", 1);
+    end
     verifyEnvironmentEqual(testCase, captureEnvironment(), before);
     verifyBaseEqual(testCase, captureBaseWorkspace(), beforeBase);
     clear cleanup
@@ -442,7 +446,7 @@ else
 end
 end
 
-function verifyDutSemanticDelta(testCase, h, expectSpeedDelta)
+function verifyDutMatchesSource(testCase, h)
 sourceModel = "final_steady_24a";
 load_system(h.sourcePath);
 sourceCleanup = onCleanup(@() closeIfLoaded(sourceModel));
@@ -478,16 +482,8 @@ for relative = sourceRelative(:).'
         end
     end
 end
-if expectSpeedDelta
-    verifyEqual(testCase, different, "/Constant::Value");
-    verifyEqual(testCase, string(get_param(dutRoot + "/Constant", "Value")), ...
-        "55090");
-    verifyEqual(testCase, h.behavioralChanges, ...
-        "DUT/Constant.Value: 66100 -> 55090 rpm");
-else
-    verifyEmpty(testCase, different);
-    verifyEmpty(testCase, h.behavioralChanges);
-end
+verifyEmpty(testCase, different);
+verifyEmpty(testCase, h.behavioralChanges);
 verifyEqual(testCase, lineSignatures(sourceRoot), lineSignatures(dutRoot));
 clear sourceCleanup
 end

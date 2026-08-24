@@ -86,3 +86,17 @@
 - ✅ 正式整机 500 s 阻塞运行：`run_steady53_case` 在内存中把四类 He-Xe/锂物性警告提升为 error，并使用阻塞式 `sim(SimulationInput)`。本轮实测 `success=true`、`tFinal_s=500`、`errorId=""`、`warningIds=[]`；运行前后模型 SHA-256 均为 `5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d`。控制台与时序证据分别位于 `tmp/steady53/task7_whole_system_500_console.txt` 和 `tmp/steady53/task7_whole_system_500.mat`，不提交。
 - ✅ 回归与交付边界检查：稳态规格、验收判定器、阻塞运行器及精确选中的转速验收共 `41 Passed, 0 Failed, 0 Incomplete`；`checkcode` 对 `test_final_steady_acceptance.m` 和 `run_steady53_case.m` 均为 `0` 项；非 `tmp/` 的全部 `.mat` SHA-256 清单修改前后无差异；archive tag 的标签对象和解析 commit 均未变。
 - ❓ 结论边界：本轮证明正式模型在已批准的单一转速修正后可阻塞运行到 `500 s`，并且压气机归一化转速回到活动表定义域。这不证明整机已达到论文稳态数值，不证明图 5.18–5.19 稳定时间通过，不证明最终窗口/守恒/查表裕度通过，也不证明 `14000 s` 可达。
+
+## 2026-08-24 55090 rpm 正式基线晋升后的测试生命周期治理
+
+- ✅ 覆盖口径纠正：提交 `1960aa1` 报告的 `41 Passed`只包含当时选定的规格、判定器、阻塞运行器和转速验收回归；它没有覆盖仍绑定修改前 SHA/`66100 rpm` 的旧 Task 5 套件，也没有覆盖仍会将 TAC DUT 从 `66100` 改为 `55090` 的旧 Task 6 工装。因此该 `41 Passed` 不再作为“当前全活动套件”证据。
+- ✅ TDD RED：修复前精确运行三项生命周期回归，实际得到 `0 Passed, 3 Failed, 2 Incomplete`：Task 6 TAC 工装以 `steady53:UnexpectedSourceSpeed` 拒绝已晋升的 `55090 rpm` 源模型；当前生命周期函数以 `MATLAB:UndefinedFunction` 缺失；Task 5 归档文件未建立且旧文件仍位于活动目录。完整输出为 `tmp/steady53/lifecycle/task7_lifecycle_red.txt`，不提交。
+- ✅ Task 5 历史归档：旧 `run_speed_hypothesis.m` 和 `test_run_speed_hypothesis.m` 原样移至 `docs/archive/steady53/task5/`，不再被标准 `runtests('tests/steady53')` 发现。`README.md` 明确旧 SHA 合同不可只替换为新 SHA，需复核时应在独立 worktree 检出 `a84b680`；未生成或提交旧 SLX 副本。
+- ✅ Task 5 当前生命周期：活动函数 `steady53_speed_hypothesis_lifecycle` 只读核对正式模型和压气机表，返回 `lifecycle="historical_not_applicable"`、`hypothesisAlreadyApplied=true`、`legacyRunnerApplicable=false`、实际转速 `55090 rpm`、归一化转速 `1.0`，且模型运行前后哈希相同；不再用无说明的 `UnexpectedSourceHash` 代表当前状态。
+- ✅ 历史 Task 5 证据未改写：不可变 run `run_1787565286804_7a02debf9af2499f80405c77e165ba9a` 的副本和结果哈希仍分别为 `d8964212142663a8fba86c9d5f64cbba93c362d6f9c5a8db0e07106d2a7261c2` 和 `ebd06be2e9b38f6a56d8fb08d15ca2c9b06bc0f455fe2914f299a06d33940ec4`；`speed55090_current.mat` 仍存在，本轮未发布新 marker 或覆盖旧 run。
+- ✅ Task 6 晋升：`create_component_harness` 现要求 TAC 源转速已为 `55090±1 rpm`，不再对 DUT 调用 `set_param` 做转速修正；六个 DUT 均与当前正式部件具有零 DialogParameter 差异、零连线签名差异和空 `behavioralChanges`。
+- ✅ Task 6 正式基线复验：标准全活动套件中生成的最终不可变矩阵 run 为 `matrix_1787572756810_d9cc97278ec04270add6a69ff420d68e`。六部件在 `500 s` 和 `14000 s` 两个完整矩阵中均为 `success=true`、`tFinal` 精确到达请求时间、`errorId=""`、`warningIds=[]`。
+- ✅ 新矩阵证据 SHA-256：`component_matrix_500.mat=a685b33b6daed8bd1b1169702b1a23ca93d92a2a1f541402c113a7559d660b8d`、`component_matrix_500.txt=4bf20c0921fc97594582ccf436fce61b6934370e22b1efa84778d3af19aa3fa7`、`component_matrix_14000.mat=fd4c7775fb871d3500e9fc4f081d6ec2a9068af08268d5735202a7b89e18fd94`、`component_matrix_14000.txt=e933e35886c84c30e450bdc0ea581057e50b3f8b2638eece6f49e9b5a1db3330`、`matrix_manifest.mat=0d7a10327ac23f7081b25219e7e79e806a37ee1feb77e42422f474346493cdc4`。修复前最终矩阵 `matrix_1787570192430_d4f48aaee81d47ab82d1d36d56b767f7` 的五个已记录哈希仍全部匹配，未改写旧矩阵。
+- ✅ 当前活动回归：标准 `runtests('tests/steady53')` 实测 `50 Passed, 0 Failed, 0 Incomplete`，涵盖 Task 6 完整矩阵、Task 5 当前生命周期、规格/判定器/运行器以及正式模型的转速与 `14000 s` 无求解器/物性错误可达性回归。Python 溯源回归为 `6 tests, OK`；本轮修改的四个活动 MATLAB 文件 `checkcode` 均为零问题。
+- ✅ 交付边界：本节没有修改正式 SLX、任何 `.mat` 或物理参数；`final_steady_24a.slx` SHA-256 仍为 `5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d`，`archive/pre-restart-20260824^{commit}` 仍为 `8f625c268c35a95c18a626305c1aa6a79ae2ace7`。
+- ❓ 结论边界：本节证明测试工具已与晋升后的 `55090 rpm` 正式基线对齐，并且活动套件能识别旧 Task 5 为历史已应用假设。虽然本轮活动可达性回归实测到正式整机 `tout(end)=14000 s`，但这仍不是论文表 5.2 终值、图 5.18–5.19 稳定时间、最终窗口漂移、守恒或查表裕度的 Task 8/9 验收结论。
