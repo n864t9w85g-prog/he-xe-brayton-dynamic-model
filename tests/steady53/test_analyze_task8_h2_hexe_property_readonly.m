@@ -22,7 +22,8 @@ analysis = analyze_task8_h2_hexe_property_readonly();
 after = protectedHashes(testCase.TestData.root);
 
 required = ["inputs" "sourceAudit" "coefficients" "derivatives" ...
-    "densityRoots" "thermoIdentity" "domainSweep" "hypothesisVerdicts"];
+    "densityRoots" "production" "thermoIdentity" "domainSweep" ...
+    "hypothesisVerdicts"];
 verifyTrue(testCase, all(isfield(analysis, required)));
 verifyEqual(testCase, analysis.inputs.exceptionT_K, ...
     992.38742737169468, "AbsTol", 1e-12);
@@ -100,6 +101,147 @@ verifyFalse(testCase, isfolder(outputDir));
 verifyFalse(testCase, isfile(fullfile(outputDir, ...
     "h2_property_diagnostics.csv")));
 verifyFalse(testCase, isfile(fullfile(outputDir, "h2_summary.txt")));
+end
+
+function testEquationMapMatchesReviewedPaperPagesAndActiveSource(testCase)
+analysis = analyze_task8_h2_hexe_property_readonly();
+verifyEqual(testCase, analysis.sourceAudit.reviewedPdfPages, [33 34 35]);
+verifyEqual(testCase, analysis.sourceAudit.reviewedPrintedPages, [18 19 20]);
+
+map = analysis.sourceAudit.equationMap;
+verifyClass(testCase, map, "table");
+verifyEqual(testCase, map.paperEquation, ...
+    ["2.7"; "2.8"; "2.9"; "2.10"; "2.11"; "2.12"; ...
+     "2.13"; "2.14"; "2.15"; "2.16"; "2.17"]);
+verifyEqual(testCase, map.pdfPage, [33; 33; 33; 33; 34; 34; 34; 34; 34; 34; 34]);
+verifyEqual(testCase, map.printedPage, [18; 18; 18; 18; 19; 19; 19; 19; 19; 19; 19]);
+verifyEqual(testCase, map.sourceLineStart, [86; 50; 76; 71; 72; 74; 81; 79; 185; 175; 180]);
+verifyEqual(testCase, map.sourceLineEnd, [98; 50; 76; 71; 73; 75; 83; 80; 194; 177; 182]);
+verifyEqual(testCase, map.diagnosticPath, ...
+    ["densityRoots"; "coefficients.mixtureMolarMass"; "coefficients.B"; ...
+     "coefficients.B11"; "coefficients.B22"; "coefficients.B12"; ...
+     "coefficients.C"; "coefficients.C111_C222"; "production.diagnostic.cpMass"; ...
+     "derivatives.drhoHat_dT"; "production.diagnostic.cvMolar"]);
+
+sourceLines = splitlines(string(fileread(fullfile(testCase.TestData.root, ...
+    "HeXe_property_simulink.m"))));
+verifyNotEmpty(testCase, regexp(sourceLines(71), 'B11\s*=', 'once'));
+verifyNotEmpty(testCase, regexp(sourceLines(79), 'C111\s*=', 'once'));
+verifyNotEmpty(testCase, regexp(sourceLines(185), 'B_1\s*=', 'once'));
+verifyNotEmpty(testCase, regexp(sourceLines(175), 'a_rho\s*=', 'once'));
+verifyNotEmpty(testCase, regexp(sourceLines(180), 'term1_cv\s*=', 'once'));
+end
+
+function testVirialCoefficientsAndAnalyticDerivativesAreComplete(testCase)
+analysis = analyze_task8_h2_hexe_property_readonly();
+coefficientNames = ["B11" "B22" "B12" "B" ...
+    "C111" "C222" "C112" "C122" "C"];
+verifyTrue(testCase, all(isfield(analysis.coefficients, coefficientNames)));
+coefficientValues = cellfun(@(name) analysis.coefficients.(name), ...
+    cellstr(coefficientNames));
+verifyTrue(testCase, all(isfinite(coefficientValues)));
+verifyEqual(testCase, analysis.coefficients.B, ...
+    0.7172^2*analysis.coefficients.B11 + ...
+    2*0.7172*(1-0.7172)*analysis.coefficients.B12 + ...
+    (1-0.7172)^2*analysis.coefficients.B22, "RelTol", 5e-15);
+verifyEqual(testCase, analysis.coefficients.C, ...
+    0.7172^3*analysis.coefficients.C111 + ...
+    3*0.7172^2*(1-0.7172)*analysis.coefficients.C112 + ...
+    3*0.7172*(1-0.7172)^2*analysis.coefficients.C122 + ...
+    (1-0.7172)^3*analysis.coefficients.C222, "RelTol", 5e-15);
+verifyLessThan(testCase, abs(analysis.coefficients.C111AtZero), 1e-24);
+verifyGreaterThan(testCase, analysis.coefficients.C111ZeroOffset_K, 0);
+verifyLessThan(testCase, analysis.coefficients.C111ZeroOffset_K, 0.01);
+
+baseNames = ["B11" "B22" "B12" "B" ...
+    "C111" "C222" "C112" "C122" "C"];
+firstNames = "d" + baseNames + "_dT";
+secondNames = "d2" + baseNames + "_dT2";
+verifyTrue(testCase, all(isfield(analysis.derivatives.analytic, ...
+    [firstNames secondNames])));
+for name = [firstNames secondNames]
+    verifyTrue(testCase, isfinite(analysis.derivatives.analytic.(name)));
+end
+end
+
+function testIndependentFiniteDifferencesRecordThreeStepsAndConvergence(testCase)
+analysis = analyze_task8_h2_hexe_property_readonly();
+fd = analysis.derivatives.finiteDifference;
+verifyGreaterThanOrEqual(testCase, numel(fd.stepSizes_K), 3);
+verifyEqual(testCase, size(fd.first.B, 1), numel(fd.stepSizes_K));
+verifyEqual(testCase, size(fd.second.B, 1), numel(fd.stepSizes_K));
+verifyEqual(testCase, size(fd.first.C, 1), numel(fd.stepSizes_K));
+verifyEqual(testCase, size(fd.second.C, 1), numel(fd.stepSizes_K));
+verifyTrue(testCase, all(isfinite(fd.first.B)) && all(isfinite(fd.second.B)));
+verifyTrue(testCase, all(isfinite(fd.first.C)) && all(isfinite(fd.second.C)));
+verifyTrue(testCase, all(isfield(fd.richardson, ...
+    ["dB_dT" "d2B_dT2" "dC_dT" "d2C_dT2"])));
+verifyTrue(testCase, all(isfield(fd.convergence, ...
+    ["BFirst" "BSecond" "CFirst" "CSecond"])));
+verifyLessThan(testCase, fd.convergence.BFirst.finalRelativeError, 1e-7);
+verifyLessThan(testCase, fd.convergence.BSecond.finalRelativeError, 1e-5);
+verifyLessThan(testCase, fd.convergence.CFirst.finalRelativeError, 2e-4);
+verifyLessThan(testCase, fd.convergence.CSecond.finalRelativeError, 2e-3);
+verifyTrue(testCase, fd.convergence.BFirst.success);
+verifyTrue(testCase, fd.convergence.BSecond.success);
+verifyTrue(testCase, fd.convergence.CFirst.success);
+verifyTrue(testCase, fd.convergence.CSecond.success);
+end
+
+function testDensityCubicRecordsAllRootsAndProductionNewtonEvidence(testCase)
+analysis = analyze_task8_h2_hexe_property_readonly();
+density = analysis.densityRoots;
+verifyEqual(testCase, numel(density.polynomialCoefficients), 4);
+verifyEqual(testCase, numel(density.allRoots), 3);
+verifyEqual(testCase, numel(density.isReal), 3);
+verifyEqual(testCase, density.realRoots, density.allRoots(density.isReal));
+verifyEqual(testCase, numel(density.polynomialResiduals), 3);
+verifyEqual(testCase, numel(density.eosPressureResiduals_Pa), 3);
+verifyEqual(testCase, numel(density.normalizedPolynomialResiduals), 3);
+verifyEqual(testCase, numel(density.realRootDiagnostics), nnz(density.isReal));
+verifyLessThan(testCase, max(density.normalizedPolynomialResiduals), 1e-14);
+for index = 1:numel(density.realRootDiagnostics)
+    item = density.realRootDiagnostics(index);
+    verifyTrue(testCase, isfinite(item.dPdrho_Pa_m3_per_mol));
+    verifyTrue(testCase, ismember(item.stabilitySign, ["positive" "zero" "negative"]));
+end
+
+newton = density.productionNewton;
+verifyEqual(testCase, newton.initialGuess, density.P_RT, "RelTol", 1e-15);
+verifyGreaterThanOrEqual(testCase, newton.iterations, 1);
+verifyLessThanOrEqual(testCase, newton.iterations, 30);
+verifyTrue(testCase, newton.converged);
+verifyLessThan(testCase, abs(newton.rawPolynomialResidual), 1e-12);
+verifyEqual(testCase, newton.clampedFinal, ...
+    max(newton.rawFinal, newton.clampFloor), "RelTol", 1e-15);
+verifyEqual(testCase, newton.clampChanged, ...
+    newton.clampedFinal ~= newton.rawFinal);
+end
+
+function testDiagnosticProductionParityFailsClosedAndLaterTasksStayPending(testCase)
+analysis = analyze_task8_h2_hexe_property_readonly();
+[cpMass, gamma, rho] = HeXe_property_simulink( ...
+    analysis.inputs.exceptionT_K, analysis.inputs.exceptionP_Pa);
+verifyEqual(testCase, analysis.production.called.cpMass, cpMass, "AbsTol", 1e-10);
+verifyEqual(testCase, analysis.production.called.gamma, gamma, "AbsTol", 1e-13);
+verifyEqual(testCase, analysis.production.called.rho, rho, "AbsTol", 1e-13);
+verifyEqual(testCase, analysis.production.diagnostic.cpMass, cpMass, "AbsTol", 1e-10);
+verifyEqual(testCase, analysis.production.diagnostic.gamma, gamma, "AbsTol", 1e-13);
+verifyEqual(testCase, analysis.production.diagnostic.rho, rho, "AbsTol", 1e-13);
+verifyTrue(testCase, analysis.production.parity.allWithinTolerance);
+verifyEqual(testCase, analysis.production.diagnostic.cvMolar, ...
+    analysis.production.diagnostic.cpMolar / gamma, "AbsTol", 1e-12);
+
+for section = ["thermoIdentity" "domainSweep" "hypothesisVerdicts"]
+    verifyEqual(testCase, analysis.(section).status, "notComputedInTask2");
+    verifyEqual(testCase, analysis.(section).evidenceGrade, "❓");
+end
+literature = analysis.sourceAudit.originalLiterature;
+verifyEqual(testCase, literature.status, "pendingTask4Verification");
+verifyEqual(testCase, literature.evidenceGrade, "❓");
+verifyEqual(testCase, literature.paperNumber, "AIAA 2006-4154");
+verifyEqual(testCase, literature.doi, "10.2514/6.2006-4154");
+verifyTrue(testCase, all(literature.claimEvidenceGrade == "❓"));
 end
 
 function options = validTestOptions(root)
