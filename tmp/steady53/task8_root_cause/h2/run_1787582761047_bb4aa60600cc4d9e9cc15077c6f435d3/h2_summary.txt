@@ -1,0 +1,32 @@
+Task 8 H2 He-Xe property read-only root-cause evidence
+status=READ_ONLY_ROOT_CAUSE_COMPLETE
+h1aS2Status=BLOCKED_BY_PROPERTY_DOMAIN
+task8Status=RED_NOT_COMPLETED
+steady14000sStatus=NOT_COMPLETED
+slxLoadedOrSimulated=false
+formalAssetsModified=false
+authorizesRepair=false
+implementation_error=❌ not_supported
+density_root_error=❌ not_supported
+direct_paper_correlation_nonphysical=✅ supported
+provenance_applicability=✅ source framework differs from current thesis formula use
+inputRunId=run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3
+inputMatSha256=4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b
+modelSha256=5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d
+propertySha256=2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2
+paperPdfSha256=983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a
+exceptionT_K=992.38742737169468
+exceptionP_Pa=1007910.8613125964
+cpMolar_J_mol_K=-119.70556165315989
+cvMolar_J_mol_K=-128.01310724372453
+gamma=0.93510394545186781
+enthalpyCpRelativeError=7.6443550925738582e-06
+cpMinusCvRelativeError=6.4147352068139697e-15
+C111ZeroT_K=992.38240920882117
+C111Residual=0
+fixedPressureBoundaryCount=2
+h1aLowEndPathBoundaryCount=2
+fullTextUrl=https://www.researchgate.net/publication/268572975_Best_Estimates_of_Binary_Gas_Mixtures_Properties_for_Closed_Brayton_Cycle_Space_Applications
+officialMetadataUrl=https://isnps.unm.edu/publications/529/
+officialMetadataRelationship=related2008JournalRecordNotExactAIAAConferenceMetadata
+Boundary: H2 diagnoses the current direct formula only; it does not select a repair, clipping value, or replacement property model.

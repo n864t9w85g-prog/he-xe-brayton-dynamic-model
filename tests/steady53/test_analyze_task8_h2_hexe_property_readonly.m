@@ -93,14 +93,19 @@ verifyEmpty(testCase, regexp(source, ...
     'load\([^\n]*\.slx', 'once'));
 end
 
-function testNoH2FormalOutputExists(testCase)
+function testFixedH2FormalOutputIsComplete(testCase)
 outputDir = fullfile(testCase.TestData.root, "tmp", "steady53", ...
     "task8_root_cause", "h2", ...
     "run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3");
-verifyFalse(testCase, isfolder(outputDir));
-verifyFalse(testCase, isfile(fullfile(outputDir, ...
-    "h2_property_diagnostics.csv")));
-verifyFalse(testCase, isfile(fullfile(outputDir, "h2_summary.txt")));
+verifyTrue(testCase, isfolder(outputDir));
+entries = dir(outputDir);
+names = sort(string({entries(~[entries.isdir]).name}));
+verifyEqual(testCase, names, sort([ ...
+    "h2_property_diagnostics.csv" "h2_summary.txt"]));
+for name = names
+    info = dir(fullfile(outputDir, name));
+    verifyGreaterThan(testCase, info.bytes, 0);
+end
 end
 
 function testEquationMapMatchesReviewedPaperPagesAndActiveSource(testCase)
@@ -230,7 +235,7 @@ verifyEqual(testCase, newton.clampChanged, ...
     newton.clampedFinal ~= newton.rawFinal);
 end
 
-function testDiagnosticProductionParityFailsClosedAndLaterTasksStayPending(testCase)
+function testDiagnosticProductionParityFailsClosedAndTask4IsComplete(testCase)
 analysis = analyze_task8_h2_hexe_property_readonly();
 [cpMass, gamma, rho] = HeXe_property_simulink( ...
     analysis.inputs.exceptionT_K, analysis.inputs.exceptionP_Pa);
@@ -244,16 +249,14 @@ verifyTrue(testCase, analysis.production.parity.allWithinTolerance);
 verifyEqual(testCase, analysis.production.diagnostic.cvMolar, ...
     analysis.production.diagnostic.cpMolar / gamma, "AbsTol", 1e-12);
 
-for section = ["domainSweep" "hypothesisVerdicts"]
-    verifyEqual(testCase, analysis.(section).status, "notComputedInTask3");
-    verifyEqual(testCase, analysis.(section).evidenceGrade, "❓");
-end
+verifyEqual(testCase, analysis.domainSweep.status, "completedTask4");
+verifyEqual(testCase, analysis.hypothesisVerdicts.status, "completedTask4");
 literature = analysis.sourceAudit.originalLiterature;
-verifyEqual(testCase, literature.status, "pendingTask4Verification");
-verifyEqual(testCase, literature.evidenceGrade, "❓");
+verifyEqual(testCase, literature.status, "verifiedInTask4");
+verifyEqual(testCase, literature.evidenceGrade, "✅");
 verifyEqual(testCase, literature.paperNumber, "AIAA 2006-4154");
 verifyEqual(testCase, literature.doi, "10.2514/6.2006-4154");
-verifyTrue(testCase, all(literature.claimEvidenceGrade == "❓"));
+verifyTrue(testCase, all(literature.claimEvidenceGrade == "✅"));
 end
 
 function testThermodynamicIdentitiesSeparateConsistencyFromPhysicalDomain(testCase)
@@ -349,6 +352,105 @@ verifyEqual(testCase, sum(components.cpDensityDerivativeMolar), ...
     contributions.cpMolar.densityDerivativeC, "AbsTol", 1e-12);
 verifyEqual(testCase, sum(components.cvMolar), ...
     contributions.cvMolar.C, "AbsTol", 1e-12);
+end
+
+function testTask4SweepsRefineEveryRequiredBoundary(testCase)
+analysis = analyze_task8_h2_hexe_property_readonly();
+sweep = analysis.domainSweep;
+
+verifyEqual(testCase, sweep.status, "completedTask4");
+verifyEqual(testCase, sweep.evidenceGrade, "✅");
+verifyEqual(testCase, sweep.quantitiesSearched, ...
+    ["cp=0" "cv=0" "gamma=1" "dP/drho=0"]);
+verifyTrue(testCase, sweep.method.coarseGridOnlyFindsBrackets);
+verifyEqual(testCase, sweep.method.rootSolver, "fzero");
+verifyGreaterThanOrEqual(testCase, sweep.method.adaptiveLevels, 3);
+
+for scanName = ["fixedPressure" "h1aLowEndPath"]
+    scan = sweep.(scanName);
+    verifyGreaterThan(testCase, numel(scan.coarseCoordinate), 2);
+    verifyGreaterThan(testCase, numel(scan.adaptiveCoordinate), ...
+        numel(scan.coarseCoordinate));
+    verifyClass(testCase, scan.boundaries, "table");
+    required = ["quantity" "bracketLeft" "bracketRight" ...
+        "rootCoordinate" "T_K" "P_Pa" "residual" ...
+        "leftValue" "rightValue" "leftState" "rightState"];
+    verifyTrue(testCase, all(ismember(required, ...
+        string(scan.boundaries.Properties.VariableNames))));
+    verifyEqual(testCase, scan.boundaryCountByQuantity.quantity, ...
+        sweep.quantitiesSearched(:));
+    verifyEqual(testCase, sum(scan.boundaryCountByQuantity.count), ...
+        height(scan.boundaries));
+    if ~isempty(scan.boundaries)
+        verifyTrue(testCase, all(scan.boundaries.bracketLeft < ...
+            scan.boundaries.rootCoordinate));
+        verifyTrue(testCase, all(scan.boundaries.rootCoordinate < ...
+            scan.boundaries.bracketRight));
+        verifyTrue(testCase, all(abs(scan.boundaries.residual) <= ...
+            scan.boundaries.residualTolerance));
+        verifyTrue(testCase, all(scan.boundaries.leftState ~= ...
+            scan.boundaries.rightState));
+    end
+end
+end
+
+function testC111ZeroAndDerivativeDiscontinuityAreIsolated(testCase)
+analysis = analyze_task8_h2_hexe_property_readonly();
+singularity = analysis.domainSweep.C111DerivativeDiscontinuity;
+
+verifyEqual(testCase, singularity.classification, ...
+    "C111ZeroAndMixedThirdVirialDerivativeDiscontinuity");
+verifyEqual(testCase, singularity.rootT_K, ...
+    analysis.coefficients.C111ZeroT_K, "AbsTol", 1e-11);
+verifyLessThan(testCase, abs(singularity.C111Residual), 1e-24);
+verifyGreaterThanOrEqual(testCase, numel(singularity.neighborhoodOffsets_K), 4);
+verifyTrue(testCase, all(singularity.neighborhoodOffsets_K > 0));
+verifyTrue(testCase, all(diff(singularity.neighborhoodOffsets_K) > 0));
+verifyTrue(testCase, all(isfinite(singularity.leftCpMolar)));
+verifyTrue(testCase, all(isfinite(singularity.rightCpMolar)));
+verifyTrue(testCase, singularity.derivativeIsNonContinuous);
+verifyGreaterThan(testCase, singularity.h1aLambda, 0);
+verifyLessThan(testCase, singularity.h1aLambda, 1);
+end
+
+function testTask4HypothesisVerdictsAreEvidenceDrivenAndSeparated(testCase)
+analysis = analyze_task8_h2_hexe_property_readonly();
+verdicts = analysis.hypothesisVerdicts;
+
+verifyEqual(testCase, verdicts.status, "completedTask4");
+verifyEqual(testCase, verdicts.implementationError.evidenceGrade, "❌");
+verifyFalse(testCase, verdicts.implementationError.supported);
+verifyEqual(testCase, verdicts.densityRootError.evidenceGrade, "❌");
+verifyFalse(testCase, verdicts.densityRootError.supported);
+verifyEqual(testCase, ...
+    verdicts.directPaperCorrelationNonphysical.evidenceGrade, "✅");
+verifyTrue(testCase, verdicts.directPaperCorrelationNonphysical.supported);
+verifyTrue(testCase, verdicts.directPaperCorrelationNonphysical.formulaConsistent);
+verifyTrue(testCase, verdicts.directPaperCorrelationNonphysical.uniqueStableDensityRoot);
+verifyFalse(testCase, verdicts.directPaperCorrelationNonphysical.physicalDomainSatisfied);
+verifyEqual(testCase, verdicts.provenanceApplicability.status, ...
+    "sourceFrameworkDiffersFromCurrentThesisFormulaUse");
+verifyEqual(testCase, verdicts.provenanceApplicability.evidenceGrade, "✅");
+verifyFalse(testCase, verdicts.authorizesRepair);
+verifyEqual(testCase, verdicts.task8Status, "RED_NOT_COMPLETED");
+verifyEqual(testCase, verdicts.h1aS2Status, "BLOCKED_BY_PROPERTY_DOMAIN");
+end
+
+function testOriginalLiteratureEvidenceKeepsDirectTextAndMetadataSeparate(testCase)
+literature = analyze_task8_h2_hexe_property_readonly().sourceAudit.originalLiterature;
+verifyEqual(testCase, literature.fullTextUrl, ...
+    "https://www.researchgate.net/publication/268572975_Best_Estimates_of_Binary_Gas_Mixtures_Properties_for_Closed_Brayton_Cycle_Space_Applications");
+verifyEqual(testCase, literature.officialMetadataUrl, ...
+    "https://isnps.unm.edu/publications/529/");
+verifyEqual(testCase, literature.fullTextEvidenceGrade, "✅");
+verifyEqual(testCase, literature.officialMetadataEvidenceGrade, "✅");
+verifyEqual(testCase, literature.claims, [ ...
+    "Eq.(11) third-order Virial fit is stated for Ne/Ar/Kr"
+    "The source states the third Virial coefficient for He can be neglected"
+    "40 g/mol He-Xe at T>400 K and P<2 MPa has under 1 percent ideal-gas-property error"]);
+verifyEqual(testCase, literature.officialMetadataRelationship, ...
+    "related2008JournalRecordNotExactAIAAConferenceMetadata");
+verifyTrue(testCase, literature.currentThesisFormulaKeptSeparate);
 end
 
 function options = validTestOptions(root)

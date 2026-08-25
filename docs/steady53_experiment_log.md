@@ -556,3 +556,44 @@
   `6 tests, OK`；禁止模型 API 扫描、受限 `load` 核对和 `git diff --check`
   全部通过。正式模型、四个正式 MAT、固定输入 MAT 与归档 tag 均保持
   前述固定 hash；正式 H1a 输出目录仍不存在。
+
+### 2026-08-25 Task 8 H2：He-Xe 物性只读根因证据
+
+- ✅ 范围：仅修改 `tests/steady53/` 中 H2 分析器/聚焦测试，新增独立
+  H2 发布器/聚焦测试，更新本日志与 root-cause addendum，并发布
+  固定 H2 CSV/TXT。未加载或仿真 SLX，未修改任何正式 SLX/MAT/PDF、
+  `HeXe_property_simulink.m`、求解器、验收门槛或物理参数。
+- ✅ TDD RED：首次聚焦运行实测 `14 Passed, 9 Failed, 4 Incomplete`。
+  失败来自 Task 4 尚为占位、固定 H2 输出尚不存在、发布器尚未实现；
+  不是 MATLAB 环境或语法失败。
+- ✅ 异常点交叉验证：`cp=-119.70556165315989 J/(mol K)`、
+  `cv=-128.01310724372453 J/(mol K)`、`gamma=0.93510394545186781`。
+  焓导数交叉检查相对差 `7.6443550925738582e-06`，`cp-cv` EOS 恒等式
+  相对残差 `6.4147352068139697e-15`；公式一致但物理域失败。
+- ✅ 自适应边界：`C111=0` 于 `992.38240920882117 K`。定压路径
+  `cp=0/cv=0` 分别为 `992.3980970081318 K` 和
+  `992.40367034763892 K`；H1a 低端线性路径分别为
+  `λ=0.61427357048046893`和 `λ=0.61426702062376992`。每个根都记录了
+  括号、根、残差与两侧符号；未用图形目测。两条扫掠均无合同内
+  `gamma=1` 或 `dP/drho=0` 根，`gamma` 在 `cv=0` 处的极点未误判为根。
+- ❌/❌/✅ 三假设判决：不支持“当前转录/解析导数实现错误”；
+  不支持“密度根选择错误”；支持“当前论文关联式的直接实现在异常点
+  给出非物理解”。上游作者公开全文对 Eq. (11) 的 Ne/Ar/Kr 范围、
+  He 三阶项可忽略表述和 40 g/mol He-Xe 的近似理想区域证据已作独立
+  provenance 判决，未与当前论文公式混合。
+- ✅ 固定输出：
+  `tmp/steady53/task8_root_cause/h2/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/`
+  只包含 `h2_property_diagnostics.csv` 与 `h2_summary.txt`。CSV SHA-256 为
+  `fc9e955ef4894c3ca209a94175cc733c0f3d808bfb0b4e60237cf8c8c70f8a75`，summary SHA-256
+  为 `8bd58e95f7d56ffadcb5f45a43c2a669e96e51ce0b9959b5f3bf4fcf8db3b67f`。
+  发布器仅接受完整 fail-closed analysis，在同父目录唯一 staging 中写完、
+  关闭、可读及 hash 验证后，用 Java NIO 无覆盖目录级 move 一次发布。
+- ✅ GREEN：H2 analyzer/publisher 两份聚焦测试实测
+  `27 Passed, 0 Failed, 0 Incomplete`；分析器和发布器 `checkcode` 均为
+  0 项，`git diff --check` 通过。经静态核实不触及 SLX 的
+  spec/evaluator/evidence/H1a/H2 六文件离线子集实测
+  `111 Passed, 0 Failed, 0 Incomplete`。完整 `tests/steady53` 仅发现
+  `138` 项而未执行；本条不是完整目录全绿声明。
+- ❓ 结论边界：H2 只读根因诊断已完成；H1a-S2 仍被当前物性域失效
+  阻断，Task 8 与 14000 s 稳态验收仍为 **RED/未完成**。本诊断不授权
+  修改物性系数、裁剪数值、选择新关联式或替代物性实现。
