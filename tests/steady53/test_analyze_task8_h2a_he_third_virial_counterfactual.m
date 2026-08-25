@@ -111,7 +111,8 @@ verifyTrue(testCase, gate.allSatisfied);
 verifyTrue(testCase, all(gate.invariants.pass));
 required = ["constants" "B11" "B22" "B12" "B" "eosForm" ...
     "newtonInitialGuess" "newtonIterations" "clampRule" "tolerances" ...
-    "T_K" "P_Pa"];
+    "T_K" "P_Pa" "dB_dT" "d2B_dT2" "C222" "dC222_dT" ...
+    "d2C222_dT2"];
 verifyTrue(testCase, all(ismember(required, gate.invariants.name)));
 
 options = testCase.TestData.options;
@@ -119,6 +120,37 @@ options.testOnlyNonCMutation = "B";
 verifyError(testCase, ...
     @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
     "steady53:H2aSingleVariableViolation");
+verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+end
+
+function testMicroscopicParityMutationsFailClosed(testCase)
+analysis = analyze_task8_h2a_he_third_virial_counterfactual();
+parity = analysis.baselineParity.table;
+for name = ["C111" "C" "dC_dT"]
+    row = parity(parity.name == name, :);
+    verifyEqual(testCase, height(row), 1);
+    verifyNotEqual(testCase, row.h2Value, 0);
+    verifyLessThan(testCase, row.tolerance, abs(row.h2Value));
+end
+
+for mutation = ["C111" "C" "dC_dT"]
+    options = testCase.TestData.options;
+    options.testOnlyParityMutation = mutation;
+    verifyError(testCase, ...
+        @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
+        "steady53:H2aBaselineParityMismatch");
+end
+verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+end
+
+function testAdditionalNonCMutationsFailSingleVariableGate(testCase)
+for mutation = ["dB_dT" "C222"]
+    options = testCase.TestData.options;
+    options.testOnlyNonCMutation = mutation;
+    verifyError(testCase, ...
+        @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
+        "steady53:H2aSingleVariableViolation");
+end
 verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
 end
 
@@ -318,6 +350,7 @@ options.expectedArchivePeeledCommit = ...
 options.h2AnalyzerResolutionProbe = string(fullfile(root, "tests", ...
     "steady53", "analyze_task8_h2_hexe_property_readonly.m"));
 options.testOnlyNonCMutation = "none";
+options.testOnlyParityMutation = "none";
 end
 
 function expected = expectedHashes()

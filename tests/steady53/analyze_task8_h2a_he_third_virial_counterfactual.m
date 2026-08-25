@@ -70,6 +70,7 @@ analysis.baselineParity = struct( ...
     "protectedAssetsUnchanged", protectedAssetsUnchanged);
 baseline = evaluatePoint(config.exceptionT_K, config.exceptionP_Pa, ...
     "baseline", "none");
+baseline = applyParityMutation(baseline, config.testOnlyParityMutation);
 parity = baselineParityTable(h2, baseline);
 if ~all(parity.pass)
     error("steady53:H2aBaselineParityMismatch", ...
@@ -150,6 +151,7 @@ config.expectedArchivePeeledCommit = ...
 config.h2AnalyzerResolutionProbe = string(fullfile(root, "tests", ...
     "steady53", "analyze_task8_h2_hexe_property_readonly.m"));
 config.testOnlyNonCMutation = "none";
+config.testOnlyParityMutation = "none";
 end
 
 function config = applyTestOnlyOptions(config, options)
@@ -166,7 +168,8 @@ allowed = [ ...
     "approvedH2CsvPath" "expectedApprovedH2CsvSha256" ...
     "approvedH2TxtPath" "expectedApprovedH2TxtSha256" ...
     "archiveTag" "expectedArchivePeeledCommit" ...
-    "h2AnalyzerResolutionProbe" "testOnlyNonCMutation"];
+    "h2AnalyzerResolutionProbe" "testOnlyNonCMutation" ...
+    "testOnlyParityMutation"];
 if ~isstruct(options) || ~isscalar(options) || ...
         ~isfield(options, "testOnly") || ~isequal(options.testOnly, true) || ...
         numel(fieldnames(options)) ~= numel(allowed) || ...
@@ -227,9 +230,16 @@ if isempty(regexp(char(string(config.expectedArchivePeeledCommit)), ...
         "The expected H2a archive commit must be a Git SHA-1 ID.");
 end
 if ~isscalar(string(config.testOnlyNonCMutation)) || ...
-        ~ismember(string(config.testOnlyNonCMutation), ["none" "B"])
+        ~ismember(string(config.testOnlyNonCMutation), ...
+        ["none" "B" "dB_dT" "C222"])
     error("steady53:H2aInvalidOptions", ...
         "testOnlyNonCMutation is restricted to the approved test fixture.");
+end
+if ~isscalar(string(config.testOnlyParityMutation)) || ...
+        ~ismember(string(config.testOnlyParityMutation), ...
+        ["none" "C111" "C" "dC_dT"])
+    error("steady53:H2aInvalidOptions", ...
+        "testOnlyParityMutation is restricted to the approved test fixture.");
 end
 end
 
@@ -440,6 +450,10 @@ k = hexeConstants();
 [c, dc, d2c] = thirdVirialTerms(T_K, k, variant);
 if string(nonCMutation) == "B"
     b.B = b.B + 1e-12;
+elseif string(nonCMutation) == "dB_dT"
+    dB = dB + 1e-12;
+elseif string(nonCMutation) == "C222"
+    c.C222 = 2*c.C222;
 end
 density = densityState(T_K, P_Pa, b.B, c.C, k.R0);
 thermal = thermalState(T_K, b.B, dB, d2B, c.C, dc.C, d2c.C, density.rho, k);
@@ -462,6 +476,22 @@ state = struct( ...
     "cpMolar", thermal.cpMolar, "cvMolar", thermal.cvMolar, ...
     "cpMass", thermal.cpMass, "cvMass", thermal.cvMass, ...
     "gamma", thermal.gamma, "contributions", thermal.contributions);
+end
+
+function state = applyParityMutation(state, mutation)
+% This test-only fixture attacks the baseline evidence after calculation; it
+% never changes the approved default branch or any protected asset.
+switch string(mutation)
+    case "none"
+    case "C111"
+        state.C111 = 0;
+    case "C"
+        state.C = 0;
+    case "dC_dT"
+        state.dC_dT = 0;
+    otherwise
+        error("steady53:H2aInvalidOptions", "Parity mutation is not approved.");
+end
 end
 
 function k = hexeConstants()
@@ -688,13 +718,26 @@ end
 names = names(:);
 h2Values = h2Values(:);
 h2aValues = h2aValues(:);
-tolerance = max(1e-10, 1e-10*abs(h2Values));
-tolerance(names == "gamma") = 1e-13;
+tolerance = parityTolerances(names, h2Values);
 absoluteError = abs(h2Values - h2aValues);
 pass = absoluteError <= tolerance;
 parity = table(names, h2Values, h2aValues, absoluteError, tolerance, pass, ...
     'VariableNames', {'name' 'h2Value' 'h2aBaselineValue' ...
     'absoluteError' 'tolerance' 'pass'});
+end
+
+function tolerance = parityTolerances(names, h2Values)
+% Coefficients and their temperature derivatives have microscopic units, so a
+% macroscopic absolute floor would silently accept their deletion.  Use a
+% relative tolerance with a sub-microscopic numerical floor for those rows.
+tolerance = max(1e-12, 1e-10*abs(h2Values));
+microNames = ["B11" "B22" "B12" "B" "C111" "C222" "C112" "C122" ...
+    "C" "dB_dT" "d2B_dT2" "dC_dT" "d2C_dT2"];
+micro = ismember(names, microNames);
+tolerance(micro) = max(1e-30, 1e-8*abs(h2Values(micro)));
+tolerance(names == "gamma") = 1e-13;
+exact = ismember(names, ["stablePositiveRealRootCount" "newtonClampChanged"]);
+tolerance(exact) = 0;
 end
 
 function gate = evaluateSingleVariableGate(baseline, counterfactual)
@@ -709,6 +752,12 @@ pass = [isequaln(baseline.constants, counterfactual.constants); ...
     baseline.clampRule == counterfactual.clampRule; ...
     isequaln(baseline.tolerances, counterfactual.tolerances); ...
     baseline.T_K == counterfactual.T_K; baseline.P_Pa == counterfactual.P_Pa];
+names = [names; "dB_dT"; "d2B_dT2"; "C222"; "dC222_dT"; "d2C222_dT2"];
+pass = [pass; baseline.dB_dT == counterfactual.dB_dT; ...
+    baseline.d2B_dT2 == counterfactual.d2B_dT2; ...
+    baseline.C222 == counterfactual.C222; ...
+    baseline.dC222_dT == counterfactual.dC222_dT; ...
+    baseline.d2C222_dT2 == counterfactual.d2C222_dT2];
 invariants = table(names, pass, 'VariableNames', {'name' 'pass'});
 gate = struct("invariants", invariants, "allSatisfied", all(pass));
 end
