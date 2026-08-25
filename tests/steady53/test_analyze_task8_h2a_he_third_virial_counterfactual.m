@@ -59,13 +59,67 @@ verifyTrue(testCase, analysis.baselineParity.runIdMatches);
 verifyTrue(testCase, analysis.baselineParity.exceptionPointMatches);
 verifyTrue(testCase, analysis.baselineParity.protectedAssetsUnchanged);
 
-notComputedFields = ["exceptionPoint" "fixedPressureSweep" ...
-    "h1aPathSweep" "counterfactualVerdict"];
+notComputedFields = ["fixedPressureSweep" "h1aPathSweep" ...
+    "counterfactualVerdict"];
 for index = 1:numel(notComputedFields)
     section = analysis.(notComputedFields(index));
-    verifyEqual(testCase, section.status, "notComputedInTask1");
+    verifyEqual(testCase, section.status, "notComputedInTask2");
     verifyEqual(testCase, section.evidenceGrade, "❓");
 end
+end
+
+function testFixedPointDualBranchParityAndApprovedCounterfactual(testCase)
+originalPath = path;
+pathCleanup = onCleanup(@() path(originalPath));
+addpath(testCase.TestData.root, "-begin");
+h2 = analyze_task8_h2_hexe_property_readonly();
+clear pathCleanup
+analysis = analyze_task8_h2a_he_third_virial_counterfactual();
+
+verifyTrue(testCase, analysis.baselineParity.allSatisfied);
+verifyClass(testCase, analysis.baselineParity.table, "table");
+verifyTrue(testCase, all(ismember(["name" "h2Value" "h2aBaselineValue" ...
+    "absoluteError" "tolerance" "pass"], ...
+    string(analysis.baselineParity.table.Properties.VariableNames))));
+verifyTrue(testCase, all(analysis.baselineParity.table.pass));
+verifyEqual(testCase, analysis.exceptionPoint.status, "completed");
+verifyEqual(testCase, analysis.exceptionPoint.evidenceGrade, "❓");
+verifyEqual(testCase, analysis.exceptionPoint.baseline.cpMolar, ...
+    h2.thermoIdentity.eq2_15.analyticCpMolar, "AbsTol", 1e-10);
+verifyEqual(testCase, analysis.exceptionPoint.baseline.cvMolar, ...
+    h2.thermoIdentity.eq2_17.analyticCvMolar, "AbsTol", 1e-10);
+verifyEqual(testCase, analysis.exceptionPoint.baseline.gamma, ...
+    h2.thermoIdentity.gamma.analytic, "AbsTol", 1e-13);
+
+cf = analysis.exceptionPoint.counterfactual;
+verifyEqual(testCase, [cf.C111 cf.C112 cf.C122], [0 0 0], "AbsTol", 0);
+verifyEqual(testCase, [cf.dC111_dT cf.dC112_dT cf.dC122_dT], ...
+    [0 0 0], "AbsTol", 0);
+verifyEqual(testCase, [cf.d2C111_dT2 cf.d2C112_dT2 cf.d2C122_dT2], ...
+    [0 0 0], "AbsTol", 0);
+verifyEqual(testCase, cf.C, cf.constants.xXe^3*cf.C222, "AbsTol", 1e-30);
+verifyEqual(testCase, cf.dC_dT, ...
+    cf.constants.xXe^3*cf.dC222_dT, "AbsTol", 1e-30);
+verifyEqual(testCase, cf.d2C_dT2, ...
+    cf.constants.xXe^3*cf.d2C222_dT2, "AbsTol", 1e-30);
+end
+
+function testSingleVariableGateLocksEveryNonCInvariant(testCase)
+analysis = analyze_task8_h2a_he_third_virial_counterfactual();
+gate = analysis.exceptionPoint.singleVariableGate;
+verifyTrue(testCase, gate.allSatisfied);
+verifyTrue(testCase, all(gate.invariants.pass));
+required = ["constants" "B11" "B22" "B12" "B" "eosForm" ...
+    "newtonInitialGuess" "newtonIterations" "clampRule" "tolerances" ...
+    "T_K" "P_Pa"];
+verifyTrue(testCase, all(ismember(required, gate.invariants.name)));
+
+options = testCase.TestData.options;
+options.testOnlyNonCMutation = "B";
+verifyError(testCase, ...
+    @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
+    "steady53:H2aSingleVariableViolation");
+verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
 end
 
 function testSourceAuditContainsEveryApprovedIdentity(testCase)
@@ -263,6 +317,7 @@ options.expectedArchivePeeledCommit = ...
     "8f625c268c35a95c18a626305c1aa6a79ae2ace7";
 options.h2AnalyzerResolutionProbe = string(fullfile(root, "tests", ...
     "steady53", "analyze_task8_h2_hexe_property_readonly.m"));
+options.testOnlyNonCMutation = "none";
 end
 
 function expected = expectedHashes()

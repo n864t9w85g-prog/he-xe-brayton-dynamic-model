@@ -68,10 +68,33 @@ analysis.baselineParity = struct( ...
     "runIdMatches", runIdMatches, ...
     "exceptionPointMatches", exceptionPointMatches, ...
     "protectedAssetsUnchanged", protectedAssetsUnchanged);
-placeholder = struct( ...
-    "status", "notComputedInTask1", ...
+baseline = evaluatePoint(config.exceptionT_K, config.exceptionP_Pa, ...
+    "baseline", "none");
+parity = baselineParityTable(h2, baseline);
+if ~all(parity.pass)
+    error("steady53:H2aBaselineParityMismatch", ...
+        "The H2a baseline does not reproduce approved H2 evidence.");
+end
+analysis.baselineParity = struct( ...
+    "status", "verifiedReadOnlyAgainstApprovedH2", ...
+    "evidenceGrade", "✅", ...
+    "runIdMatches", runIdMatches, ...
+    "exceptionPointMatches", exceptionPointMatches, ...
+    "protectedAssetsUnchanged", protectedAssetsUnchanged, ...
+    "table", parity, "allSatisfied", all(parity.pass));
+counterfactual = evaluatePoint(config.exceptionT_K, config.exceptionP_Pa, ...
+    "ignoreHePureThirdVirial", config.testOnlyNonCMutation);
+singleVariableGate = evaluateSingleVariableGate(baseline, counterfactual);
+if ~singleVariableGate.allSatisfied
+    error("steady53:H2aSingleVariableViolation", ...
+        "The counterfactual changed a non-approved quantity.");
+end
+analysis.exceptionPoint = struct( ...
+    "status", "completed", "evidenceGrade", "❓", ...
+    "baseline", baseline, "counterfactual", counterfactual, ...
+    "singleVariableGate", singleVariableGate);
+placeholder = struct("status", "notComputedInTask2", ...
     "evidenceGrade", "❓");
-analysis.exceptionPoint = placeholder;
 analysis.fixedPressureSweep = placeholder;
 analysis.h1aPathSweep = placeholder;
 analysis.counterfactualVerdict = placeholder;
@@ -126,6 +149,7 @@ config.expectedArchivePeeledCommit = ...
     "8f625c268c35a95c18a626305c1aa6a79ae2ace7";
 config.h2AnalyzerResolutionProbe = string(fullfile(root, "tests", ...
     "steady53", "analyze_task8_h2_hexe_property_readonly.m"));
+config.testOnlyNonCMutation = "none";
 end
 
 function config = applyTestOnlyOptions(config, options)
@@ -142,7 +166,7 @@ allowed = [ ...
     "approvedH2CsvPath" "expectedApprovedH2CsvSha256" ...
     "approvedH2TxtPath" "expectedApprovedH2TxtSha256" ...
     "archiveTag" "expectedArchivePeeledCommit" ...
-    "h2AnalyzerResolutionProbe"];
+    "h2AnalyzerResolutionProbe" "testOnlyNonCMutation"];
 if ~isstruct(options) || ~isscalar(options) || ...
         ~isfield(options, "testOnly") || ~isequal(options.testOnly, true) || ...
         numel(fieldnames(options)) ~= numel(allowed) || ...
@@ -201,6 +225,11 @@ if isempty(regexp(char(string(config.expectedArchivePeeledCommit)), ...
         '^[0-9a-fA-F]{40}$', 'once'))
     error("steady53:H2aInvalidOptions", ...
         "The expected H2a archive commit must be a Git SHA-1 ID.");
+end
+if ~isscalar(string(config.testOnlyNonCMutation)) || ...
+        ~ismember(string(config.testOnlyNonCMutation), ["none" "B"])
+    error("steady53:H2aInvalidOptions", ...
+        "testOnlyNonCMutation is restricted to the approved test fixture.");
 end
 end
 
@@ -401,4 +430,285 @@ end
 
 function quoted = shellQuote(value)
 quoted = "'" + replace(string(value), "'", "'\''") + "'";
+end
+
+function state = evaluatePoint(T_K, P_Pa, variant, nonCMutation)
+% Pure evaluator for the fixed approved point.  The two branches share every
+% non-third-Virial operation; the counterfactual changes only approved C terms.
+k = hexeConstants();
+[b, dB, d2B] = secondVirialTerms(T_K, k);
+[c, dc, d2c] = thirdVirialTerms(T_K, k, variant);
+if string(nonCMutation) == "B"
+    b.B = b.B + 1e-12;
+end
+density = densityState(T_K, P_Pa, b.B, c.C, k.R0);
+thermal = thermalState(T_K, b.B, dB, d2B, c.C, dc.C, d2c.C, density.rho, k);
+state = struct( ...
+    "T_K", T_K, "P_Pa", P_Pa, "variant", string(variant), ...
+    "constants", k, ...
+    "B11", b.B11, "B22", b.B22, "B12", b.B12, "B", b.B, ...
+    "dB_dT", dB, "d2B_dT2", d2B, ...
+    "C111", c.C111, "C222", c.C222, "C112", c.C112, "C122", c.C122, ...
+    "C", c.C, "dC111_dT", dc.C111, "dC222_dT", dc.C222, ...
+    "dC112_dT", dc.C112, "dC122_dT", dc.C122, "dC_dT", dc.C, ...
+    "d2C111_dT2", d2c.C111, "d2C222_dT2", d2c.C222, ...
+    "d2C112_dT2", d2c.C112, "d2C122_dT2", d2c.C122, "d2C_dT2", d2c.C, ...
+    "eosForm", "P=rho*R*T*(1+B*rho+C*rho^2)", ...
+    "eos", density.eos, "productionNewton", density.productionNewton, ...
+    "newtonInitialGuess", density.productionNewton.initialGuess, ...
+    "newtonIterations", density.productionNewton.maximumIterations, ...
+    "clampRule", "rho=max(rawNewton,0.9*P_RT)", ...
+    "tolerances", density.tolerances, "rho", thermal.rho, ...
+    "cpMolar", thermal.cpMolar, "cvMolar", thermal.cvMolar, ...
+    "cpMass", thermal.cpMass, "cvMass", thermal.cvMass, ...
+    "gamma", thermal.gamma, "contributions", thermal.contributions);
+end
+
+function k = hexeConstants()
+k = struct("R0", 8.314, "MHe", 4.0026e-3, "MXe", 131.293e-3, ...
+    "xHe", 0.7172, "xXe", 1.0 - 0.7172, "TcHe", 5.19, "TcXe", 289.6, ...
+    "rhoCHe", 69.64, "rhoCXe", 1099.7);
+k.Tc12 = sqrt(k.TcHe*k.TcXe);
+k.vHe = k.MHe/k.rhoCHe;
+k.vXe = k.MXe/k.rhoCXe;
+k.v12 = (1/8)*(k.vHe^(1/3) + k.vXe^(1/3))^3;
+k.M = k.xXe*k.MXe + k.xHe*k.MHe;
+end
+
+function [b, dB, d2B] = secondVirialTerms(T, k)
+thetaXe = T/k.TcXe;
+theta12 = T/k.Tc12;
+b = struct();
+b.B11 = (8.4 - .0018*T + 115/sqrt(T) - 835/T)*1e-6;
+b.B22 = secondVirial(thetaXe, k.vXe, .01);
+b.B12 = secondVirial(theta12, k.v12, .001);
+b.B = k.xHe^2*b.B11 + 2*k.xHe*k.xXe*b.B12 + k.xXe^2*b.B22;
+dB11 = (-.0018 - 57.5/T^(3/2) + 835/T^2)*1e-6;
+d2B11 = (86.25/T^2.5 - 1670/T^3)*1e-6;
+[dB22, d2B22] = secondVirialDerivatives(thetaXe, k.TcXe, k.vXe, .01);
+[dB12, d2B12] = secondVirialDerivatives(theta12, k.Tc12, k.v12, .001);
+dB = k.xHe^2*dB11 + 2*k.xHe*k.xXe*dB12 + k.xXe^2*dB22;
+d2B = k.xHe^2*d2B11 + 2*k.xHe*k.xXe*d2B12 + k.xXe^2*d2B22;
+end
+
+function B = secondVirial(theta, v, slope)
+u = 102.732 - slope*theta - .44/theta^1.22;
+B = v*(-102.6 + u*tanh(4.5*sqrt(theta)));
+end
+
+function [first, second] = secondVirialDerivatives(theta, criticalT, v, slope)
+u = 102.732 - slope*theta - .44/theta^1.22;
+t = tanh(4.5*sqrt(theta));
+s2 = 1 - t^2;
+du = -slope + .5368/theta^2.22;
+dt = 2.25/sqrt(theta)*s2;
+d2u = -1.191696/theta^3.22;
+d2t = -1.125/theta^1.5*s2 - 10.125/theta*s2*t;
+first = v*(du*t + u*dt)/criticalT;
+second = v*(d2u*t + 2*du*dt + u*d2t)/criticalT^2;
+end
+
+function [c, dc, d2c] = thirdVirialTerms(T, k, variant)
+[C111, dC111, d2C111] = thirdComponent(T, k.vHe, k.TcHe);
+[C222, dC222, d2C222] = thirdComponent(T, k.vXe, k.TcXe);
+if string(variant) == "ignoreHePureThirdVirial"
+    c = struct("C111", 0, "C222", C222, "C112", 0, "C122", 0, ...
+        "C", k.xXe^3*C222);
+    dc = struct("C111", 0, "C222", dC222, "C112", 0, "C122", 0, ...
+        "C", k.xXe^3*dC222);
+    d2c = struct("C111", 0, "C222", d2C222, "C112", 0, "C122", 0, ...
+        "C", k.xXe^3*d2C222);
+    return
+end
+if string(variant) ~= "baseline"
+    error("steady53:H2aInvalidOptions", "Variant is not approved.");
+end
+C112 = signedCubeRoot(C111^2*C222);
+C122 = signedCubeRoot(C111*C222^2);
+a = dC111/C111;
+b = dC222/C222;
+dc112 = C112*((2/3)*a + (1/3)*b);
+dc122 = C122*((1/3)*a + (2/3)*b);
+aPrime = d2C111/C111 - a^2;
+bPrime = d2C222/C222 - b^2;
+d2c112 = C112*((2/3)*aPrime + (1/3)*bPrime + ((2/3)*a + (1/3)*b)^2);
+d2c122 = C122*((1/3)*aPrime + (2/3)*bPrime + ((1/3)*a + (2/3)*b)^2);
+c = struct("C111", C111, "C222", C222, "C112", C112, "C122", C122, ...
+    "C", k.xHe^3*C111 + 3*k.xHe^2*k.xXe*C112 + ...
+    3*k.xHe*k.xXe^2*C122 + k.xXe^3*C222);
+dc = struct("C111", dC111, "C222", dC222, "C112", dc112, "C122", dc122, ...
+    "C", k.xHe^3*dC111 + 3*k.xHe^2*k.xXe*dc112 + ...
+    3*k.xHe*k.xXe^2*dc122 + k.xXe^3*dC222);
+d2c = struct("C111", d2C111, "C222", d2C222, "C112", d2c112, "C122", d2c122, ...
+    "C", k.xHe^3*d2C111 + 3*k.xHe^2*k.xXe*d2c112 + ...
+    3*k.xHe*k.xXe^2*d2c122 + k.xXe^3*d2C222);
+end
+
+function [value, first, second] = thirdComponent(T, v, criticalT)
+theta = T/criticalT;
+t = tanh(.84*theta);
+s2 = 1 - t^2;
+u = -.0862 - 3.6e-5*theta + .0237/theta^.059;
+value = v^2*(.0757 + u*t);
+du = -3.6e-5 - .0013983/theta^1.059;
+dt = .84*s2;
+d2u = .0014808/theta^2.059;
+d2t = -1.4112*s2*t;
+first = v^2*(du*t + u*dt)/criticalT;
+second = v^2*(d2u*t + 2*du*dt + u*d2t)/criticalT^2;
+end
+
+function value = signedCubeRoot(argument)
+value = sign(argument)*abs(argument)^(1/3);
+end
+
+function density = densityState(T, P, B, C, R0)
+P_RT = P/(R0*T);
+coefficients = [C B 1 -P_RT];
+allRoots = roots(coefficients);
+residual = polyval(coefficients, allRoots);
+scale = abs(C)*abs(allRoots).^3 + abs(B)*abs(allRoots).^2 + ...
+    abs(allRoots) + abs(P_RT);
+slopes = R0*T*(1 + 2*B*allRoots + 3*C*allRoots.^2);
+isReal = abs(imag(allRoots)) <= 1e-10*max(1, abs(allRoots));
+stablePositiveCount = nnz(isReal & real(allRoots) > 0 & real(slopes) > 0);
+rho = P_RT;
+converged = false;
+lastDelta = NaN;
+for iteration = 1:30
+    f = polyval(coefficients, rho);
+    derivative = 3*C*rho^2 + 2*B*rho + 1;
+    lastDelta = f/derivative;
+    rho = rho - lastDelta;
+    if abs(lastDelta) < 1e-14
+        converged = true;
+        break
+    end
+end
+raw = rho;
+clampFloor = .9*P_RT;
+clamped = max(raw, clampFloor);
+tolerances = struct("realRoot", 1e-10, "newtonDelta", 1e-14, ...
+    "newtonIterations", 30, "clampFloorFactor", .9);
+productionNewton = struct("initialGuess", P_RT, "maximumIterations", 30, ...
+    "deltaTolerance", 1e-14, "iterations", iteration, "converged", converged, ...
+    "lastDelta", lastDelta, "rawFinal", raw, "clampFloor", clampFloor, ...
+    "clampedFinal", clamped, "clampChanged", clamped ~= raw, ...
+    "rawPolynomialResidual", polyval(coefficients, raw));
+eos = struct("polynomialCoefficients", coefficients, "allRoots", allRoots, ...
+    "scaledResidual", abs(residual)./scale, "dPdrho", slopes, ...
+    "stablePositiveRealRootCount", stablePositiveCount);
+density = struct("rho", clamped, "eos", eos, ...
+    "productionNewton", productionNewton, "tolerances", tolerances);
+end
+
+function thermal = thermalState(T, B, dB, d2B, C, dC, d2C, rho, k)
+drhoNumerator = (rho + B*rho^2 + C*rho^3)/T + dB*rho^2 + dC*rho^3;
+drhoDenominator = 1 + 2*B*rho + 3*C*rho^2;
+drho = -drhoNumerator/drhoDenominator;
+B1 = B - T*dB;
+B2 = B1 - T^2*d2B;
+C1 = 2*C - T*dC;
+C2 = C - .5*T^2*d2C;
+cpIdeal = 2.5*k.R0;
+cpB = rho*k.R0*B2;
+cpC = rho^2*k.R0*C2;
+cpDensityB = k.R0*T*B1*drho;
+cpDensityC = k.R0*T*rho*C1*drho;
+cp = cpIdeal + cpB + cpC + cpDensityB + cpDensityC;
+cvIdeal = 1.5*k.R0;
+cvB = -rho*k.R0*T*(2*dB + T*d2B);
+cvC = -rho^2*k.R0*T*(dC + .5*T*d2C);
+cv = cvIdeal + cvB + cvC;
+contributions = struct( ...
+    "cpMolar", struct("ideal", cpIdeal, "BExplicit", cpB, ...
+        "CExplicit", cpC, "densityDerivativeB", cpDensityB, ...
+        "densityDerivativeC", cpDensityC, ...
+        "densityDerivativeTotal", cpDensityB + cpDensityC, "total", cp), ...
+    "cvMolar", struct("ideal", cvIdeal, "B", cvB, "C", cvC, "total", cv));
+thermal = struct("rho", rho*k.M, "rhoHat", rho, "drhoHat_dT", drho, ...
+    "cpMolar", cp, "cvMolar", cv, "cpMass", cp/k.M, "cvMass", cv/k.M, ...
+    "gamma", cp/cv, "contributions", contributions);
+end
+
+function parity = baselineParityTable(h2, baseline)
+names = strings(0, 1);
+h2Values = zeros(0, 1);
+h2aValues = zeros(0, 1);
+    function append(name, h2Value, h2aValue)
+        names(end + 1, 1) = string(name);
+        h2Values(end + 1, 1) = h2Value;
+        h2aValues(end + 1, 1) = h2aValue;
+    end
+append("B11", h2.coefficients.B11, baseline.B11);
+append("B22", h2.coefficients.B22, baseline.B22);
+append("B12", h2.coefficients.B12, baseline.B12);
+append("B", h2.coefficients.B, baseline.B);
+append("C111", h2.coefficients.C111, baseline.C111);
+append("C222", h2.coefficients.C222, baseline.C222);
+append("C112", h2.coefficients.C112, baseline.C112);
+append("C122", h2.coefficients.C122, baseline.C122);
+append("C", h2.coefficients.C, baseline.C);
+append("dB_dT", h2.derivatives.analytic.dB_dT, baseline.dB_dT);
+append("d2B_dT2", h2.derivatives.analytic.d2B_dT2, baseline.d2B_dT2);
+append("dC_dT", h2.derivatives.analytic.dC_dT, baseline.dC_dT);
+append("d2C_dT2", h2.derivatives.analytic.d2C_dT2, baseline.d2C_dT2);
+for index = 1:numel(h2.densityRoots.allRoots)
+    append("eosRoot" + index, real(h2.densityRoots.allRoots(index)), ...
+        real(baseline.eos.allRoots(index)));
+end
+h2Stable = nnz([h2.densityRoots.realRootDiagnostics.root] > 0 & ...
+    [h2.densityRoots.realRootDiagnostics.dPdrho_Pa_m3_per_mol] > 0);
+append("stablePositiveRealRootCount", h2Stable, ...
+    baseline.eos.stablePositiveRealRootCount);
+append("newtonRawFinal", h2.densityRoots.productionNewton.rawFinal, ...
+    baseline.productionNewton.rawFinal);
+append("newtonClampedFinal", h2.densityRoots.productionNewton.clampedFinal, ...
+    baseline.productionNewton.clampedFinal);
+append("newtonClampChanged", double(h2.densityRoots.productionNewton.clampChanged), ...
+    double(baseline.productionNewton.clampChanged));
+append("rho", h2.production.diagnostic.rho, baseline.rho);
+append("cpMolar", h2.thermoIdentity.eq2_15.analyticCpMolar, baseline.cpMolar);
+append("cvMolar", h2.thermoIdentity.eq2_17.analyticCvMolar, baseline.cvMolar);
+append("cpMass", h2.production.diagnostic.cpMass, baseline.cpMass);
+append("gamma", h2.thermoIdentity.gamma.analytic, baseline.gamma);
+cpNames = ["ideal" "BExplicit" "CExplicit" "densityDerivativeB" ...
+    "densityDerivativeC" "densityDerivativeTotal" "total"];
+for index = 1:numel(cpNames)
+    name = cpNames(index);
+    append("cp." + name, h2.thermoIdentity.contributions.cpMolar.(name), ...
+        baseline.contributions.cpMolar.(name));
+end
+cvNames = ["ideal" "B" "C" "total"];
+for index = 1:numel(cvNames)
+    name = cvNames(index);
+    append("cv." + name, h2.thermoIdentity.contributions.cvMolar.(name), ...
+        baseline.contributions.cvMolar.(name));
+end
+names = names(:);
+h2Values = h2Values(:);
+h2aValues = h2aValues(:);
+tolerance = max(1e-10, 1e-10*abs(h2Values));
+tolerance(names == "gamma") = 1e-13;
+absoluteError = abs(h2Values - h2aValues);
+pass = absoluteError <= tolerance;
+parity = table(names, h2Values, h2aValues, absoluteError, tolerance, pass, ...
+    'VariableNames', {'name' 'h2Value' 'h2aBaselineValue' ...
+    'absoluteError' 'tolerance' 'pass'});
+end
+
+function gate = evaluateSingleVariableGate(baseline, counterfactual)
+names = ["constants" "B11" "B22" "B12" "B" "eosForm" ...
+    "newtonInitialGuess" "newtonIterations" "clampRule" "tolerances" "T_K" "P_Pa"]';
+pass = [isequaln(baseline.constants, counterfactual.constants); ...
+    baseline.B11 == counterfactual.B11; baseline.B22 == counterfactual.B22; ...
+    baseline.B12 == counterfactual.B12; baseline.B == counterfactual.B; ...
+    baseline.eosForm == counterfactual.eosForm; ...
+    baseline.newtonInitialGuess == counterfactual.newtonInitialGuess; ...
+    baseline.newtonIterations == counterfactual.newtonIterations; ...
+    baseline.clampRule == counterfactual.clampRule; ...
+    isequaln(baseline.tolerances, counterfactual.tolerances); ...
+    baseline.T_K == counterfactual.T_K; baseline.P_Pa == counterfactual.P_Pa];
+invariants = table(names, pass, 'VariableNames', {'name' 'pass'});
+gate = struct("invariants", invariants, "allSatisfied", all(pass));
 end
