@@ -310,6 +310,18 @@ H1a 只读结果审核后，用户才决定是否选择其中一个数值实现�
 - ❓ **状态边界。** H2 只读根因证据已完成，但 H1a-S2 仍被物性域
   失效阻断；Task 8 和 14000 s 稳态验收仍为 **RED/未完成**。本补遗不授权
   修改正式物性函数或代用户选择修复方案。
+- ✅ **证据完整性合同。** 修复后的发布器必须验证非空且可解析的
+  Eq. (2.7)–(2.17) 全 11 行映射；两条路径必须精确声明
+  `cp=0/cv=0/gamma=1/dPdrho=0` 已搜索，边界计数必须为 `[1,1,0,0]`；
+  `C111=0` 必须含完整单侧样本；`cv=0` 处的 gamma 符号跳变必须标为
+  `gammaPoleAtCvZeroNotGammaEqualsOneRoot`。空表、缺字段、未知 diagnosticPath、
+  计数篡改或奇点/极点分类篡改均 fail closed。正式 CSV/TXT 各自包含
+  上述映射和扫掠合同、全部受保护输入 SHA-256 与
+  `archive/pre-restart-20260824^{commit}=8f625c268c35a95c18a626305c1aa6a79ae2ace7`。
+  重建后 CSV SHA-256 为
+  `b2998bdafd96cdd49d9fa4ff621dc586add229dd525a9d0d79a7c22fc71ee9d6`，
+  summary SHA-256 为
+  `1fa29cebd816d891fecddfa8c54863d1f672f44a8793cb6e32cf3084241f9799`。
 
 ## 11. 停止条件
 

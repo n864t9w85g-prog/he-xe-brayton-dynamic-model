@@ -37,6 +37,10 @@ verifyEqual(testCase, analysis.sourceAudit.propertySha256, ...
     "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2");
 verifyEqual(testCase, analysis.sourceAudit.paperPdfSha256, ...
     "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a");
+verifyEqual(testCase, analysis.sourceAudit.archiveTag, ...
+    "archive/pre-restart-20260824");
+verifyEqual(testCase, analysis.sourceAudit.archivePeeledCommit, ...
+    "8f625c268c35a95c18a626305c1aa6a79ae2ace7");
 verifyEqual(testCase, after, before);
 end
 
@@ -106,6 +110,24 @@ for name = names
     info = dir(fullfile(outputDir, name));
     verifyGreaterThan(testCase, info.bytes, 0);
 end
+diagnostics = readtable(fullfile(outputDir, ...
+    "h2_property_diagnostics.csv"), "TextType", "string");
+summary = string(fileread(fullfile(outputDir, "h2_summary.txt")));
+verifyEqual(testCase, sum(diagnostics.section == "equationMap"), 11);
+verifyEqual(testCase, sum(diagnostics.section == "hash" & ...
+    ismember(diagnostics.name, ["final_steady_24a.slx" ...
+    "HeXe_property_simulink.m" "hexe_compressor_lookup.mat" ...
+    "radiator_table.mat" "turbine_table1.mat" "turbine_table2.mat" ...
+    "fixedInputMat" "thesisPdf" "archivePeeledCommit"])), 9);
+verifyEqual(testCase, sum(diagnostics.section == "scanContract"), 8);
+verifyEqual(testCase, sum(diagnostics.section == "discontinuity" & ...
+    contains(diagnostics.name, "gammaPoleAtCvZero")), 2);
+verifyTrue(testCase, contains(summary, ...
+    "fixedPressure.searched.gamma=1=searched:true,count:0"));
+verifyTrue(testCase, contains(summary, ...
+    "h1aLowEndPath.searched.dP/drho=0=searched:true,count:0"));
+verifyTrue(testCase, contains(summary, ...
+    "gammaPoleAtCvZeroNotGammaEqualsOneRoot"));
 end
 
 function testEquationMapMatchesReviewedPaperPagesAndActiveSource(testCase)
@@ -368,6 +390,8 @@ verifyGreaterThanOrEqual(testCase, sweep.method.adaptiveLevels, 3);
 
 for scanName = ["fixedPressure" "h1aLowEndPath"]
     scan = sweep.(scanName);
+    verifyEqual(testCase, scan.quantitiesSearched, ...
+        sweep.quantitiesSearched);
     verifyGreaterThan(testCase, numel(scan.coarseCoordinate), 2);
     verifyGreaterThan(testCase, numel(scan.adaptiveCoordinate), ...
         numel(scan.coarseCoordinate));
@@ -379,6 +403,7 @@ for scanName = ["fixedPressure" "h1aLowEndPath"]
         string(scan.boundaries.Properties.VariableNames))));
     verifyEqual(testCase, scan.boundaryCountByQuantity.quantity, ...
         sweep.quantitiesSearched(:));
+    verifyEqual(testCase, scan.boundaryCountByQuantity.count, [1; 1; 0; 0]);
     verifyEqual(testCase, sum(scan.boundaryCountByQuantity.count), ...
         height(scan.boundaries));
     if ~isempty(scan.boundaries)
@@ -391,6 +416,14 @@ for scanName = ["fixedPressure" "h1aLowEndPath"]
         verifyTrue(testCase, all(scan.boundaries.leftState ~= ...
             scan.boundaries.rightState));
     end
+    pole = scan.gammaPoleAtCvZero;
+    verifyEqual(testCase, pole.classification, ...
+        "gammaPoleAtCvZeroNotGammaEqualsOneRoot");
+    verifyEqual(testCase, pole.cvBoundaryCount, 1);
+    verifyEqual(testCase, pole.gammaEqualsOneBoundaryCount, 0);
+    verifyFalse(testCase, pole.isGammaEqualsOneRoot);
+    verifyTrue(testCase, pole.oppositeSignedOneSidedGamma);
+    verifyTrue(testCase, all(isfinite([pole.leftGamma pole.rightGamma])));
 end
 end
 
@@ -472,6 +505,9 @@ options.paperPdfPath = string(fullfile( ...
     "空间锂冷堆He-Xe布雷顿循环发电系统优化设计与运行特性分析_徐驰.pdf"));
 options.expectedPaperPdfSha256 = ...
     "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a";
+options.archiveTag = "archive/pre-restart-20260824";
+options.expectedArchivePeeledCommit = ...
+    "8f625c268c35a95c18a626305c1aa6a79ae2ace7";
 options.exceptionT_K = 992.38742737169468;
 options.exceptionP_Pa = 1007910.8613125964;
 end

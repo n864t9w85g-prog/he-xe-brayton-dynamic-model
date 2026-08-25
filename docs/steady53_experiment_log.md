@@ -584,16 +584,24 @@
 - ✅ 固定输出：
   `tmp/steady53/task8_root_cause/h2/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/`
   只包含 `h2_property_diagnostics.csv` 与 `h2_summary.txt`。CSV SHA-256 为
-  `fc9e955ef4894c3ca209a94175cc733c0f3d808bfb0b4e60237cf8c8c70f8a75`，summary SHA-256
-  为 `8bd58e95f7d56ffadcb5f45a43c2a669e96e51ce0b9959b5f3bf4fcf8db3b67f`。
+  `b2998bdafd96cdd49d9fa4ff621dc586add229dd525a9d0d79a7c22fc71ee9d6`，summary SHA-256
+  为 `1fa29cebd816d891fecddfa8c54863d1f672f44a8793cb6e32cf3084241f9799`。
   发布器仅接受完整 fail-closed analysis，在同父目录唯一 staging 中写完、
   关闭、可读及 hash 验证后，用 Java NIO 无覆盖目录级 move 一次发布。
 - ✅ GREEN：H2 analyzer/publisher 两份聚焦测试实测
-  `27 Passed, 0 Failed, 0 Incomplete`；分析器和发布器 `checkcode` 均为
+  `28 Passed, 0 Failed, 0 Incomplete`；分析器和发布器 `checkcode` 均为
   0 项，`git diff --check` 通过。经静态核实不触及 SLX 的
   spec/evaluator/evidence/H1a/H2 六文件离线子集实测
-  `111 Passed, 0 Failed, 0 Incomplete`。完整 `tests/steady53` 仅发现
-  `138` 项而未执行；本条不是完整目录全绿声明。
+  `112 Passed, 0 Failed, 0 Incomplete`。完整 `tests/steady53` 仅发现
+  `139` 项而未执行；本条不是完整目录全绿声明。
+- ✅ 证据完整性补强：规格复审后新增 11 组篡改反例，修复前聚焦
+  RED 实测 `24 Passed, 4 Failed, 3 Incomplete`。修复后发布器不再允许空边界表
+  通过 vacuous `all(...)`，并逐项锁定 Eq. (2.7)–(2.17) 映射、两路四类
+  quantity/count、`C111=0` 单侧样本及 `cv=0` 处 gamma 极点分类。新
+  CSV/TXT 各自包含完整映射、全部受保护输入 hash、archive peeled commit、
+  扫掠状态和奇点单侧分类。旧两个本轮派生文件用 `apply_patch` 精确删除，
+  核对空目录后仅对该精确目录执行 `rmdir`，再由修复后的无覆盖发布器
+  首次重建；未覆盖旧目标。
 - ❓ 结论边界：H2 只读根因诊断已完成；H1a-S2 仍被当前物性域失效
   阻断，Task 8 与 14000 s 稳态验收仍为 **RED/未完成**。本诊断不授权
   修改物性系数、裁剪数值、选择新关联式或替代物性实现。

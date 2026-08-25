@@ -53,6 +53,7 @@ verifyTrue(testCase, all(ismember(["section" "name" "value" ...
     "units" "evidenceGrade" "source"], ...
     string(diagnostics.Properties.VariableNames))));
 summary = string(fileread(fullfile(options.outputDir, "h2_summary.txt")));
+verifyPublishedCompleteness(testCase, diagnostics, summary);
 verifyTrue(testCase, contains(summary, "implementation_error=❌"));
 verifyTrue(testCase, contains(summary, "density_root_error=❌"));
 verifyTrue(testCase, contains(summary, ...
@@ -60,6 +61,57 @@ verifyTrue(testCase, contains(summary, ...
 verifyTrue(testCase, contains(summary, "authorizesRepair=false"));
 verifyFalse(testCase, contains(summary, "clipValue="));
 verifyFalse(testCase, contains(summary, "replacementProperty="));
+end
+
+function testEveryIncompleteMapSweepSingularityAndPoleCaseFailsClosed(testCase)
+base = testCase.TestData.analysis;
+fakePole = struct( ...
+    "classification", "gammaPoleAtCvZeroNotGammaEqualsOneRoot", ...
+    "cvBoundaryCount", 1, "gammaEqualsOneBoundaryCount", 0, ...
+    "isGammaEqualsOneRoot", false, ...
+    "oppositeSignedOneSidedGamma", true, ...
+    "leftGamma", -1, "rightGamma", 1);
+for scanName = ["fixedPressure" "h1aLowEndPath"]
+    base.domainSweep.(scanName).gammaPoleAtCvZero = fakePole;
+    base.domainSweep.(scanName).quantitiesSearched = ...
+        base.domainSweep.quantitiesSearched;
+end
+
+cases = cell(11, 1);
+cases{1} = base;
+cases{1}.sourceAudit = rmfield(cases{1}.sourceAudit, "equationMap");
+cases{2} = base;
+cases{2}.sourceAudit.equationMap.diagnosticPath(1) = "missing.path";
+cases{3} = base;
+cases{3}.domainSweep.fixedPressure.boundaries(:,:) = [];
+cases{4} = base;
+cases{4}.domainSweep.h1aLowEndPath.boundaries(:,:) = [];
+cases{5} = base;
+cases{5}.domainSweep.quantitiesSearched(1) = "wrong";
+cases{6} = base;
+cases{6}.domainSweep.fixedPressure.quantitiesSearched(4) = "wrong";
+cases{7} = base;
+cases{7}.domainSweep.h1aLowEndPath.boundaryCountByQuantity.count(1) = 0;
+cases{8} = base;
+cases{8}.domainSweep.C111DerivativeDiscontinuity = rmfield( ...
+    cases{8}.domainSweep.C111DerivativeDiscontinuity, "classification");
+cases{9} = base;
+cases{9}.domainSweep.C111DerivativeDiscontinuity.C111Residual = 1;
+cases{10} = base;
+cases{10}.domainSweep.fixedPressure.gammaPoleAtCvZero.classification = ...
+    "gammaEqualsOneRoot";
+cases{11} = base;
+cases{11}.domainSweep.h1aLowEndPath.gammaPoleAtCvZero. ...
+    isGammaEqualsOneRoot = true;
+
+for index = 1:numel(cases)
+    [options, cleanup] = temporaryOptions(testCase); %#ok<ASGLU>
+    verifyError(testCase, @() publish_task8_h2_evidence(cases{index}, options), ...
+        "steady53:H2InvalidEvidence", sprintf("case %d", index));
+    verifyFalse(testCase, isfolder(options.outputDir));
+    verifyEmpty(testCase, stagingDirectories(options.outputDir));
+    clear cleanup
+end
 end
 
 function testExistingTargetIsRefusedWithoutOverwrite(testCase)
@@ -186,4 +238,60 @@ function cleanupTemp(pathValue)
 if isfolder(pathValue)
     rmdir(pathValue, "s");
 end
+end
+
+function verifyPublishedCompleteness(testCase, diagnostics, summary)
+equations = diagnostics(diagnostics.section == "equationMap", :);
+verifyEqual(testCase, height(equations), 11);
+verifyEqual(testCase, equations.name, "Eq" + [ ...
+    "2.7"; "2.8"; "2.9"; "2.10"; "2.11"; "2.12"; ...
+    "2.13"; "2.14"; "2.15"; "2.16"; "2.17"]);
+for index = 1:height(equations)
+    verifyTrue(testCase, contains(equations.value(index), "pdfPage="));
+    verifyTrue(testCase, contains(equations.value(index), "printedPage="));
+    verifyTrue(testCase, contains(equations.value(index), "sourceLine="));
+    verifyTrue(testCase, contains(equations.value(index), "diagnosticPath="));
+    verifyTrue(testCase, contains(summary, equations.name(index) + ":"));
+end
+
+requiredHashes = ["final_steady_24a.slx" "HeXe_property_simulink.m" ...
+    "hexe_compressor_lookup.mat" "radiator_table.mat" ...
+    "turbine_table1.mat" "turbine_table2.mat" "fixedInputMat" ...
+    "thesisPdf" "archivePeeledCommit"];
+hashRows = diagnostics(diagnostics.section == "hash", :);
+verifyTrue(testCase, all(ismember(requiredHashes, hashRows.name)));
+for name = requiredHashes
+    verifyTrue(testCase, contains(summary, name + "Sha256=") || ...
+        (name == "archivePeeledCommit" && ...
+        contains(summary, "archivePeeledCommit=")));
+end
+
+for scan = ["fixedPressure" "h1aLowEndPath"]
+    quantities = ["cp=0" "cv=0" "gamma=1" "dP/drho=0"];
+    counts = [1 1 0 0];
+    for index = 1:numel(quantities)
+        quantity = quantities(index);
+        count = counts(index);
+        rowName = scan + ".searched." + quantity;
+        row = diagnostics.name == rowName;
+        verifyEqual(testCase, nnz(row), 1);
+        verifyTrue(testCase, contains(diagnostics.value(row), ...
+            "searched=true;count=" + count));
+        verifyTrue(testCase, contains(summary, rowName + ...
+            "=searched:true,count:" + count));
+    end
+    poleName = scan + ".gammaPoleAtCvZero";
+    verifyEqual(testCase, nnz(diagnostics.name == poleName), 1);
+    verifyTrue(testCase, contains(diagnostics.value( ...
+        diagnostics.name == poleName), ...
+        "gammaPoleAtCvZeroNotGammaEqualsOneRoot"));
+    verifyTrue(testCase, contains(summary, poleName + ...
+        "=gammaPoleAtCvZeroNotGammaEqualsOneRoot"));
+end
+
+verifyEqual(testCase, nnz(diagnostics.name == "C111.leftCpMolar"), 1);
+verifyEqual(testCase, nnz(diagnostics.name == "C111.rightCpMolar"), 1);
+verifyTrue(testCase, contains(summary, "C111.oneSidedClassification="));
+verifyTrue(testCase, contains(summary, "fixedPressure.temperatureRange_K="));
+verifyTrue(testCase, contains(summary, "h1aLowEndPath.lambdaRange="));
 end
