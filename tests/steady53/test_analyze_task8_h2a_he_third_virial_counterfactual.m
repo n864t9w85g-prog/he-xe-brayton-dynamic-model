@@ -161,7 +161,7 @@ requiredStateColumns = ["coordinate" "T_K" "P_Pa" "rho" "cpMolar" ...
     "finite" "valid" "classification"];
 requiredBoundaryColumns = ["quantity" "classification" "coordinate" ...
     "T_K" "P_Pa" "bracketLeft" "bracketRight" "residual" ...
-    "leftValue" "rightValue"];
+    "leftValue" "rightValue" "refinementMethod"];
 
 for field = ["fixedPressureSweep" "h1aPathSweep"]
     sweep = analysis.(field);
@@ -196,6 +196,17 @@ for field = ["fixedPressureSweep" "h1aPathSweep"]
         verifyTrue(testCase, all(ismember( ...
             branch.boundaries.classification, ...
             ["root" "pole" "notFound"])));
+        rootRows = branch.boundaries.classification == "root";
+        poleRows = branch.boundaries.classification == "pole";
+        notFoundRows = branch.boundaries.classification == "notFound";
+        verifyTrue(testCase, all( ...
+            branch.boundaries.refinementMethod(rootRows) == "fzero"));
+        verifyTrue(testCase, all( ...
+            branch.boundaries.refinementMethod(poleRows) == ...
+            "notApplicablePole"));
+        verifyTrue(testCase, all( ...
+            branch.boundaries.refinementMethod(notFoundRows) == ...
+            "notApplicableNotFound"));
     end
 end
 
@@ -215,6 +226,20 @@ verifyEqual(testCase, h1a.path.expansionRatio, ...
 verifyEqual(testCase, h1a.path.Tlow_K, ...
     1515.109678670083/2.2812178550028612, "AbsTol", 1e-12);
 verifyEqual(testCase, h1a.path.P2_Pa, 674556.267925093, "AbsTol", 1e-6);
+end
+
+function testTask3EndpointZeroCandidateUsesActualFzero(testCase)
+options = testCase.TestData.options;
+options.testOnlySweepMutation = "endpointZeroCandidate";
+analysis = analyze_task8_h2a_he_third_virial_counterfactual(options);
+probe = analysis.fixedPressureSweep.endpointZeroRefinementProbe;
+
+verifyEqual(testCase, probe.refinementMethod, "fzero");
+verifyEqual(testCase, probe.candidateLeftValue, 0, "AbsTol", 0);
+verifyEqual(testCase, probe.rootCoordinate, 0, "AbsTol", 0);
+verifyEqual(testCase, probe.residual, 0, "AbsTol", 0);
+verifyGreaterThan(testCase, probe.exitFlag, 0);
+verifyGreaterThan(testCase, probe.functionEvaluations, 0);
 end
 
 function testTask3BaselineParityAndC111DiscontinuityClassification(testCase)
