@@ -94,11 +94,26 @@ analysis.exceptionPoint = struct( ...
     "status", "completed", "evidenceGrade", "❓", ...
     "baseline", baseline, "counterfactual", counterfactual, ...
     "singleVariableGate", singleVariableGate);
-placeholder = struct("status", "notComputedInTask2", ...
-    "evidenceGrade", "❓");
-analysis.fixedPressureSweep = placeholder;
-analysis.h1aPathSweep = placeholder;
-analysis.counterfactualVerdict = placeholder;
+[fixedPressureSweep, h1aPathSweep, pathParity] = ...
+    evaluateTask3Sweeps(h2, config);
+if ~all(pathParity.pass)
+    error("steady53:H2aBaselineParityMismatch", ...
+        "The H2a baseline domain boundaries do not reproduce approved H2 evidence.");
+end
+analysis.baselineParity.pointAllSatisfied = all(parity.pass);
+analysis.baselineParity.pathTable = pathParity;
+analysis.baselineParity.pathAllSatisfied = all(pathParity.pass);
+analysis.baselineParity.allSatisfied = ...
+    analysis.baselineParity.pointAllSatisfied && ...
+    analysis.baselineParity.pathAllSatisfied;
+[fixedPressureSweep, h1aPathSweep] = applySweepTestOnlyMutation( ...
+    fixedPressureSweep, h1aPathSweep, config.testOnlySweepMutation);
+validateSweepCompleteness(fixedPressureSweep);
+validateSweepCompleteness(h1aPathSweep);
+analysis.fixedPressureSweep = fixedPressureSweep;
+analysis.h1aPathSweep = h1aPathSweep;
+analysis.counterfactualVerdict = struct( ...
+    "status", "notComputedInTask3", "evidenceGrade", "❓");
 end
 
 function config = defaultConfig(root)
@@ -152,6 +167,7 @@ config.h2AnalyzerResolutionProbe = string(fullfile(root, "tests", ...
     "steady53", "analyze_task8_h2_hexe_property_readonly.m"));
 config.testOnlyNonCMutation = "none";
 config.testOnlyParityMutation = "none";
+config.testOnlySweepMutation = "none";
 end
 
 function config = applyTestOnlyOptions(config, options)
@@ -169,7 +185,7 @@ allowed = [ ...
     "approvedH2TxtPath" "expectedApprovedH2TxtSha256" ...
     "archiveTag" "expectedArchivePeeledCommit" ...
     "h2AnalyzerResolutionProbe" "testOnlyNonCMutation" ...
-    "testOnlyParityMutation"];
+    "testOnlyParityMutation" "testOnlySweepMutation"];
 if ~isstruct(options) || ~isscalar(options) || ...
         ~isfield(options, "testOnly") || ~isequal(options.testOnly, true) || ...
         numel(fieldnames(options)) ~= numel(allowed) || ...
@@ -240,6 +256,13 @@ if ~isscalar(string(config.testOnlyParityMutation)) || ...
         ["none" "C111" "C" "dC_dT"])
     error("steady53:H2aInvalidOptions", ...
         "testOnlyParityMutation is restricted to the approved test fixture.");
+end
+if ~isscalar(string(config.testOnlySweepMutation)) || ...
+        ~ismember(string(config.testOnlySweepMutation), ...
+        ["none" "counterfactualNonphysical" "dropState" ...
+        "unaccountedCoordinate" "unrecordedInvalid"])
+    error("steady53:H2aInvalidOptions", ...
+        "testOnlySweepMutation is restricted to the approved test fixture.");
 end
 end
 
@@ -738,6 +761,658 @@ tolerance(micro) = max(1e-30, 1e-8*abs(h2Values(micro)));
 tolerance(names == "gamma") = 1e-13;
 exact = ismember(names, ["stablePositiveRealRootCount" "newtonClampChanged"]);
 tolerance(exact) = 0;
+end
+
+function [fixedSweep, h1aSweep, parity] = evaluateTask3Sweeps(h2, config)
+persistent cachedFixed cachedH1a cachedParity
+if ~isempty(cachedFixed)
+    fixedSweep = cachedFixed;
+    h1aSweep = cachedH1a;
+    parity = cachedParity;
+    return
+end
+
+zeroT_K = 992.38240920882117;
+quantities = ["cp=0"; "cv=0"; "gamma=1"; "dP/drho=0"];
+offsets_K = [1e-8; 3e-8; 1e-7; 3e-7; 1e-6; 3e-6; ...
+    1e-5; 3e-5; 1e-4; 3e-4; 1e-3; 3e-3; 1e-2; 3e-2; 0.1];
+
+fixedSpec = struct( ...
+    "name", "fixedPressure", "coordinateName", "T_K", ...
+    "coordinateRange", [zeroT_K - 0.1 zeroT_K + 0.1], ...
+    "coarseCoordinates", linspace(zeroT_K - 0.1, zeroT_K + 0.1, 81)', ...
+    "seedCoordinates", unique([zeroT_K; zeroT_K - offsets_K; ...
+        zeroT_K + offsets_K]), ...
+    "zeroCoordinate", zeroT_K, ...
+    "fixedPressure_Pa", config.exceptionP_Pa);
+fixedSweep = evaluateTask3Sweep(fixedSpec, quantities);
+
+T1_K = 1515.109678670083;
+P1_Pa = 1538809.802594816;
+expansionRatio = 2.2812178550028612;
+Tlow_K = T1_K/expansionRatio;
+P2_Pa = 674556.267925093;
+zeroLambda = (zeroT_K - T1_K)/(Tlow_K - T1_K);
+lambdaOffsets = offsets_K/abs(Tlow_K - T1_K);
+h1aSpec = struct( ...
+    "name", "h1aPath", "coordinateName", "lambda", ...
+    "coordinateRange", [0 1], ...
+    "coarseCoordinates", linspace(0, 1, 101)', ...
+    "seedCoordinates", unique([zeroLambda; zeroLambda - lambdaOffsets; ...
+        zeroLambda + lambdaOffsets]), ...
+    "zeroCoordinate", zeroLambda, ...
+    "T1_K", T1_K, "P1_Pa", P1_Pa, ...
+    "expansionRatio", expansionRatio, "Tlow_K", Tlow_K, "P2_Pa", P2_Pa);
+h1aSpec.seedCoordinates = h1aSpec.seedCoordinates( ...
+    h1aSpec.seedCoordinates >= 0 & h1aSpec.seedCoordinates <= 1);
+h1aSweep = evaluateTask3Sweep(h1aSpec, quantities);
+parity = task3BaselineParity(h2, fixedSweep, h1aSweep);
+
+cachedFixed = fixedSweep;
+cachedH1a = h1aSweep;
+cachedParity = parity;
+end
+
+function sweep = evaluateTask3Sweep(spec, quantities)
+[coordinates, candidateLedger] = adaptiveCoordinates(spec, quantities);
+baseline = evaluateTask3Branch(spec, coordinates, candidateLedger, ...
+    quantities, "baseline");
+counterfactual = evaluateTask3Branch(spec, coordinates, candidateLedger, ...
+    quantities, "counterfactual");
+if ~baseline.hasC111ZeroDerivativeDiscontinuity || ...
+        counterfactual.hasC111ZeroDerivativeDiscontinuity
+    error("steady53:H2aC111ClassificationFailed", ...
+        "The approved C111 discontinuity treatment was not reproduced.");
+end
+sweep = struct( ...
+    "status", "completed", "evidenceGrade", "❓", ...
+    "quantitiesSearched", quantities, ...
+    "branchNames", ["baseline" "counterfactual"], ...
+    "coordinateName", spec.coordinateName, ...
+    "coordinateRange", spec.coordinateRange, ...
+    "coarseCoordinates", spec.coarseCoordinates, ...
+    "adaptiveCoordinates", coordinates, ...
+    "candidateLedger", candidateLedger, ...
+    "baseline", baseline, "counterfactual", counterfactual);
+if spec.name == "fixedPressure"
+    sweep.fixedPressure_Pa = spec.fixedPressure_Pa;
+    sweep.C111ZeroT_K = spec.zeroCoordinate;
+else
+    sweep.path = struct("T1_K", spec.T1_K, "P1_Pa", spec.P1_Pa, ...
+        "expansionRatio", spec.expansionRatio, "Tlow_K", spec.Tlow_K, ...
+        "P2_Pa", spec.P2_Pa, ...
+        "temperatureFormula", "T1+lambda*(Tlow-T1)", ...
+        "pressureFormula", "P1+lambda*(P2-P1)");
+    sweep.C111ZeroLambda = spec.zeroCoordinate;
+end
+end
+
+function [coordinates, ledger] = adaptiveCoordinates(spec, quantities)
+coordinates = sort(unique([spec.coarseCoordinates(:); ...
+    spec.seedCoordinates(:); spec.coordinateRange(:)]));
+ledger = emptyCandidateLedger();
+for level = 1:2
+    added = zeros(0, 1);
+    for variant = ["baseline" "counterfactual"]
+        stateTable = evaluateTask3StateTable(spec, coordinates, variant);
+        for quantity = quantities.'
+            values = stateMetric(stateTable, quantity);
+            for index = 1:(height(stateTable) - 1)
+                left = stateTable.coordinate(index);
+                right = stateTable.coordinate(index + 1);
+                invalidCandidate = ~stateTable.valid(index) || ...
+                    ~stateTable.valid(index + 1);
+                signCandidate = isfinite(values(index)) && ...
+                    isfinite(values(index + 1)) && ...
+                    sign(values(index)) ~= sign(values(index + 1));
+                if ~(invalidCandidate || signCandidate)
+                    continue
+                end
+                middle = (left + right)/2;
+                quarterLeft = (3*left + right)/4;
+                quarterRight = (left + 3*right)/4;
+                added = [added; quarterLeft; middle; quarterRight]; %#ok<AGROW>
+                reason = "signTransition";
+                if invalidCandidate
+                    reason = "nonfiniteOrDiscontinuityNeighborhood";
+                end
+                row = table(variant, quantity, reason, level, left, right, ...
+                    middle, 'VariableNames', ledger.Properties.VariableNames);
+                ledger = [ledger; row]; %#ok<AGROW>
+            end
+        end
+    end
+    added = added(added > spec.coordinateRange(1) & ...
+        added < spec.coordinateRange(2));
+    newCoordinates = setdiff(unique(added), coordinates);
+    if isempty(newCoordinates)
+        break
+    end
+    coordinates = sort(unique([coordinates; newCoordinates]));
+end
+end
+
+function ledger = emptyCandidateLedger()
+ledger = table(strings(0, 1), strings(0, 1), strings(0, 1), ...
+    zeros(0, 1), zeros(0, 1), zeros(0, 1), zeros(0, 1), ...
+    'VariableNames', {'branch' 'quantity' 'reason' 'adaptiveLevel' ...
+    'bracketLeft' 'bracketRight' 'addedMidpoint'});
+end
+
+function branch = evaluateTask3Branch(spec, coordinates, candidateLedger, ...
+        quantities, variant)
+stateTable = evaluateTask3StateTable(spec, coordinates, variant);
+boundaries = task3Boundaries(spec, stateTable, variant, quantities);
+counts = zeros(numel(quantities), 1);
+for index = 1:numel(quantities)
+    counts(index) = nnz(boundaries.quantity == quantities(index) & ...
+        boundaries.classification == "root");
+end
+boundaryCountByQuantity = table(quantities, counts, ...
+    'VariableNames', {'quantity' 'count'});
+nonphysicalIntervals = task3NonphysicalIntervals(spec, stateTable, boundaries);
+extrema = task3Extrema(spec, stateTable);
+invalidRows = ~stateTable.valid;
+invalidStates = stateTable(invalidRows, ...
+    {'coordinate' 'T_K' 'P_Pa' 'classification' 'reason'});
+allCoordinatesAccountedFor = height(stateTable) == numel(coordinates) && ...
+    isequaln(stateTable.coordinate, coordinates(:)) && ...
+    height(invalidStates) == nnz(invalidRows);
+discontinuityEvidence = task3C111DiscontinuityEvidence(spec, variant);
+if variant == "baseline"
+    c111Treatment = "currentFractionalPowerMixingRule";
+else
+    c111Treatment = "identicallyZeroBeforeCurrentMixingRule";
+end
+branchLedger = candidateLedger(candidateLedger.branch == variant, :);
+branch = struct( ...
+    "name", variant, "status", "completed", ...
+    "stateTable", stateTable, "boundaries", boundaries, ...
+    "boundaryCountByQuantity", boundaryCountByQuantity, ...
+    "nonphysicalIntervals", nonphysicalIntervals, "extrema", extrema, ...
+    "invalidStates", invalidStates, ...
+    "allCoordinatesAccountedFor", allCoordinatesAccountedFor, ...
+    "coarseCoordinates", spec.coarseCoordinates(:), ...
+    "requestedCoordinates", coordinates(:), ...
+    "candidateLedger", branchLedger, ...
+    "c111Treatment", c111Treatment, ...
+    "C111ZeroCoordinate", spec.zeroCoordinate, ...
+    "C111DiscontinuityEvidence", discontinuityEvidence, ...
+    "hasC111ZeroDerivativeDiscontinuity", ...
+        discontinuityEvidence.derivativeIsNonContinuous);
+end
+
+function stateTable = evaluateTask3StateTable(spec, coordinates, variant)
+states = repmat(emptyTask3State(), numel(coordinates), 1);
+for index = 1:numel(coordinates)
+    coordinate = coordinates(index);
+    [T_K, P_Pa] = task3CoordinateToPoint(spec, coordinate);
+    state = emptyTask3State();
+    state.coordinate = coordinate;
+    state.T_K = T_K;
+    state.P_Pa = P_Pa;
+    if variant == "baseline" && ...
+            abs(coordinate - spec.zeroCoordinate) <= 1e-13
+        point = evaluatePoint(T_K, P_Pa, "baseline", "none");
+        rhoHat = point.productionNewton.clampedFinal;
+        state.rho = point.rho;
+        state.dPdrho = point.constants.R0*T_K*(1 + 2*point.B*rhoHat + ...
+            3*point.C*rhoHat^2);
+        state.stablePositiveRealRootCount = ...
+            point.eos.stablePositiveRealRootCount;
+        state.classification = "invalidRecordedDiscontinuity";
+        state.reason = "C111ZeroDerivativeDiscontinuity";
+        states(index) = state;
+        continue
+    end
+    evaluatorVariant = "baseline";
+    if variant == "counterfactual"
+        evaluatorVariant = "ignoreHePureThirdVirial";
+    end
+    point = evaluatePoint(T_K, P_Pa, evaluatorVariant, "none");
+    rhoHat = point.productionNewton.clampedFinal;
+    dPdrho = point.constants.R0*T_K*(1 + 2*point.B*rhoHat + ...
+        3*point.C*rhoHat^2);
+    values = [point.rho point.cpMolar point.cvMolar point.gamma dPdrho ...
+        point.eos.stablePositiveRealRootCount];
+    state.rho = point.rho;
+    state.cpMolar = point.cpMolar;
+    state.cvMolar = point.cvMolar;
+    state.gamma = point.gamma;
+    state.dPdrho = dPdrho;
+    state.stablePositiveRealRootCount = ...
+        point.eos.stablePositiveRealRootCount;
+    state.finite = isreal(values) && all(isfinite(values));
+    state.valid = state.finite;
+    if state.valid
+        state.classification = "validFinite";
+        state.reason = "none";
+    else
+        state.classification = "invalidRecordedNonfiniteOrComplex";
+        state.reason = "nonfiniteOrComplexPropertyState";
+    end
+    states(index) = state;
+end
+stateTable = struct2table(states);
+end
+
+function evidence = task3C111DiscontinuityEvidence(spec, variant)
+offsets_K = [1e-8; 1e-7; 1e-6; 1e-5; 1e-4; 1e-3; 1e-2];
+if spec.name == "fixedPressure"
+    coordinateOffsets = offsets_K;
+else
+    coordinateOffsets = offsets_K/abs(spec.Tlow_K - spec.T1_K);
+end
+leftCp = zeros(size(coordinateOffsets));
+rightCp = zeros(size(coordinateOffsets));
+for index = 1:numel(coordinateOffsets)
+    leftCoordinate = spec.zeroCoordinate - coordinateOffsets(index);
+    rightCoordinate = spec.zeroCoordinate + coordinateOffsets(index);
+    leftState = evaluateTask3StateTable(spec, leftCoordinate, variant);
+    rightState = evaluateTask3StateTable(spec, rightCoordinate, variant);
+    leftCp(index) = leftState.cpMolar;
+    rightCp(index) = rightState.cpMolar;
+end
+smallMagnitude = max(abs([leftCp(1) rightCp(1)]));
+largeMagnitude = max(abs([leftCp(end) rightCp(end)]));
+derivativeIsNonContinuous = all(isfinite([leftCp; rightCp])) && ...
+    smallMagnitude > 10*largeMagnitude;
+evidence = struct("offsets_K", offsets_K, ...
+    "leftCpMolar", leftCp, "rightCpMolar", rightCp, ...
+    "smallOffsetMagnitude", smallMagnitude, ...
+    "largeOffsetMagnitude", largeMagnitude, ...
+    "derivativeIsNonContinuous", derivativeIsNonContinuous, ...
+    "classificationMethod", ...
+        "oneSidedAdaptiveMagnitudeGrowthTowardC111Zero");
+end
+
+function state = emptyTask3State()
+state = struct("coordinate", NaN, "T_K", NaN, "P_Pa", NaN, ...
+    "rho", NaN, "cpMolar", NaN, "cvMolar", NaN, "gamma", NaN, ...
+    "dPdrho", NaN, "stablePositiveRealRootCount", NaN, ...
+    "finite", false, "valid", false, "classification", "invalid", ...
+    "reason", "notEvaluated");
+end
+
+function boundaries = task3Boundaries(spec, stateTable, variant, quantities)
+boundaries = emptyTask3BoundaryTable();
+cpRoots = ordinaryRootRows(spec, stateTable, variant, "cp=0", []);
+cvRoots = ordinaryRootRows(spec, stateTable, variant, "cv=0", []);
+densityRoots = ordinaryRootRows(spec, stateTable, variant, ...
+    "dP/drho=0", []);
+cvCoordinates = cvRoots.coordinate(cvRoots.classification == "root");
+gammaRoots = ordinaryRootRows(spec, stateTable, variant, ...
+    "gamma=1", cvCoordinates);
+gammaPoles = emptyTask3BoundaryTable();
+for index = 1:numel(cvCoordinates)
+    cvRow = cvRoots(cvRoots.coordinate == cvCoordinates(index), :);
+    bracketWidth = min(cvCoordinates(index) - cvRow.bracketLeft, ...
+        cvRow.bracketRight - cvCoordinates(index));
+    delta = max(1e-12, 1e-3*bracketWidth);
+    leftCoordinate = cvCoordinates(index) - delta;
+    rightCoordinate = cvCoordinates(index) + delta;
+    leftValue = task3MetricAtCoordinate(spec, leftCoordinate, variant, "gamma=1");
+    rightValue = task3MetricAtCoordinate(spec, rightCoordinate, variant, "gamma=1");
+    [T_K, P_Pa] = task3CoordinateToPoint(spec, cvCoordinates(index));
+    row = task3BoundaryRow("gamma=1", "pole", cvCoordinates(index), ...
+        T_K, P_Pa, leftCoordinate, rightCoordinate, NaN, NaN, ...
+        leftValue, rightValue, "cvZeroGammaPoleNotGammaEqualsOneRoot");
+    gammaPoles = [gammaPoles; row]; %#ok<AGROW>
+end
+
+rootSets = {cpRoots, cvRoots, gammaRoots, densityRoots};
+for index = 1:numel(quantities)
+    rootsForQuantity = rootSets{index};
+    boundaries = [boundaries; rootsForQuantity]; %#ok<AGROW>
+    if quantities(index) == "gamma=1"
+        boundaries = [boundaries; gammaPoles]; %#ok<AGROW>
+    end
+    if ~any(rootsForQuantity.classification == "root")
+        notFound = task3BoundaryRow(quantities(index), "notFound", ...
+            NaN, NaN, NaN, spec.coordinateRange(1), spec.coordinateRange(2), ...
+            NaN, task3ResidualTolerance(quantities(index)), NaN, NaN, ...
+            "searchedEntireDomainNoOrdinaryRoot");
+        boundaries = [boundaries; notFound]; %#ok<AGROW>
+    end
+end
+end
+
+function rows = ordinaryRootRows(spec, stateTable, variant, quantity, excluded)
+rows = emptyTask3BoundaryTable();
+values = stateMetric(stateTable, quantity);
+tolerance = task3ResidualTolerance(quantity);
+for index = 1:(height(stateTable) - 1)
+    if ~stateTable.valid(index) || ~stateTable.valid(index + 1) || ...
+            ~isfinite(values(index)) || ~isfinite(values(index + 1))
+        continue
+    end
+    left = stateTable.coordinate(index);
+    right = stateTable.coordinate(index + 1);
+    if any(excluded >= left & excluded <= right)
+        continue
+    end
+    if values(index) == 0
+        rootCoordinate = left;
+        residual = values(index);
+    elseif values(index + 1) == 0
+        rootCoordinate = right;
+        residual = values(index + 1);
+    elseif sign(values(index)) == sign(values(index + 1))
+        continue
+    else
+        metric = @(coordinate) task3MetricAtCoordinate( ...
+            spec, coordinate, variant, quantity);
+        options = optimset("TolX", 1e-12, "Display", "off");
+        [rootCoordinate, residual, exitFlag] = fzero(metric, [left right], options);
+        if exitFlag <= 0 || ~isfinite(rootCoordinate) || ...
+                ~isfinite(residual) || abs(residual) > tolerance
+            error("steady53:H2aBoundaryRefinementFailed", ...
+                "Could not refine %s for %s.", quantity, variant);
+        end
+    end
+    if any(rows.classification == "root" & ...
+            abs(rows.coordinate - rootCoordinate) <= 1e-9)
+        continue
+    end
+    [T_K, P_Pa] = task3CoordinateToPoint(spec, rootCoordinate);
+    row = task3BoundaryRow(quantity, "root", rootCoordinate, T_K, P_Pa, ...
+        left, right, residual, tolerance, values(index), values(index + 1), ...
+        "adaptiveBracketRefinedWithFzero");
+    rows = [rows; row]; %#ok<AGROW>
+end
+end
+
+function row = task3BoundaryRow(quantity, classification, coordinate, ...
+        T_K, P_Pa, bracketLeft, bracketRight, residual, tolerance, ...
+        leftValue, rightValue, evidence)
+row = table(string(quantity), string(classification), coordinate, T_K, P_Pa, ...
+    bracketLeft, bracketRight, residual, tolerance, leftValue, rightValue, ...
+    string(evidence), 'VariableNames', ...
+    emptyTask3BoundaryTable().Properties.VariableNames);
+end
+
+function boundaries = emptyTask3BoundaryTable()
+boundaries = table(strings(0, 1), strings(0, 1), zeros(0, 1), ...
+    zeros(0, 1), zeros(0, 1), zeros(0, 1), zeros(0, 1), zeros(0, 1), ...
+    zeros(0, 1), zeros(0, 1), zeros(0, 1), strings(0, 1), ...
+    'VariableNames', {'quantity' 'classification' 'coordinate' 'T_K' 'P_Pa' ...
+    'bracketLeft' 'bracketRight' 'residual' 'residualTolerance' ...
+    'leftValue' 'rightValue' 'evidence'});
+end
+
+function value = task3MetricAtCoordinate(spec, coordinate, variant, quantity)
+stateTable = evaluateTask3StateTable(spec, coordinate, variant);
+if ~stateTable.valid
+    value = NaN;
+else
+    values = stateMetric(stateTable, quantity);
+    value = values(1);
+end
+end
+
+function values = stateMetric(stateTable, quantity)
+switch quantity
+    case "cp=0"
+        values = stateTable.cpMolar;
+    case "cv=0"
+        values = stateTable.cvMolar;
+    case "gamma=1"
+        values = stateTable.gamma - 1;
+    case "dP/drho=0"
+        values = stateTable.dPdrho;
+    otherwise
+        error("steady53:H2aInvalidOptions", ...
+            "Unknown H2a Task 3 boundary quantity '%s'.", quantity);
+end
+end
+
+function tolerance = task3ResidualTolerance(quantity)
+switch quantity
+    case {"cp=0", "cv=0"}
+        tolerance = 1e-6;
+    case "gamma=1"
+        tolerance = 1e-10;
+    case "dP/drho=0"
+        tolerance = 1e-3;
+end
+end
+
+function intervals = task3NonphysicalIntervals(spec, stateTable, boundaries)
+intervals = emptyTask3IntervalTable();
+criteria = ["cp<=0" "cv<=0" "gamma<=1"];
+quantities = ["cp=0" "cv=0" "gamma=1"];
+for criterionIndex = 1:numel(criteria)
+    switch criteria(criterionIndex)
+        case "cp<=0"
+            mask = stateTable.valid & stateTable.cpMolar <= 0;
+        case "cv<=0"
+            mask = stateTable.valid & stateTable.cvMolar <= 0;
+        case "gamma<=1"
+            mask = stateTable.valid & stateTable.gamma <= 1;
+    end
+    edges = diff([false; mask; false]);
+    starts = find(edges == 1);
+    stops = find(edges == -1) - 1;
+    for run = 1:numel(starts)
+        startCoordinate = stateTable.coordinate(starts(run));
+        endCoordinate = stateTable.coordinate(stops(run));
+        if starts(run) > 1 && stateTable.valid(starts(run) - 1)
+            candidates = boundaries.quantity == quantities(criterionIndex) & ...
+                ismember(boundaries.classification, ["root" "pole"]) & ...
+                boundaries.coordinate >= stateTable.coordinate(starts(run) - 1) & ...
+                boundaries.coordinate <= startCoordinate;
+            if any(candidates)
+                startCoordinate = max(boundaries.coordinate(candidates));
+            end
+        end
+        if stops(run) < height(stateTable) && stateTable.valid(stops(run) + 1)
+            candidates = boundaries.quantity == quantities(criterionIndex) & ...
+                ismember(boundaries.classification, ["root" "pole"]) & ...
+                boundaries.coordinate >= endCoordinate & ...
+                boundaries.coordinate <= stateTable.coordinate(stops(run) + 1);
+            if any(candidates)
+                endCoordinate = min(boundaries.coordinate(candidates));
+            end
+        end
+        [startT, startP] = task3CoordinateToPoint(spec, startCoordinate);
+        [endT, endP] = task3CoordinateToPoint(spec, endCoordinate);
+        row = table(criteria(criterionIndex), startCoordinate, endCoordinate, ...
+            startT, endT, startP, endP, ...
+            'VariableNames', intervals.Properties.VariableNames);
+        intervals = [intervals; row]; %#ok<AGROW>
+    end
+end
+end
+
+function intervals = emptyTask3IntervalTable()
+intervals = table(strings(0, 1), zeros(0, 1), zeros(0, 1), ...
+    zeros(0, 1), zeros(0, 1), zeros(0, 1), zeros(0, 1), ...
+    'VariableNames', {'criterion' 'startCoordinate' 'endCoordinate' ...
+    'startT_K' 'endT_K' 'startP_Pa' 'endP_Pa'});
+end
+
+function extrema = task3Extrema(spec, stateTable)
+extrema = emptyTask3ExtremaTable();
+quantityNames = ["rho" "cpMolar" "cvMolar" "gamma" "dPdrho"];
+for quantity = quantityNames
+    values = stateTable.(quantity);
+    eligible = stateTable.valid & isfinite(values);
+    if ~any(eligible)
+        continue
+    end
+    eligibleRows = find(eligible);
+    [minimum, minOffset] = min(values(eligible));
+    [maximum, maxOffset] = max(values(eligible));
+    for item = {"min", minimum, eligibleRows(minOffset); ...
+            "max", maximum, eligibleRows(maxOffset)}.'
+        kind = string(item{1});
+        value = item{2};
+        rowIndex = item{3};
+        coordinate = stateTable.coordinate(rowIndex);
+        [T_K, P_Pa] = task3CoordinateToPoint(spec, coordinate);
+        row = table(quantity, kind, coordinate, T_K, P_Pa, value, ...
+            'VariableNames', extrema.Properties.VariableNames);
+        extrema = [extrema; row]; %#ok<AGROW>
+    end
+end
+end
+
+function extrema = emptyTask3ExtremaTable()
+extrema = table(strings(0, 1), strings(0, 1), zeros(0, 1), ...
+    zeros(0, 1), zeros(0, 1), zeros(0, 1), ...
+    'VariableNames', {'quantity' 'kind' 'coordinate' 'T_K' 'P_Pa' 'value'});
+end
+
+function [T_K, P_Pa] = task3CoordinateToPoint(spec, coordinate)
+if spec.name == "fixedPressure"
+    T_K = coordinate;
+    P_Pa = spec.fixedPressure_Pa;
+else
+    T_K = spec.T1_K + coordinate*(spec.Tlow_K - spec.T1_K);
+    P_Pa = spec.P1_Pa + coordinate*(spec.P2_Pa - spec.P1_Pa);
+end
+end
+
+function parity = task3BaselineParity(h2, fixedSweep, h1aSweep)
+names = ["fixedPressure.cp=0"; "fixedPressure.cv=0"; ...
+    "h1aPath.cp=0"; "h1aPath.cv=0"];
+approvedValue = [992.3980970081318; 992.40367034763892; ...
+    0.61427357048046893; 0.61426702062376992];
+h2Value = [ ...
+    h2RootCoordinate(h2.domainSweep.fixedPressure.boundaries, "cp=0"); ...
+    h2RootCoordinate(h2.domainSweep.fixedPressure.boundaries, "cv=0"); ...
+    h2RootCoordinate(h2.domainSweep.h1aLowEndPath.boundaries, "cp=0"); ...
+    h2RootCoordinate(h2.domainSweep.h1aLowEndPath.boundaries, "cv=0")];
+h2aBaselineValue = [ ...
+    h2aRootCoordinate(fixedSweep.baseline.boundaries, "cp=0"); ...
+    h2aRootCoordinate(fixedSweep.baseline.boundaries, "cv=0"); ...
+    h2aRootCoordinate(h1aSweep.baseline.boundaries, "cp=0"); ...
+    h2aRootCoordinate(h1aSweep.baseline.boundaries, "cv=0")];
+tolerance = [1e-8; 1e-8; 1e-10; 1e-10];
+absoluteError = max([abs(h2Value - approvedValue), ...
+    abs(h2aBaselineValue - approvedValue), ...
+    abs(h2aBaselineValue - h2Value)], [], 2);
+pass = absoluteError <= tolerance;
+parity = table(names, approvedValue, h2Value, h2aBaselineValue, ...
+    absoluteError, tolerance, pass, 'VariableNames', ...
+    {'name' 'approvedValue' 'h2Value' 'h2aBaselineValue' ...
+    'absoluteError' 'tolerance' 'pass'});
+end
+
+function coordinate = h2RootCoordinate(boundaries, quantity)
+rows = boundaries.quantity == quantity;
+if nnz(rows) ~= 1
+    error("steady53:H2aBaselineParityMismatch", ...
+        "Approved H2 did not contain exactly one %s boundary.", quantity);
+end
+coordinate = boundaries.rootCoordinate(rows);
+end
+
+function coordinate = h2aRootCoordinate(boundaries, quantity)
+rows = boundaries.quantity == quantity & boundaries.classification == "root";
+if nnz(rows) ~= 1
+    error("steady53:H2aBaselineParityMismatch", ...
+        "H2a baseline did not contain exactly one %s boundary.", quantity);
+end
+coordinate = boundaries.coordinate(rows);
+end
+
+function [fixedSweep, h1aSweep] = applySweepTestOnlyMutation( ...
+        fixedSweep, h1aSweep, mutation)
+switch string(mutation)
+    case "none"
+    case "counterfactualNonphysical"
+        branch = fixedSweep.counterfactual;
+        valid = branch.stateTable.valid;
+        branch.stateTable.cpMolar(valid) = ...
+            -abs(branch.stateTable.cpMolar(valid)) - 1;
+        branch.stateTable.cvMolar(valid) = ...
+            -abs(branch.stateTable.cvMolar(valid)) - 1;
+        branch.stateTable.gamma(valid) = ...
+            -abs(branch.stateTable.gamma(valid)) - 1;
+        branch.boundaries = searchedNotFoundBoundaries( ...
+            fixedSweep.quantitiesSearched, fixedSweep.coordinateRange);
+        branch.boundaryCountByQuantity.count(:) = 0;
+        spec = struct("name", "fixedPressure", ...
+            "fixedPressure_Pa", fixedSweep.fixedPressure_Pa);
+        branch.nonphysicalIntervals = task3NonphysicalIntervals( ...
+            spec, branch.stateTable, branch.boundaries);
+        branch.extrema = task3Extrema(spec, branch.stateTable);
+        fixedSweep.counterfactual = branch;
+    case "dropState"
+        fixedSweep.counterfactual.stateTable(end, :) = [];
+    case "unaccountedCoordinate"
+        fixedSweep.counterfactual.allCoordinatesAccountedFor = false;
+    case "unrecordedInvalid"
+        fixedSweep.counterfactual.stateTable.valid(1) = false;
+        fixedSweep.counterfactual.stateTable.finite(1) = false;
+        fixedSweep.counterfactual.stateTable.classification(1) = ...
+            "invalidRecordedNonfiniteOrComplex";
+        fixedSweep.counterfactual.stateTable.reason(1) = "testOnlyInvalid";
+    otherwise
+        error("steady53:H2aInvalidOptions", ...
+            "Sweep mutation is not approved.");
+end
+end
+
+function boundaries = searchedNotFoundBoundaries(quantities, coordinateRange)
+boundaries = emptyTask3BoundaryTable();
+for quantity = quantities.'
+    row = task3BoundaryRow(quantity, "notFound", NaN, NaN, NaN, ...
+        coordinateRange(1), coordinateRange(2), NaN, ...
+        task3ResidualTolerance(quantity), NaN, NaN, ...
+        "testOnlyCompleteResultNeutralSearch");
+    boundaries = [boundaries; row]; %#ok<AGROW>
+end
+end
+
+function validateSweepCompleteness(sweep)
+requiredQuantities = ["cp=0"; "cv=0"; "gamma=1"; "dP/drho=0"];
+complete = sweep.status == "completed" && ...
+    isequal(sweep.quantitiesSearched, requiredQuantities) && ...
+    isequal(sort(sweep.branchNames), sort(["baseline" "counterfactual"]));
+for variant = ["baseline" "counterfactual"]
+    branch = sweep.(variant);
+    states = branch.stateTable;
+    invalid = ~states.valid;
+    invalidRecorded = height(branch.invalidStates) == nnz(invalid) && ...
+        all(ismember(states.coordinate(invalid), branch.invalidStates.coordinate));
+    coordinatesAccounted = branch.allCoordinatesAccountedFor && ...
+        height(states) == numel(branch.requestedCoordinates) && ...
+        isequaln(states.coordinate, branch.requestedCoordinates(:));
+    finiteCoordinates = all(isfinite(states.coordinate)) && ...
+        all(isfinite(states.T_K)) && all(isfinite(states.P_Pa));
+    validStateEvidence = all(isfinite( ...
+        states.stablePositiveRealRootCount(states.valid)));
+    boundaryEvidence = true;
+    for index = 1:numel(requiredQuantities)
+        quantity = requiredQuantities(index);
+        rows = branch.boundaries.quantity == quantity;
+        countRow = branch.boundaryCountByQuantity.quantity == quantity;
+        roots = rows & branch.boundaries.classification == "root";
+        boundaryEvidence = boundaryEvidence && any(rows) && nnz(countRow) == 1 && ...
+            branch.boundaryCountByQuantity.count(countRow) == nnz(roots);
+        if any(roots)
+            rootTable = branch.boundaries(roots, :);
+            boundaryEvidence = boundaryEvidence && ...
+                all(isfinite(rootTable.coordinate)) && ...
+                all(isfinite(rootTable.T_K)) && all(isfinite(rootTable.P_Pa)) && ...
+                all(isfinite(rootTable.bracketLeft)) && ...
+                all(isfinite(rootTable.bracketRight)) && ...
+                all(isfinite(rootTable.residual)) && ...
+                all(abs(rootTable.residual) <= rootTable.residualTolerance) && ...
+                all(isfinite(rootTable.leftValue)) && ...
+                all(isfinite(rootTable.rightValue));
+        end
+    end
+    complete = complete && branch.status == "completed" && ...
+        coordinatesAccounted && finiteCoordinates && validStateEvidence && ...
+        invalidRecorded && boundaryEvidence;
+end
+if ~complete
+    error("steady53:H2aIncompleteSweep", ...
+        "H2a Task 3 sweep evidence is incomplete or internally inconsistent.");
+end
 end
 
 function gate = evaluateSingleVariableGate(baseline, counterfactual)

@@ -59,13 +59,9 @@ verifyTrue(testCase, analysis.baselineParity.runIdMatches);
 verifyTrue(testCase, analysis.baselineParity.exceptionPointMatches);
 verifyTrue(testCase, analysis.baselineParity.protectedAssetsUnchanged);
 
-notComputedFields = ["fixedPressureSweep" "h1aPathSweep" ...
-    "counterfactualVerdict"];
-for index = 1:numel(notComputedFields)
-    section = analysis.(notComputedFields(index));
-    verifyEqual(testCase, section.status, "notComputedInTask2");
-    verifyEqual(testCase, section.evidenceGrade, "❓");
-end
+verifyEqual(testCase, analysis.counterfactualVerdict.status, ...
+    "notComputedInTask3");
+verifyEqual(testCase, analysis.counterfactualVerdict.evidenceGrade, "❓");
 end
 
 function testFixedPointDualBranchParityAndApprovedCounterfactual(testCase)
@@ -152,6 +148,135 @@ for mutation = ["dB_dT" "C222"]
         "steady53:H2aSingleVariableViolation");
 end
 verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+end
+
+function testTask3SweepsCompleteBothBranchesAndAccountForEveryState(testCase)
+analysis = analyze_task8_h2a_he_third_virial_counterfactual();
+quantities = ["cp=0"; "cv=0"; "gamma=1"; "dP/drho=0"];
+requiredBranchFields = ["name" "status" "stateTable" "boundaries" ...
+    "boundaryCountByQuantity" "nonphysicalIntervals" "extrema" ...
+    "invalidStates" "allCoordinatesAccountedFor"];
+requiredStateColumns = ["coordinate" "T_K" "P_Pa" "rho" "cpMolar" ...
+    "cvMolar" "gamma" "dPdrho" "stablePositiveRealRootCount" ...
+    "finite" "valid" "classification"];
+requiredBoundaryColumns = ["quantity" "classification" "coordinate" ...
+    "T_K" "P_Pa" "bracketLeft" "bracketRight" "residual" ...
+    "leftValue" "rightValue"];
+
+for field = ["fixedPressureSweep" "h1aPathSweep"]
+    sweep = analysis.(field);
+    verifyEqual(testCase, sweep.status, "completed");
+    verifyEqual(testCase, sweep.quantitiesSearched, quantities);
+    verifyEqual(testCase, sort(sweep.branchNames), ...
+        sort(["baseline" "counterfactual"]));
+    for branchName = sweep.branchNames
+        branch = sweep.(branchName);
+        verifyTrue(testCase, all(ismember(requiredBranchFields, ...
+            string(fieldnames(branch)))));
+        verifyEqual(testCase, branch.name, branchName);
+        verifyEqual(testCase, branch.status, "completed");
+        verifyTrue(testCase, all(ismember(requiredStateColumns, ...
+            string(branch.stateTable.Properties.VariableNames))));
+        verifyTrue(testCase, all(ismember(requiredBoundaryColumns, ...
+            string(branch.boundaries.Properties.VariableNames))));
+        verifyTrue(testCase, all(isfinite(branch.stateTable.coordinate)));
+        verifyTrue(testCase, all(isfinite(branch.stateTable.T_K)));
+        verifyTrue(testCase, all(isfinite(branch.stateTable.P_Pa)));
+        verifyTrue(testCase, all(isfinite( ...
+            branch.stateTable.stablePositiveRealRootCount( ...
+            branch.stateTable.valid))));
+        verifyTrue(testCase, branch.allCoordinatesAccountedFor);
+        verifyEqual(testCase, branch.boundaryCountByQuantity.quantity, ...
+            quantities);
+        for quantity = quantities.'
+            rows = branch.boundaries.quantity == quantity;
+            verifyTrue(testCase, any(rows), ...
+                "Every searched quantity needs root/pole/notFound evidence.");
+        end
+        verifyTrue(testCase, all(ismember( ...
+            branch.boundaries.classification, ...
+            ["root" "pole" "notFound"])));
+    end
+end
+
+fixed = analysis.fixedPressureSweep;
+verifyEqual(testCase, fixed.coordinateName, "T_K");
+verifyEqual(testCase, fixed.coordinateRange, ...
+    [992.28240920882117 992.48240920882117], "AbsTol", 1e-12);
+verifyEqual(testCase, fixed.fixedPressure_Pa, 1007910.8613125964, ...
+    "AbsTol", 1e-6);
+h1a = analysis.h1aPathSweep;
+verifyEqual(testCase, h1a.coordinateName, "lambda");
+verifyEqual(testCase, h1a.coordinateRange, [0 1], "AbsTol", 0);
+verifyEqual(testCase, h1a.path.T1_K, 1515.109678670083, "AbsTol", 1e-12);
+verifyEqual(testCase, h1a.path.P1_Pa, 1538809.802594816, "AbsTol", 1e-6);
+verifyEqual(testCase, h1a.path.expansionRatio, ...
+    2.2812178550028612, "AbsTol", 1e-15);
+verifyEqual(testCase, h1a.path.Tlow_K, ...
+    1515.109678670083/2.2812178550028612, "AbsTol", 1e-12);
+verifyEqual(testCase, h1a.path.P2_Pa, 674556.267925093, "AbsTol", 1e-6);
+end
+
+function testTask3BaselineParityAndC111DiscontinuityClassification(testCase)
+analysis = analyze_task8_h2a_he_third_virial_counterfactual();
+verifyTrue(testCase, analysis.baselineParity.pathAllSatisfied);
+verifyTrue(testCase, all(analysis.baselineParity.pathTable.pass));
+
+assertBoundary(testCase, analysis.fixedPressureSweep.baseline, ...
+    "cp=0", 992.3980970081318, 1e-8);
+assertBoundary(testCase, analysis.fixedPressureSweep.baseline, ...
+    "cv=0", 992.40367034763892, 1e-8);
+assertBoundary(testCase, analysis.h1aPathSweep.baseline, ...
+    "cp=0", 0.61427357048046893, 1e-10);
+assertBoundary(testCase, analysis.h1aPathSweep.baseline, ...
+    "cv=0", 0.61426702062376992, 1e-10);
+
+verifyEqual(testCase, ...
+    analysis.fixedPressureSweep.baseline.c111Treatment, ...
+    "currentFractionalPowerMixingRule");
+baseline = analysis.fixedPressureSweep.baseline;
+verifyTrue(testCase, baseline.hasC111ZeroDerivativeDiscontinuity);
+verifyEqual(testCase, ...
+    analysis.fixedPressureSweep.counterfactual.c111Treatment, ...
+    "identicallyZeroBeforeCurrentMixingRule");
+counterfactual = analysis.fixedPressureSweep.counterfactual;
+verifyFalse(testCase, ...
+    counterfactual.hasC111ZeroDerivativeDiscontinuity);
+verifyEqual(testCase, analysis.counterfactualVerdict.status, ...
+    "notComputedInTask3");
+end
+
+function testTask3CompletenessIsResultNeutralButFailsClosedOnMissingEvidence(testCase)
+options = testCase.TestData.options;
+options.testOnlySweepMutation = "counterfactualNonphysical";
+analysis = analyze_task8_h2a_he_third_virial_counterfactual(options);
+counterfactual = analysis.fixedPressureSweep.counterfactual;
+verifyTrue(testCase, counterfactual.allCoordinatesAccountedFor);
+verifyTrue(testCase, any(counterfactual.stateTable.cpMolar <= 0));
+
+for mutation = ["dropState" "unaccountedCoordinate" "unrecordedInvalid"]
+    options = testCase.TestData.options;
+    options.testOnlySweepMutation = mutation;
+    verifyError(testCase, ...
+        @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
+        "steady53:H2aIncompleteSweep");
+end
+verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+end
+
+function assertBoundary(testCase, branch, quantity, expectedCoordinate, tolerance)
+rows = branch.boundaries.quantity == quantity & ...
+    branch.boundaries.classification == "root";
+verifyEqual(testCase, nnz(rows), 1);
+verifyEqual(testCase, branch.boundaries.coordinate(rows), ...
+    expectedCoordinate, "AbsTol", tolerance);
+verifyLessThanOrEqual(testCase, ...
+    abs(branch.boundaries.residual(rows)), ...
+    branch.boundaries.residualTolerance(rows));
+verifyTrue(testCase, isfinite(branch.boundaries.bracketLeft(rows)));
+verifyTrue(testCase, isfinite(branch.boundaries.bracketRight(rows)));
+verifyTrue(testCase, isfinite(branch.boundaries.leftValue(rows)));
+verifyTrue(testCase, isfinite(branch.boundaries.rightValue(rows)));
 end
 
 function testSourceAuditContainsEveryApprovedIdentity(testCase)
@@ -351,6 +476,7 @@ options.h2AnalyzerResolutionProbe = string(fullfile(root, "tests", ...
     "steady53", "analyze_task8_h2_hexe_property_readonly.m"));
 options.testOnlyNonCMutation = "none";
 options.testOnlyParityMutation = "none";
+options.testOnlySweepMutation = "none";
 end
 
 function expected = expectedHashes()
