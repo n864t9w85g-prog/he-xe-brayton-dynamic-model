@@ -204,6 +204,7 @@ values.C122 = signedRealCubeRoot(values.C111*values.C222^2);
 values.C = k.x_He^3*values.C111 + ...
     3*k.x_He^2*k.x_Xe*values.C112 + ...
     3*k.x_He*k.x_Xe^2*values.C122 + k.x_Xe^3*values.C222;
+values.C111_C222 = struct("C111", values.C111, "C222", values.C222);
 end
 
 function value = componentC111(T)

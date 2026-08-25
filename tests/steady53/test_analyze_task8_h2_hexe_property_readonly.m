@@ -132,6 +132,18 @@ verifyNotEmpty(testCase, regexp(sourceLines(175), 'a_rho\s*=', 'once'));
 verifyNotEmpty(testCase, regexp(sourceLines(180), 'term1_cv\s*=', 'once'));
 end
 
+function testEveryEquationMapDiagnosticPathResolves(testCase)
+analysis = analyze_task8_h2_hexe_property_readonly();
+map = analysis.sourceAudit.equationMap;
+
+for index = 1:height(map)
+    diagnosticPath = map.diagnosticPath(index);
+    verifyTrue(testCase, hasDotPath(analysis, diagnosticPath), ...
+        sprintf("Equation %s has an unresolved diagnostic path: %s", ...
+        map.paperEquation(index), diagnosticPath));
+end
+end
+
 function testVirialCoefficientsAndAnalyticDerivativesAreComplete(testCase)
 analysis = analyze_task8_h2_hexe_property_readonly();
 coefficientNames = ["B11" "B22" "B12" "B" ...
@@ -294,4 +306,17 @@ end
 
 function quoted = shellQuote(value)
 quoted = "'" + replace(string(value), "'", "'\\''") + "'";
+end
+
+function exists = hasDotPath(value, pathValue)
+parts = split(string(pathValue), ".");
+exists = true;
+for index = 1:numel(parts)
+    if ~isstruct(value) || ~isscalar(value) || ...
+            ~isfield(value, parts(index))
+        exists = false;
+        return
+    end
+    value = value.(parts(index));
+end
 end
