@@ -155,7 +155,9 @@ analysis = analyze_task8_h2a_he_third_virial_counterfactual();
 quantities = ["cp=0"; "cv=0"; "gamma=1"; "dP/drho=0"];
 requiredBranchFields = ["name" "status" "stateTable" "boundaries" ...
     "boundaryCountByQuantity" "nonphysicalIntervals" "extrema" ...
-    "invalidStates" "allCoordinatesAccountedFor"];
+    "sampledExtrema" ...
+    "invalidStates" "allCoordinatesAccountedFor" ...
+    "rootSearchAssurance"];
 requiredStateColumns = ["coordinate" "T_K" "P_Pa" "rho" "cpMolar" ...
     "cvMolar" "gamma" "dPdrho" "stablePositiveRealRootCount" ...
     "finite" "valid" "classification"];
@@ -196,6 +198,13 @@ for field = ["fixedPressureSweep" "h1aPathSweep"]
         verifyTrue(testCase, all(ismember( ...
             branch.boundaries.classification, ...
             ["root" "pole" "notFound"])));
+        assurance = branch.rootSearchAssurance;
+        verifyEqual(testCase, assurance.method, ...
+            "adaptiveSignAndEndpointSearch");
+        verifyFalse(testCase, assurance.formalRootExclusion);
+        verifyEqual(testCase, assurance.notFoundMeaning, ...
+            "noRootDetectedByDeclaredNumericalSearchNotFormalProof");
+        verifyTrue(testCase, assurance.allCandidatesResolved);
         rootRows = branch.boundaries.classification == "root";
         poleRows = branch.boundaries.classification == "pole";
         notFoundRows = branch.boundaries.classification == "notFound";
@@ -228,6 +237,19 @@ verifyEqual(testCase, h1a.path.Tlow_K, ...
 verifyEqual(testCase, h1a.path.P2_Pa, 674556.267925093, "AbsTol", 1e-6);
 end
 
+function testTask3NotFoundIsScopedToDeclaredNumericalSearch(testCase)
+analysis = analyze_task8_h2a_he_third_virial_counterfactual();
+for sweepName = ["fixedPressureSweep" "h1aPathSweep"]
+    sweep = analysis.(sweepName);
+    for branchName = sweep.branchNames
+        notFound = sweep.(branchName).boundaries.classification == "notFound";
+        verifyEqual(testCase, ...
+            unique(sweep.(branchName).boundaries.evidence(notFound)), ...
+            "noRootDetectedByDeclaredNumericalSearchNotFormalProof");
+    end
+end
+end
+
 function testTask3EndpointZeroCandidateUsesActualFzero(testCase)
 options = testCase.TestData.options;
 options.testOnlySweepMutation = "endpointZeroCandidate";
@@ -240,6 +262,36 @@ verifyEqual(testCase, probe.rootCoordinate, 0, "AbsTol", 0);
 verifyEqual(testCase, probe.residual, 0, "AbsTol", 0);
 verifyGreaterThan(testCase, probe.exitFlag, 0);
 verifyGreaterThan(testCase, probe.functionEvaluations, 0);
+end
+
+function testTask3SingularExtremaAreNotReportedAsFiniteGlobalValues(testCase)
+analysis = analyze_task8_h2a_he_third_virial_counterfactual();
+for sweepName = ["fixedPressureSweep" "h1aPathSweep"]
+    sweep = analysis.(sweepName);
+    baseline = sweep.baseline;
+    verifyTrue(testCase, all(isfinite(baseline.sampledExtrema.value)));
+
+    for quantity = ["cpMolar" "cvMolar"]
+        rows = baseline.extrema.quantity == quantity;
+        verifyEqual(testCase, baseline.extrema.kind(rows), ["min"; "max"]);
+        verifyEqual(testCase, baseline.extrema.value(rows), [-Inf; Inf]);
+        verifyEqual(testCase, baseline.extrema.scope(rows), ...
+            repmat("continuousDomain", 2, 1));
+        verifyEqual(testCase, baseline.extrema.classification(rows), ...
+            repmat("unboundedAtC111DerivativeDiscontinuity", 2, 1));
+        verifyTrue(testCase, all(isnan(baseline.extrema.coordinate(rows))));
+    end
+
+    gammaRows = baseline.extrema.quantity == "gamma";
+    verifyEqual(testCase, baseline.extrema.value(gammaRows), [-Inf; Inf]);
+    verifyEqual(testCase, baseline.extrema.classification(gammaRows), ...
+        repmat("unboundedAtCvZeroPole", 2, 1));
+
+    counterfactual = sweep.counterfactual;
+    verifyTrue(testCase, all(isfinite(counterfactual.extrema.value)));
+    verifyEqual(testCase, unique(counterfactual.extrema.scope), ...
+        "sampledFiniteCandidateNotFormalGlobalExtremum");
+end
 end
 
 function testTask3BaselineParityAndC111DiscontinuityClassification(testCase)
