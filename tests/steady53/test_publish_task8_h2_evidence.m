@@ -65,18 +65,6 @@ end
 
 function testEveryIncompleteMapSweepSingularityAndPoleCaseFailsClosed(testCase)
 base = testCase.TestData.analysis;
-fakePole = struct( ...
-    "classification", "gammaPoleAtCvZeroNotGammaEqualsOneRoot", ...
-    "cvBoundaryCount", 1, "gammaEqualsOneBoundaryCount", 0, ...
-    "isGammaEqualsOneRoot", false, ...
-    "oppositeSignedOneSidedGamma", true, ...
-    "leftGamma", -1, "rightGamma", 1);
-for scanName = ["fixedPressure" "h1aLowEndPath"]
-    base.domainSweep.(scanName).gammaPoleAtCvZero = fakePole;
-    base.domainSweep.(scanName).quantitiesSearched = ...
-        base.domainSweep.quantitiesSearched;
-end
-
 cases = cell(11, 1);
 cases{1} = base;
 cases{1}.sourceAudit = rmfield(cases{1}.sourceAudit, "equationMap");
@@ -112,6 +100,19 @@ for index = 1:numel(cases)
     verifyEmpty(testCase, stagingDirectories(options.outputDir));
     clear cleanup
 end
+end
+
+function testAuditedEquationSourceCoordinatesFailClosedWhenTampered(testCase)
+analysis = testCase.TestData.analysis;
+analysis.sourceAudit.equationMap.sourceLineStart(:) = 1;
+analysis.sourceAudit.equationMap.sourceLineEnd(:) = 1;
+verifyInvalidEvidencePublishesNothing(testCase, analysis);
+end
+
+function testC111RootMustRemainBoundToApprovedCoefficient(testCase)
+analysis = testCase.TestData.analysis;
+analysis.domainSweep.C111DerivativeDiscontinuity.rootT_K = 123;
+verifyInvalidEvidencePublishesNothing(testCase, analysis);
 end
 
 function testExistingTargetIsRefusedWithoutOverwrite(testCase)
@@ -188,6 +189,14 @@ options = struct( ...
     "testOnly", true, ...
     "outputDir", fullfile(parent, "run_test_h2"), ...
     "outputFailureHook", @(~, ~) []);
+end
+
+function verifyInvalidEvidencePublishesNothing(testCase, analysis)
+[options, cleanup] = temporaryOptions(testCase); %#ok<ASGLU>
+verifyError(testCase, @() publish_task8_h2_evidence(analysis, options), ...
+    "steady53:H2InvalidEvidence");
+verifyFalse(testCase, isfolder(options.outputDir));
+verifyEmpty(testCase, stagingDirectories(options.outputDir));
 end
 
 function entries = stagingDirectories(outputDir)
