@@ -366,9 +366,11 @@ H1a 只读结果审核后，用户才决定是否选择其中一个数值实现�
   `h1aNumericallySufficient=no`。它解除积分阻断，但不能解释当前透平出口
   温度偏差。
 - ✅ 固定探索 CSV/TXT SHA-256 分别为
-  `8e3065817551f5bbfe638d979ef4c83bcd358492f75cc4f6404a68726c970cac` 和
+  `7e1ed139d14cbb1977a9f19d870c822243205414321a00c0f597717f5616f622` 和
   `26248e95f42acbb70701193fa75af429b60659b9975277837331b8cd2803efd2`；
-  二次运行拒绝覆盖。聚焦 H1a/H2a 回归 `52/52`，最终 10 文件 no-SLX
+  独立质量审查后，CSV 已补齐与 TXT 等价的身份、哈希、单变量范围、路径审计和
+  否定门元数据，并由契约测试逐列验证。二次运行拒绝覆盖。聚焦 H1a/H2a
+  回归 `52/52`，最终 10 文件 no-SLX
   离线回归 `149/149`；完整目录仅 discovery `176` 项，未执行整套。
 - ❌/❓ `H1a-S2 Scheme A offline recovery=COMPLETE`，但
   `authorizesRepair=false`、`formalModelPromotion=false`。正式物性、SLX、

@@ -707,10 +707,13 @@
 - ✅ **固定探索证据。** 目录
   `tmp/steady53/task8_root_cause/h1a_s2_scheme_a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/`
   严格只含两个文件；CSV SHA-256 为
-  `8e3065817551f5bbfe638d979ef4c83bcd358492f75cc4f6404a68726c970cac`，
+  `7e1ed139d14cbb1977a9f19d870c822243205414321a00c0f597717f5616f622`，
   TXT SHA-256 为
   `26248e95f42acbb70701193fa75af429b60659b9975277837331b8cd2803efd2`。
-  二次执行以 `steady53:H1aOutputExists` 拒绝覆盖且哈希不变。
+  独立质量审查指出旧 CSV 只含灵敏度行、未单独自包含身份与审计元数据；修正后
+  CSV 每行均重复记录运行/输入/模型/物性/H2a 哈希、Scheme A 唯一作用域、
+  1001 点路径审计及全部否定门。二次执行以 `steady53:H1aOutputExists`
+  拒绝覆盖且哈希不变。
 - ✅ **回归。** Task 2 的旧 H1a + 新 Scheme A 聚焦回归 `26/26`；H1a、
   Scheme A helper/analyzer 与 H2a analyzer/publisher 五文件聚焦回归
   `52/52`；最终 10 文件 no-SLX 离线回归 `149/149`，均为
