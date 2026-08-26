@@ -90,6 +90,73 @@ required = [ ...
 for item = required
     verifyTrue(testCase, contains(summary, item));
 end
+
+csv = readtable(analysis.csvPath, "TextType", "string", ...
+    "VariableNamingRule", "preserve");
+requiredColumns = [ ...
+    "runId"
+    "inputMat"
+    "inputMatSha256"
+    "formalModel"
+    "modelSha256"
+    "formalProperty"
+    "formalPropertySha256"
+    "s2PropertySource"
+    "s2PropertySourceSha256"
+    "s2ApprovedH2aCsv"
+    "s2ApprovedH2aCsvSha256"
+    "s2ApprovedH2aTxt"
+    "s2ApprovedH2aTxtSha256"
+    "s2PhiVariant"
+    "s2PhiScope"
+    "schemeADefinition"
+    "etaCp1Cp2HeldFixed"
+    "s2IntegrationCompleted"
+    "s2RootConverged"
+    "s2PathAuditSampleCount"
+    "s2PathAuditMinCpMass_J_kgK"
+    "s2PathAuditMinCvMass_J_kgK"
+    "s2PathAuditMinGamma"
+    "s2PathAuditMaxGamma"
+    "s2PathAuditMinPhi"
+    "s2PathAuditMaxPhi"
+    "s2PathAuditAllPhysical"
+    "s2PathAuditFormalGlobalProof"
+    "slxLoadedOrSimulated"
+    "h1bExecuted"
+    "authorizesRepair"
+    "formalModelPromotion"];
+verifyTrue(testCase, all(ismember(requiredColumns, ...
+    string(csv.Properties.VariableNames))));
+verifyEqual(testCase, unique(csv.runId), ...
+    "run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3");
+verifyEqual(testCase, unique(csv.inputMatSha256), ...
+    "4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b");
+verifyEqual(testCase, unique(csv.modelSha256), ...
+    "5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d");
+verifyEqual(testCase, unique(csv.formalPropertySha256), ...
+    "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2");
+verifyEqual(testCase, unique(csv.s2PropertySourceSha256), ...
+    "5820e957b90b1affce777c1774aee6cc685f40430310408fb00f303846f606d0");
+verifyEqual(testCase, unique(csv.s2ApprovedH2aCsvSha256), ...
+    "6a8398b7a32685cb3d198a1fe39b3b9365cfdefe65143d5613c68ffdd44366f4");
+verifyEqual(testCase, unique(csv.s2ApprovedH2aTxtSha256), ...
+    "afd75b1b31cd0abdbdb2926b95ab987f260caa81a55fe2e901fdde4dafd72465");
+verifyEqual(testCase, unique(csv.s2PhiVariant), "schemeA");
+verifyEqual(testCase, unique(csv.s2PhiScope), ...
+    "only H1a-S2 phi integrand");
+verifyEqual(testCase, unique(csv.schemeADefinition), ...
+    "ignoreHePureThirdVirialBeforeCurrentMixingRule");
+verifyTrue(testCase, all(csv.etaCp1Cp2HeldFixed));
+verifyTrue(testCase, all(csv.s2IntegrationCompleted));
+verifyTrue(testCase, all(csv.s2RootConverged));
+verifyEqual(testCase, unique(csv.s2PathAuditSampleCount), 1001);
+verifyTrue(testCase, all(csv.s2PathAuditAllPhysical));
+verifyFalse(testCase, any(csv.s2PathAuditFormalGlobalProof));
+verifyFalse(testCase, any(csv.slxLoadedOrSimulated));
+verifyFalse(testCase, any(csv.h1bExecuted));
+verifyFalse(testCase, any(csv.authorizesRepair));
+verifyFalse(testCase, any(csv.formalModelPromotion));
 end
 
 function testOriginalH1aStillFailsAtApprovedPoint(testCase)
