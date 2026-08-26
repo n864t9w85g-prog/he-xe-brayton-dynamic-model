@@ -376,6 +376,39 @@ H1a 只读结果审核后，用户才决定是否选择其中一个数值实现�
   `authorizesRepair=false`、`formalModelPromotion=false`。正式物性、SLX、
   MAT、H2/H2a 证据均未修改；Task 8 和 14000 s 稳态验收仍未完成。
 
+### 10.3 2026-08-26 H1b 正式物性路径平均 cp 只读结果
+
+- ✅ H1b 以 H1a-S2 Scheme A 的固定 `phiBar/T2s` 为候选基线；Scheme A
+  未进入 H1b 物性。H1b 只把冻结的单点 `cp1/cp2` 换为正式
+  `HeXe_property_simulink(T,P)` 的理想/实际路径平均 cp，`T2s/eta/输入/目标`
+  均不变。
+- ✅ H1a 的 `etaCp1Cp2HeldFixed` 合同经点比热方程以 `0 K` 残差复现。
+  其中 `cp2` 的真实冻结取值点是原 baseline
+  `T2s=1089.6475181122112 K`；该事实已在 H1b CSV/TXT 中明示，避免把
+  Scheme A 的新 `T2s` 错当作 H1a 点 `cp2` 的重算温度。
+- ✅ 三条并列候选结果为：线性端点压力
+  `T2=1143.6619213135946 K`、`delta=-0.00057422579084231984 K`；恒 P1
+  `T2=1143.660906386531 K`、`delta=-0.0015891528544216271 K`；恒 P2
+  `T2=1143.6623133135543 K`、`delta=-0.00018222583116767055 K`。三条根
+  残差绝对值均小于 `1e-9 K`。
+- ⚠️ 三条理想路径和三条实际路径各作 1001 点审计，均满足
+  `cp>0/cv>0/gamma>1/rho>0`；`formalGlobalProof=false`，不构成形式化
+  全路径证明。
+- ❓ 三条变化方向均与 `1162 K` 目标相反，解释比例分别为
+  `-3.1314282271922326e-05`、`-8.6661347940491064e-05`、
+  `-9.9373298890836776e-06`，故全部
+  `h1bNumericallySufficient=false`。H1b 不能解释现有约 `18.34 K` 偏差。
+- ✅ 最终全精度 CSV/TXT SHA-256 分别为
+  `d042cefe400b93c021ab3b11afdbf5e23de14afe64efbea7a037ab594b873ca1` 和
+  `42344092dd01941668efb6509c6b17aa25cc3acbcbb56febfb3906f339d3879c`；
+  二次运行拒绝覆盖。扩展 no-SLX 回归 `171/171`，完整目录只 discovery
+  `198` 项，四个新增 MATLAB 文件 `checkcode=0`。独立 Python/静态范围与
+  证据复审为 `Critical=0, Important=0, Minor=1`；Minor 仅是已明示的有限
+  审计/压力路径未决边界。
+- ❌ 未选择正式压力路径，未授权修复/晋升，未加载或仿真 SLX，也未修改
+  正式物性、SLX、MAT 或既有证据。Task 8、14000 s 稳态运行和论文 5.3
+  仍未完成。
+
 ## 11. 停止条件
 
 如果只读 H1a 需要代用户选择物理路径，或任何后续工作需要修改正式/临时 SLX、MAT、
