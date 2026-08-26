@@ -1,0 +1,81 @@
+Task 8 H1a read-only Eq. 2.28 phi-bar sensitivity
+runId=run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3
+inputMat=/Users/ikunsredemptionmac/.config/superpowers/worktrees/不接入转子稳态模型/steady53-14000s/tmp/steady53/task8/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/nominal_500_report.mat
+inputMatSha256=4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b
+turbineTableMat=/Users/ikunsredemptionmac/.config/superpowers/worktrees/不接入转子稳态模型/steady53-14000s/turbine_table2.mat
+turbineTableSha256=cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33
+formalModel=/Users/ikunsredemptionmac/.config/superpowers/worktrees/不接入转子稳态模型/steady53-14000s/final_steady_24a.slx
+modelSha256=5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d
+formalProperty=/Users/ikunsredemptionmac/.config/superpowers/worktrees/不接入转子稳态模型/steady53-14000s/HeXe_property_simulink.m
+formalPropertySha256=2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2
+s2PhiVariant=schemeA
+s2PhiScope=only H1a-S2 phi integrand
+s2PropertySource=/Users/ikunsredemptionmac/.config/superpowers/worktrees/不接入转子稳态模型/steady53-14000s/tests/steady53/hexe_property_scheme_a_offline.m
+s2PropertySourceSha256=5820e957b90b1affce777c1774aee6cc685f40430310408fb00f303846f606d0
+s2ApprovedH2aCsv=/Users/ikunsredemptionmac/.config/superpowers/worktrees/不接入转子稳态模型/steady53-14000s/tmp/steady53/task8_root_cause/h2a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/h2a_counterfactual_diagnostics.csv
+s2ApprovedH2aCsvSha256=6a8398b7a32685cb3d198a1fe39b3b9365cfdefe65143d5613c68ffdd44366f4
+s2ApprovedH2aTxt=/Users/ikunsredemptionmac/.config/superpowers/worktrees/不接入转子稳态模型/steady53-14000s/tmp/steady53/task8_root_cause/h2a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/h2a_summary.txt
+s2ApprovedH2aTxtSha256=afd75b1b31cd0abdbdb2926b95ab987f260caa81a55fe2e901fdde4dafd72465
+finalWindow_s=[400,500]
+tFinal_s=500
+T1_K=1515.109678670083
+P1_Pa=1538809.8025948156
+P2_Pa=674556.26792509283
+targetT2_K=1162
+reportMetricMeanT2_K=1143.7357422849552
+reportMetricMeanError_K=18.264257715044778
+reportMetricRelativeError=0.015717949840830272
+recordedTerminalT2_K=1143.7357706111763
+recordedTerminalError_K=18.264229388823651
+recordedTerminalRelativeError=0.015717925463703659
+expansionRatio=2.2812178550028612
+expansionRatioSourceSignal=turbine_lookup_expansion_ratio
+expansionRatioFieldContractApprovedOn=2026-08-25
+expansionRatioFieldContractStatus=approved
+inactiveCompressorRatioSignal=turbine_expansion_ratio
+inactiveCompressorRatioValue=2.3620239539147176
+inactiveCompressorRatioRole=Compressor r; not the active Eq. 2.28 pi input
+lookupMassFlow_kg_s=11.982029290388425
+lookupSpeed_rpm=55090
+eta=0.87286960881076081
+gamma1=1.6658243261702854
+baselinePhi=0.39969660408370267
+cp1_J_kgK=519.65678111047418
+cp2_J_kgK=519.65806622669288
+gamma2s=1.6663390833064768
+baselineT2s_K=1089.6475181122112
+baselineReproductionResidual_K=0
+rootBracket_K=[664.16702611166556,1515.109678670083]
+rootAbsResidualTolerance_K=1.0000000000000001e-09
+rootTolX_K=9.9999999999999998e-13
+rootMaxIterations=1000
+rootMaxFunctionEvaluations=5000
+s2IntegralRelTol=1e-08
+s2IntegralAbsTol=1e-10
+s2IntegrationCompleted=true
+s2RootConverged=true
+s2PathAuditSampleCount=1001
+s2PathAuditMinCpMass_J_kgK=519.65676343313635
+s2PathAuditMinCvMass_J_kgK=311.85617502129276
+s2PathAuditMinGamma=1.665824294862944
+s2PathAuditMaxGamma=1.6663390235199631
+s2PathAuditMinPhi=0.39969659280165848
+s2PathAuditMaxPhi=0.39988202527502059
+s2PathAuditAllPhysical=true
+s2PathAuditFormalGlobalProof=false
+etaCp1Cp2HeldFixed=true
+s2IntegralWarningPolicy=all R2025a integralCalc MATLAB:integral:* warning calls fail_closed with original cause preserved
+lookupInterpolation=2-D linear with bp_mf as dimension 1 and bp_speed as dimension 2
+H1a-S1 and H1a-S2 are both paper-unspecified numerical implementation choices
+Neither candidate is selected as the correct physical path
+h1bExecuted=false
+modelModified=false
+authorizesRepair=false
+formalModelPromotion=false
+slxLoadedOrSimulated=false
+loadedBlockDiagramsBefore=(none)
+result.baseline=phiBar=0.39969660408370267,T2s_K=1089.6475181122112,T2_K=1143.7357706111763,deltaT2FromBaseline_K=0,remainingError_K=18.264229388823651,relativeTargetError=0.015717925463703659,rootResidual_K=0
+result.S1=phiBar=0.39978932815006674,T2s_K=1089.5641955018061,T2_K=1143.6630406569657,deltaT2FromBaseline_K=-0.072729954210672076,remainingError_K=18.336959343034323,relativeTargetError=0.015780515785743823,rootResidual_K=2.2737367544323206e-13
+result.S2=phiBar=0.39979002315209694,T2s_K=1089.5635709913104,T2_K=1143.6624955393854,deltaT2FromBaseline_K=-0.073275071790931179,remainingError_K=18.337504460614582,relativeTargetError=0.015780984905864527,rootResidual_K=0
+conclusion=h1aNumericallySufficient=no; terminalBaselineGap_K=18.264229388823651; S1RemainingError_K=18.336959343034323; S2RemainingError_K=18.337504460614582. This numerical sensitivity result is not evidence that either paper-unspecified implementation is physically correct.
+Boundary: numerical proximity to the paper target is not correctness evidence.
