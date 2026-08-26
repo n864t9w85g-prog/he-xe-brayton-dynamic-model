@@ -123,6 +123,13 @@ tests/steady53/analyze_task8_h2a_he_third_virial_counterfactual.m
 分析器不得包含 `set_param`、`sim`、`load_system`、`save_system`、
 `open_system`、`bdclose` 或文件写入 API。
 
+**2026-08-26 已实现的测试合同修正：**在 Task 4 正式证据尚未发布时，
+分析器测试可以要求固定 H2a 输出目录不存在；一旦 Task 4 按本规格发布两个
+固定文件，Task 5 回归不得再把“目录已存在”当作失败。此时必须在测试前记录
+精确两文件名和 SHA-256，测试后逐项要求完全不变。这项修正只是消解
+“发布后必须同时运行 analyzer/publisher 回归”与早期 Task 1 前置断言的矛盾；
+分析器仍不得创建、修改或删除任何输出。
+
 ### 3.2 独立发布器
 
 计划新增：

@@ -14,14 +14,14 @@ testCase.TestData.protectedBefore = protectedHashes( ...
 testCase.TestData.outputDir = string(fullfile(root, "tmp", "steady53", ...
     "task8_root_cause", "h2a", ...
     "run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3"));
-assert(~isfolder(testCase.TestData.outputDir), ...
-    "The fixed H2a output directory must not pre-exist in Task 1.");
+testCase.TestData.outputBefore = outputFingerprint(testCase.TestData.outputDir);
 end
 
 function teardownOnce(testCase)
 path(testCase.TestData.originalPath);
-assert(~isfolder(testCase.TestData.outputDir), ...
-    "Task 1 must not create the fixed H2a output directory.");
+assert(isequaln(outputFingerprint(testCase.TestData.outputDir), ...
+    testCase.TestData.outputBefore), ...
+    "The read-only H2a analyzer changed published H2a evidence.");
 end
 
 function testFixedContractReturnsReadOnlySkeleton(testCase)
@@ -116,7 +116,7 @@ options.testOnlyNonCMutation = "B";
 verifyError(testCase, ...
     @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
     "steady53:H2aSingleVariableViolation");
-verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+verifyOutputUnchanged(testCase);
 end
 
 function testMicroscopicParityMutationsFailClosed(testCase)
@@ -136,7 +136,7 @@ for mutation = ["C111" "C" "dC_dT"]
         @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
         "steady53:H2aBaselineParityMismatch");
 end
-verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+verifyOutputUnchanged(testCase);
 end
 
 function testAdditionalNonCMutationsFailSingleVariableGate(testCase)
@@ -147,7 +147,7 @@ for mutation = ["dB_dT" "C222"]
         @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
         "steady53:H2aSingleVariableViolation");
 end
-verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+verifyOutputUnchanged(testCase);
 end
 
 function testTask3SweepsCompleteBothBranchesAndAccountForEveryState(testCase)
@@ -338,7 +338,7 @@ for mutation = ["dropState" "unaccountedCoordinate" "unrecordedInvalid"]
         @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
         "steady53:H2aIncompleteSweep");
 end
-verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+verifyOutputUnchanged(testCase);
 end
 
 function assertBoundary(testCase, branch, quantity, expectedCoordinate, tolerance)
@@ -384,7 +384,7 @@ verifyEqual(testCase, audit.protectedAssetHashesBefore, ...
     testCase.TestData.protectedBefore);
 verifyEqual(testCase, audit.protectedAssetHashesAfter, ...
     testCase.TestData.protectedBefore);
-verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+verifyOutputUnchanged(testCase);
 end
 
 function testPairedPathAndHashReplacementFailsClosed(testCase)
@@ -394,7 +394,7 @@ options.expectedCompressorMatSha256 = options.expectedRadiatorMatSha256;
 verifyError(testCase, ...
     @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
     "steady53:H2aCompressorMatPathMismatch");
-verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+verifyOutputUnchanged(testCase);
 
 options = testCase.TestData.options;
 options.approvedH2CsvPath = options.modelPath;
@@ -402,7 +402,7 @@ options.expectedApprovedH2CsvSha256 = options.expectedModelSha256;
 verifyError(testCase, ...
     @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
     "steady53:H2aApprovedH2CsvPathMismatch");
-verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+verifyOutputUnchanged(testCase);
 end
 
 function testH2AnalyzerResolutionMismatchFailsClosed(testCase)
@@ -412,7 +412,7 @@ options.h2AnalyzerResolutionProbe = string(fullfile( ...
 verifyError(testCase, ...
     @() analyze_task8_h2a_he_third_virial_counterfactual(options), ...
     "steady53:H2aH2AnalyzerResolutionMismatch");
-verifyFalse(testCase, isfolder(testCase.TestData.outputDir));
+verifyOutputUnchanged(testCase);
 end
 
 function testAnalyzerSourceIsStaticallyReadOnly(testCase)
@@ -594,6 +594,32 @@ for index = 1:numel(pathValue)
     sha256(index) = sha256File(pathValue(index));
 end
 hashes = table(name, pathValue, sha256);
+end
+
+function verifyOutputUnchanged(testCase)
+verifyEqual(testCase, outputFingerprint(testCase.TestData.outputDir), ...
+    testCase.TestData.outputBefore);
+end
+
+function fingerprint = outputFingerprint(outputDir)
+if ~isfolder(outputDir)
+    fingerprint = struct("exists", false, "names", strings(0,1), ...
+        "sha256", strings(0,1));
+    return
+end
+entries = dir(outputDir);
+entries = entries(~ismember(string({entries.name}), ["." ".."])) ;
+names = string({entries.name}).';
+[names, order] = sort(names);
+entries = entries(order);
+assert(numel(entries) == 2 && ~any([entries.isdir]) && ...
+    isequal(names, ["h2a_counterfactual_diagnostics.csv"; "h2a_summary.txt"]), ...
+    "Published H2a evidence directory does not contain the exact two-file contract.");
+hashes = strings(numel(entries), 1);
+for index = 1:numel(entries)
+    hashes(index) = sha256File(fullfile(outputDir, names(index)));
+end
+fingerprint = struct("exists", true, "names", names, "sha256", hashes);
 end
 
 function hash = sha256File(filePath)

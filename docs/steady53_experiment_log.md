@@ -605,3 +605,64 @@
 - ❓ 结论边界：H2 只读根因诊断已完成；H1a-S2 仍被当前物性域失效
   阻断，Task 8 与 14000 s 稳态验收仍为 **RED/未完成**。本诊断不授权
   修改物性系数、裁剪数值、选择新关联式或替代物性实现。
+
+### 2026-08-26 Task 8 H2a：忽略 He 纯三阶 Virial 项的只读反事实
+
+- ✅ **范围与单变量。** 仅在 `tests/steady53/` 的离线双分支 evaluator 中实施
+  方案 A：在当前混合规则之前令 He 纯项 `C111/dC111/d2C111=0`，并使
+  `C112/C122` 及各自一、二阶导数为零；保留 Xe 的 `xXe^3*C222` 项。
+  `B`、EOS、密度 Newton/夹取、常数、输入坐标、容差和根策略均逐项保持。
+  未修改 `HeXe_property_simulink.m`、SLX、MAT、PDF 或 H2 既有证据；未加载或仿真 SLX。
+- ✅ **baseline parity。** 异常点 36 项物性/EOS/密度/贡献行与已审定 H2
+  逐项通过，最大绝对误差 `9.094947017729282e-13`；定压和 H1a 路径的
+  4 个已批准 baseline 根也均在固定容差内通过。发布器不信任自报
+  `pass`，而是重算 absolute error、tolerance 和 pass，并把 path parity 与实际根坐标交叉绑定。
+- ✅ **固定异常点数值后果。** 在
+  `(T,P)=(992.38742737169468 K,1007910.8613125964 Pa)`，baseline 为
+  `cp=-119.70556165315986 J/(mol K)`、`cv=-128.01310724372453 J/(mol K)`、
+  `gamma=0.93510394545186759`；方案 A 为
+  `cp=20.787832416605639 J/(mol K)`、`cv=12.476129332826748 J/(mol K)`、
+  `gamma=1.6662084739623075`。反事实减 baseline 的增量分别为
+  `140.49339406976549 J/(mol K)`、`140.48923657655129 J/(mol K)` 和
+  `0.73110452851043994`；密度增量为 `-1.8948649760375247e-08 kg/m^3`。
+- ✅ **两个指定域。** 定压域
+  `T∈[992.2824092088212,992.4824092088212] K`中，baseline `cp=0/cv=0`
+  分别为 `992.39809700813157 K` 和 `992.40367034757503 K`；H1a
+  `lambda∈[0,1]` 明示路径中分别为 `0.61427357048013265` 和
+  `0.61426702062299732`。两路 baseline 的 `gamma` 在 `cv=0` 处均按 pole
+  记录，未误报为 `gamma=1` 普通根。方案 A 在两路的
+  `cp=0/cv=0/gamma=1/dPdrho=0` 均没有被声明的自适应数值搜索检出根，
+  且未检出 `cp<=0/cv<=0/gamma<=1` 区间。
+- ✅/⚠️ **奇点与极值语义。** baseline 的 `C111=0` 导数不连续性在方案 A
+  中消失。baseline 连续域的 `cp/cv` 在该不连续处按 `[-Inf,+Inf]`
+  记录，`gamma` 在 `cv=0` pole 处按 `[-Inf,+Inf]` 记录；方案 A 的
+  有限 extrema 仅是 `sampledFiniteCandidateNotFormalGlobalExtremum`。H1a 路径上的
+  方案 A 采样最小值为 `cp=20.786439488132384`、
+  `cv=12.475099335548904`、`gamma=1.665824294862944`；不将采样最值
+  声称为形式化全局极值。
+- ⚠️ **“未发现根”的严格边界。** 根搜索合同为
+  `adaptiveSignAndEndpointSearch`、`formalRootExclusion=false`，`notFound`
+  只意味着 `noRootDetectedByDeclaredNumericalSearchNotFormalProof`；有限采样与
+  bracketed `fzero` 不构成形式化全域无根证明。
+- ✅ **证据发布与治理。** 固定目录
+  `tmp/steady53/task8_root_cause/h2a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/`
+  只含两个自包含文件。CSV SHA-256 为
+  `6a8398b7a32685cb3d198a1fe39b3b9365cfdefe65143d5613c68ffdd44366f4`，TXT SHA-256 为
+  `afd75b1b31cd0abdbdb2926b95ab987f260caa81a55fe2e901fdde4dafd72465`。发布器
+  从 state/boundary 重建非物理区间和 sampled/classified extrema，重算异常点
+  EOS/Newton，并用 fresh canonical 只读 analysis 交叉核对根残差与 C111
+  单侧证据。同父 staging 中完整写入后，Java NIO 无 replace option
+  目录级移动在既有空/非空目标上均失败关闭且不覆盖。
+- ✅ **TDD 与最终回归。** Task 4 初始 RED 为
+  `0 Passed, 5 Failed, 3 Incomplete`；补强自包含/fail-closed/no-replace 后的针对性
+  RED 为 `1 Passed, 5 Failed, 0 Incomplete`；最终 publisher 为
+  `7 Passed, 0 Failed, 0 Incomplete`。发布后 analyzer 旧的“目录必须不存在”
+  合同与 Task 5 回归相冲突，修正前实测 `7 Passed, 19 Failed,
+  19 Incomplete`；改为“发布证据若存在则文件名/哈希前后不变”后，H2a
+  双文件聚焦回归 `26/26`，no-SLX 离线子集 `140/140`。完整
+  `tests/steady53` 仅发现 `167` 项而未执行，其中 H2a analyzer/publisher
+  分别发现 `19/7` 项。
+- ❓/❌ **结论边界。** H2a 只读反事实及数值证据已完成；它支持方案 A
+  是值得后续人工审核的物理候选，但物理解释仍为 ⚠️，正式模型正确性/
+  晋升为 ❌，`authorizesRepair=false`。H1a-S2 未重新执行，Task 8 和
+  14000 s 整机稳态验收仍为 **RED/未完成**。
