@@ -440,6 +440,19 @@ options.expectedModelSha256 = ...
 options.outputDir = string(outputDir);
 options.integralFunction = @integral;
 options.outputFailureHook = @noOutputFailureStub;
+options.formalPropertyPath = string(fullfile(root, ...
+    "HeXe_property_simulink.m"));
+options.expectedFormalPropertySha256 = ...
+    "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2";
+options.s2PropertyFunction = @HeXe_property_simulink;
+options.s2PropertyVariant = "baseline";
+options.s2PropertySourcePath = options.formalPropertyPath;
+options.expectedS2PropertySourceSha256 = ...
+    options.expectedFormalPropertySha256;
+options.s2EvidenceCsvPath = "";
+options.expectedS2EvidenceCsvSha256 = "";
+options.s2EvidenceTxtPath = "";
+options.expectedS2EvidenceTxtSha256 = "";
 end
 
 function entries = stagingDirectories(outputDir)

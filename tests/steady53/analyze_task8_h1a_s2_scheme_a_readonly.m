@@ -1,0 +1,69 @@
+function analysis = analyze_task8_h1a_s2_scheme_a_readonly(options)
+%ANALYZE_TASK8_H1A_S2_SCHEME_A_READONLY Approved offline H1a-S2 recovery.
+%   Scheme A is injected only into the H1a-S2 phi integrand. The formal
+%   baseline, S1, eta, cp1, cp2, Eq. (2.30), SLX, and MAT inputs are fixed.
+
+root = fileparts(fileparts(fileparts(mfilename("fullpath"))));
+runId = "run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3";
+outputDir = string(fullfile(root, "tmp", "steady53", ...
+    "task8_root_cause", "h1a_s2_scheme_a", runId));
+if nargin > 0
+    outputDir = applyTestOnlyOutputOverride(options);
+end
+
+h2aDir = fullfile(root, "tmp", "steady53", "task8_root_cause", ...
+    "h2a", runId);
+core = struct();
+core.testOnly = true;
+core.runId = runId;
+core.inputMat = string(fullfile(root, "tmp", "steady53", "task8", ...
+    runId, "nominal_500_report.mat"));
+core.expectedInputSha256 = ...
+    "4ea018c7be06c5e577f107970dc2bf549924bf7a9a2989a89bcf1be76e98472b";
+core.turbineTableMat = string(fullfile(root, "turbine_table2.mat"));
+core.expectedTurbineTableSha256 = ...
+    "cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33";
+core.modelPath = string(fullfile(root, "final_steady_24a.slx"));
+core.expectedModelSha256 = ...
+    "5423af38d6bbfc7730529475a6c4d046ef1386ec56782ba465c87dfae82cbf5d";
+core.outputDir = outputDir;
+core.integralFunction = @integral;
+core.outputFailureHook = @noOutputFailure;
+core.formalPropertyPath = string(fullfile(root, ...
+    "HeXe_property_simulink.m"));
+core.expectedFormalPropertySha256 = ...
+    "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2";
+core.s2PropertyFunction = @hexe_property_scheme_a_offline;
+core.s2PropertyVariant = "schemeA";
+core.s2PropertySourcePath = string(fullfile(root, "tests", "steady53", ...
+    "hexe_property_scheme_a_offline.m"));
+core.expectedS2PropertySourceSha256 = ...
+    "5820e957b90b1affce777c1774aee6cc685f40430310408fb00f303846f606d0";
+core.s2EvidenceCsvPath = string(fullfile(h2aDir, ...
+    "h2a_counterfactual_diagnostics.csv"));
+core.expectedS2EvidenceCsvSha256 = ...
+    "6a8398b7a32685cb3d198a1fe39b3b9365cfdefe65143d5613c68ffdd44366f4";
+core.s2EvidenceTxtPath = string(fullfile(h2aDir, "h2a_summary.txt"));
+core.expectedS2EvidenceTxtSha256 = ...
+    "afd75b1b31cd0abdbdb2926b95ab987f260caa81a55fe2e901fdde4dafd72465";
+
+analysis = analyze_task8_h1a_readonly(core);
+end
+
+function outputDir = applyTestOnlyOutputOverride(options)
+if ~isstruct(options) || ~isscalar(options) || ...
+        ~isequal(sort(string(fieldnames(options))), ...
+        sort(["testOnly"; "outputDir"])) || ...
+        ~isequal(options.testOnly, true) || ...
+        ~isscalar(string(options.outputDir)) || ...
+        ismissing(string(options.outputDir)) || ...
+        strlength(string(options.outputDir)) == 0 || ...
+        ~startsWith(string(options.outputDir), filesep)
+    error("steady53:H1aSchemeAInvalidOptions", ...
+        "Only a complete testOnly absolute outputDir override is allowed.");
+end
+outputDir = string(options.outputDir);
+end
+
+function noOutputFailure(~, ~)
+end
