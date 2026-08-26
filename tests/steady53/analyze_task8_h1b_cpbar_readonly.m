@@ -816,7 +816,7 @@ try
         stagingDir, outputParent, stagingPrefix));
     stagedCsv = fullfile(stagingDir, "h1b_cpbar_sensitivity.csv");
     stagedTxt = fullfile(stagingDir, "h1b_cpbar_summary.txt");
-    writetable(evidenceTable, stagedCsv);
+    writePrecisionCsv(evidenceTable, stagedCsv);
     outputFailureHook("afterCsvBeforeSummary", stagingDir);
     writeUtf8Text(stagedTxt, summaryText);
     validateStagedEvidence(stagedCsv, stagedTxt);
@@ -849,6 +849,20 @@ catch exception
     failure = addCause(failure, exception);
     throw(failure);
 end
+end
+
+function writePrecisionCsv(evidenceTable, filePath)
+formatted = evidenceTable;
+names = string(formatted.Properties.VariableNames);
+for name = names
+    values = formatted.(name);
+    if isnumeric(values)
+        formatted.(name) = compose("%.17g", values);
+    elseif islogical(values)
+        formatted.(name) = string(double(values));
+    end
+end
+writetable(formatted, filePath);
 end
 
 function writeUtf8Text(filePath, text)

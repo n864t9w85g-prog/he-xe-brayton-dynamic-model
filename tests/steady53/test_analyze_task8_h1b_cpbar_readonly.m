@@ -91,6 +91,9 @@ verifyEqual(testCase, sha256File(analysis.summaryPath), ...
 
 csv = readtable(analysis.csvPath, "TextType", "string", ...
     "VariableNamingRule", "preserve");
+csvText = string(fileread(analysis.csvPath));
+verifyTrue(testCase, contains(csvText, "519.6587987339517"));
+verifyTrue(testCase, contains(csvText, "1143.6619213135946"));
 verifyEqual(testCase, height(csv), 4);
 verifyEqual(testCase, sort(csv.method), sort([ ...
     "H1a_S2_schemeA_pointCp_baseline"
