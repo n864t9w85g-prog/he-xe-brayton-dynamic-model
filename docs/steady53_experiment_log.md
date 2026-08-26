@@ -666,3 +666,57 @@
   是值得后续人工审核的物理候选，但物理解释仍为 ⚠️，正式模型正确性/
   晋升为 ❌，`authorizesRepair=false`。H1a-S2 未重新执行，Task 8 和
   14000 s 整机稳态验收仍为 **RED/未完成**。
+
+### 2026-08-26 H1a-S2 方案 A：只读离线恢复实验
+
+- ✅ **人工批准与范围。** 用户批准方案 A 仅作为待验证候选，在
+  `tests/`/`tmp/` 的临时路径恢复 H1a-S2；未授权修改正式物性函数、SLX、MAT，
+  也未授权把方案 A 晋升为正式模型。实现只把 Scheme A evaluator 注入
+  H1a-S2 的 `phi=1-1/gamma` 路径积分；baseline、S1、透平效率 `eta`、
+  `cp1/cp2`、Eq. (2.30)、输入、根区间和容差均保持原 H1a 合同。
+- ✅ **原阻断重现。** 新 MATLAB 进程中的原
+  `analyze_task8_h1a_readonly()` 仍在
+  `(T,P)=(992.38742737169468 K,1007910.8613125964 Pa)` 以
+  `steady53:H1aInvalidProperty` fail closed，读取到
+  `cp=-2992.6147173565741 J/(kg K)`、
+  `gamma=0.93510394545186759`。原正式 H1a 输出目录仍不存在。
+- ✅ **Scheme A evaluator parity。** 新增纯离线 evaluator 不调用正式物性
+  函数，不计算输运物性；固定异常点以及 H2a 定压/H1a 两个批准域的全部
+  counterfactual state 均逐点通过
+  `rho/cpMolar/cvMolar/gamma/dPdrho` parity。Task 1 测试 `4/4`，两个文件
+  `checkcode=0/0`。
+- ✅ **真实积分和求根已恢复。** 固定输入
+  `pi=2.2812178550028612`，根区间
+  `[664.16702611166556,1515.109678670083] K`，真实 `integral`
+  (`RelTol=1e-8`,`AbsTol=1e-10`) 无 warning；bracketed `fzero` 得到
+  `phiBar=0.39979002315209694`、`T2s=1089.5635709913104 K`、
+  `T2=1143.6624955393854 K`，根残差为 `0 K`。
+- ✅/⚠️ **resolved path 数值域。** 求得路径的固定 1001 点审计为：
+  `min cp=519.65676343313635 J/(kg K)`、
+  `min cv=311.85617502129276 J/(kg K)`、
+  `gamma∈[1.665824294862944,1.6663390235199631]`、
+  `phi∈[0.39969659280165848,0.39988202527502059]`，全部采样点满足物理域。
+  这是有限数值审计，`formalGlobalProof=false`，不是形式化全路径证明。
+- ✅/❓ **H1a 数值充分性为否。** 固定 baseline 为
+  `T2=1143.7357706111763 K`，目标为 `1162 K`，原差值
+  `18.264229388823651 K`；S1 为 `1143.6630406569657 K`；Scheme A S2
+  相对 baseline 变化 `-0.073275071790931179 K`，剩余误差反而为
+  `18.337504460614582 K`。因此 `h1aNumericallySufficient=no`：方案 A
+  解除了 S2 的数值阻断，但 H1a 的 `phiBar` 路径处理不能解释当前约
+  `18.26 K` 的透平出口温度偏差。
+- ✅ **固定探索证据。** 目录
+  `tmp/steady53/task8_root_cause/h1a_s2_scheme_a/run_1787582761047_bb4aa60600cc4d9e9cc15077c6f435d3/`
+  严格只含两个文件；CSV SHA-256 为
+  `8e3065817551f5bbfe638d979ef4c83bcd358492f75cc4f6404a68726c970cac`，
+  TXT SHA-256 为
+  `26248e95f42acbb70701193fa75af429b60659b9975277837331b8cd2803efd2`。
+  二次执行以 `steady53:H1aOutputExists` 拒绝覆盖且哈希不变。
+- ✅ **回归。** Task 2 的旧 H1a + 新 Scheme A 聚焦回归 `26/26`；H1a、
+  Scheme A helper/analyzer 与 H2a analyzer/publisher 五文件聚焦回归
+  `52/52`；最终 10 文件 no-SLX 离线回归 `149/149`，均为
+  `0 Failed, 0 Incomplete`。完整 `tests/steady53` 仅 discovery `176` 项，
+  未执行整套。
+- ❌/❓ **结论边界。** `H1a-S2 Scheme A offline recovery=COMPLETE`；
+  正式 H1a-S2 因正式物性未改仍保持原阻断。`authorizesRepair=false`、
+  `formalModelPromotion=false`，本轮未加载/仿真 SLX。Task 8、14000 s
+  稳态运行和论文 5.3 稳态特性分析仍为 **RED/未完成**。

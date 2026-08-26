@@ -350,6 +350,30 @@ H1a 只读结果审核后，用户才决定是否选择其中一个数值实现�
   和 14000 s 稳态验收仍未完成。本补遗未加载/仿真 SLX，未修改正式
   物性函数、SLX、MAT、PDF 或 H2 既有证据。
 
+### 10.2 2026-08-26 H1a-S2 方案 A 只读离线恢复结果
+
+- ✅ 原 H1a 默认路径仍在固定异常点以
+  `steady53:H1aInvalidProperty` fail closed；正式 H1a 输出目录未创建。
+  Scheme A 只注入 S2 `phi` integrand，baseline/S1、`eta/cp1/cp2`、
+  Eq. (2.30)、输入、根区间和容差均保持固定。
+- ✅ 真实 `integral` 和 bracketed `fzero` 已完成：
+  `phiBar=0.39979002315209694`、`T2s=1089.5635709913104 K`、
+  `T2=1143.6624955393854 K`、根残差 `0 K`。resolved path 的 1001 点
+  审计全部满足 `cp>0/cv>0/gamma>1/0<phi<1`；该审计不是形式化全域证明。
+- ✅/❓ baseline `T2=1143.7357706111763 K`，目标 `1162 K`。Scheme A S2
+  仅产生 `-0.073275071790931179 K` 的变化，剩余误差从
+  `18.264229388823651 K` 增为 `18.337504460614582 K`，因此
+  `h1aNumericallySufficient=no`。它解除积分阻断，但不能解释当前透平出口
+  温度偏差。
+- ✅ 固定探索 CSV/TXT SHA-256 分别为
+  `8e3065817551f5bbfe638d979ef4c83bcd358492f75cc4f6404a68726c970cac` 和
+  `26248e95f42acbb70701193fa75af429b60659b9975277837331b8cd2803efd2`；
+  二次运行拒绝覆盖。聚焦 H1a/H2a 回归 `52/52`，最终 10 文件 no-SLX
+  离线回归 `149/149`；完整目录仅 discovery `176` 项，未执行整套。
+- ❌/❓ `H1a-S2 Scheme A offline recovery=COMPLETE`，但
+  `authorizesRepair=false`、`formalModelPromotion=false`。正式物性、SLX、
+  MAT、H2/H2a 证据均未修改；Task 8 和 14000 s 稳态验收仍未完成。
+
 ## 11. 停止条件
 
 如果只读 H1a 需要代用户选择物理路径，或任何后续工作需要修改正式/临时 SLX、MAT、
