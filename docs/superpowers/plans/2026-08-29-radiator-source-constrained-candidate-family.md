@@ -670,6 +670,12 @@ Append to `CandidateFamilyAuditTests`:
 
 - [ ] **Step 6: 运行测试并执行一次真实输出**
 
+**执行期补充回归：** 直接运行`python3 tests/audit_radiator_candidate_family.py`
+时，Python把`tests/`而不是仓库根放在首个模块搜索位置。实施时必须增加一个真实
+`subprocess`入口测试，先观察`ModuleNotFoundError: No module named 'tests'`红灯，
+再仅在`__package__`为空时把仓库根加入`sys.path`。包导入测试和直接入口测试都必须
+通过；这项回归使本任务组合测试数由10项增加到11项、阶段总测试数由16项增加到17项。
+
 Run:
 
 ```bash
@@ -904,7 +910,7 @@ python3 -W error::ResourceWarning -m unittest -v \
   tests/test_render_radiator_candidate_family.py
 ```
 
-Expected: 16项测试全部通过，无警告。
+Expected: 17项测试全部通过，无警告。
 
 - [ ] **Step 2: 建立新的、不可覆盖的运行目录并生成产物**
 
@@ -1088,7 +1094,7 @@ python3 -W error::ResourceWarning -m unittest -v \
   tests/test_render_radiator_candidate_family.py
 ```
 
-Expected: 16项测试全部通过，0失败、0错误、0警告。
+Expected: 17项测试全部通过，0失败、0错误、0警告。
 
 - [ ] **Step 2: 检查仓库差异与禁止的正式模型变化**
 
