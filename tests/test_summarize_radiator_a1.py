@@ -1,9 +1,29 @@
 import unittest
+from pathlib import Path
+import subprocess
+import sys
 
 from tests import summarize_radiator_a1 as summary
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
 class SummarizeRadiatorA1Tests(unittest.TestCase):
+    def test_direct_script_entry_can_start(self):
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tests/summarize_radiator_a1.py"),
+                "--help",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+
     def test_zero_pass_does_not_expand_envelope(self):
         result = summary.summarize_records([], 500)
         self.assertEqual(result["advance_candidate_ids"], [])

@@ -6,7 +6,10 @@ import argparse
 import csv
 import json
 from pathlib import Path
+import sys
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tests import analyze_radiator_a1_run as analyze
 
 
