@@ -5,10 +5,14 @@ from dataclasses import asdict
 import argparse
 import csv
 import hashlib
+import io
 import json
 import math
+import os
 from pathlib import Path
+import shutil
 import sys
+import tempfile
 from typing import Any, Iterable
 
 if __package__ in (None, ""):
@@ -337,161 +341,197 @@ def build_screen(force_reject_candidate: str | None = None) -> dict:
 
 def _normalize_csv_value(value: Any) -> Any:
     if isinstance(value, (list, tuple, dict, bool)):
-        return json.dumps(value, ensure_ascii=False)
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            allow_nan=False,
+        )
     return value
 
 
-def _write_csv(path: Path, rows: list[dict]) -> None:
-    """Create a nonempty UTF-8 CSV without replacing an existing file."""
+def _csv_bytes(rows: list[dict]) -> bytes:
+    """Render a nonempty, schema-closed deterministic CSV."""
     if not rows:
-        raise ValueError(f"refuse empty CSV: {path}")
-    path.parent.mkdir(parents=True, exist_ok=True)
+        raise ValueError("refuse empty CSV")
+    fieldnames = list(rows[0])
+    if any(list(row) != fieldnames for row in rows):
+        raise ValueError("CSV rows must have identical ordered schema")
     normalized_rows = [
         {key: _normalize_csv_value(value) for key, value in row.items()}
         for row in rows
     ]
-    fieldnames = list(normalized_rows[0])
-    with path.open("x", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(normalized_rows)
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(
+        buffer, fieldnames=fieldnames, lineterminator="\n"
+    )
+    writer.writeheader()
+    writer.writerows(normalized_rows)
+    return buffer.getvalue().encode("utf-8")
+
+
+def _json_bytes(value: Any) -> bytes:
+    """Render strict deterministic JSON and reject NaN/Infinity."""
+    return (
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _write_bytes_exclusive(path: Path, payload: bytes) -> None:
+    """Create one payload without replacing an existing path."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("xb") as handle:
+        handle.write(payload)
+
+
+def _write_csv(path: Path, rows: list[dict]) -> None:
+    """Create a nonempty UTF-8 CSV without replacing an existing file."""
+    _write_bytes_exclusive(path, _csv_bytes(rows))
 
 
 def _write_json(path: Path, value: Any) -> None:
     """Create deterministic strict JSON without replacing existing data."""
-    serialized = json.dumps(
-        value,
-        ensure_ascii=False,
-        indent=2,
-        sort_keys=True,
-        allow_nan=False,
-    )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("x", encoding="utf-8") as handle:
-        handle.write(serialized)
-        handle.write("\n")
+    _write_bytes_exclusive(path, _json_bytes(value))
 
 
-def _preflight_targets(output: Path, targets: list[Path]) -> None:
-    if len(set(targets)) != len(targets):
-        raise RuntimeError("planned output targets must be unique")
-
-    for target in targets:
-        if target.exists() or target.is_symlink():
-            raise FileExistsError(f"refuse existing output target: {target}")
-
-        resolved_target = target.resolve(strict=False)
-        if (
-            resolved_target == output
-            or not resolved_target.is_relative_to(output)
-        ):
-            raise ValueError(f"output target escapes output root: {target}")
-
-        current = output
-        for component in target.relative_to(output).parts[:-1]:
-            current = current / component
-            if current.is_symlink():
-                raise ValueError(
-                    f"symlinked output path component is forbidden: {current}"
-                )
-            if current.exists() and not current.is_dir():
-                raise FileExistsError(
-                    f"output path component is not a directory: {current}"
-                )
-
-
-def write_screen(output: Path) -> None:
-    """Write the deterministic A1 package strictly beneath ``ROOT/tmp``."""
-    output = output.resolve()
+def _preflight_output(output: Path) -> tuple[Path, bool]:
     tmp_root = (ROOT / "tmp").resolve()
-    if output == tmp_root or not output.is_relative_to(tmp_root):
+    if output.is_symlink():
+        raise ValueError(f"symlinked output root is forbidden: {output}")
+    resolved = output.resolve(strict=False)
+    if resolved == tmp_root or not resolved.is_relative_to(tmp_root):
         raise ValueError("output must be a strict descendant of ROOT/tmp")
+    existed = output.exists()
+    if existed:
+        if not output.is_dir():
+            raise FileExistsError(f"output root is not a directory: {output}")
+        entries = list(output.iterdir())
+        if any(entry.is_symlink() for entry in entries):
+            raise ValueError(
+                f"symlinked output entry is forbidden: {output}"
+            )
+        if entries:
+            raise FileExistsError(
+                f"output directory must be empty: {output}"
+            )
+    return resolved, existed
 
-    package = build_screen()
-    offline_directory = output / "offline_screen"
-    representatives_directory = output / "representatives"
+
+def _planned_payloads(package: dict) -> dict[str, bytes]:
     eligible_representatives = [
         row
         for row in package["representatives"]
         if row["eligible_for_slx"]
     ]
-    fixed_targets = {
-        "source_contract": output / "source_contract/source_contract.json",
-        "unit_contract": output / "source_contract/unit_contract.json",
-        "offline_rows": offline_directory / "offline_96.csv",
-        "rejection_log": offline_directory / "offline_rejection_log.csv",
-        "representative_matrix": (
-            representatives_directory / "representative_matrix.csv"
-        ),
-        "selection": representatives_directory / "selection.json",
-        "output_hashes": output / "source_contract/output_hashes.json",
-    }
-    manifest_targets = [
-        representatives_directory
-        / representative["candidate_id"]
-        / "parameter_manifest.json"
-        for representative in eligible_representatives
-    ]
-    _preflight_targets(
-        output,
-        [*fixed_targets.values(), *manifest_targets],
-    )
-
-    _write_json(
-        fixed_targets["source_contract"],
-        package["source_contract"],
-    )
-    _write_json(
-        fixed_targets["unit_contract"],
-        package["unit_contract"],
-    )
-    _write_csv(
-        fixed_targets["offline_rows"], package["offline_rows"]
-    )
     rejected_rows = [
         row
         for row in package["offline_rows"]
-        if row["condition_status"] == "rejected"
+        if row["condition_status"]
+        != "not_rejected_under_necessary_conditions"
     ]
-    _write_csv(
-        fixed_targets["rejection_log"],
-        rejected_rows or [{"status": "none_rejected"}],
-    )
-    _write_csv(
-        fixed_targets["representative_matrix"],
-        package["representatives"],
-    )
-
-    _write_json(
-        fixed_targets["selection"],
-        {
-            "eligible_candidate_ids": [
-                row["candidate_id"] for row in eligible_representatives
-            ],
-            "eligible_count": len(eligible_representatives),
-            "fixed_role_count": len(package["representatives"]),
-            "replacement_allowed": False,
-            "paper_reproduced": False,
-        },
-    )
-    for representative, manifest_target in zip(
-        eligible_representatives, manifest_targets, strict=True
-    ):
-        _write_json(
-            manifest_target,
-            representative,
+    planned = {
+        "source_contract/source_contract.json": _json_bytes(
+            package["source_contract"]
+        ),
+        "source_contract/unit_contract.json": _json_bytes(
+            package["unit_contract"]
+        ),
+        "offline_screen/offline_96.csv": _csv_bytes(
+            package["offline_rows"]
+        ),
+        "offline_screen/offline_rejection_log.csv": _csv_bytes(
+            rejected_rows or [{"status": "none_rejected"}]
+        ),
+        "representatives/representative_matrix.csv": _csv_bytes(
+            package["representatives"]
+        ),
+        "representatives/selection.json": _json_bytes(
+            {
+                "eligible_candidate_ids": [
+                    row["candidate_id"]
+                    for row in eligible_representatives
+                ],
+                "eligible_count": len(eligible_representatives),
+                "fixed_role_count": len(package["representatives"]),
+                "replacement_allowed": False,
+                "paper_reproduced": False,
+                "formal_promotion": False,
+            }
+        ),
+    }
+    for representative in eligible_representatives:
+        relative = (
+            "representatives/"
+            f"{representative['candidate_id']}/parameter_manifest.json"
         )
+        if relative in planned:
+            raise RuntimeError(f"duplicate planned payload: {relative}")
+        planned[relative] = _json_bytes(representative)
 
     output_hashes = {
-        str(path.relative_to(output)): hashlib.sha256(
-            path.read_bytes()
-        ).hexdigest()
-        for path in sorted(output.rglob("*"))
-        if path.is_file()
+        relative: hashlib.sha256(payload).hexdigest()
+        for relative, payload in sorted(planned.items())
     }
-    _write_json(
-        fixed_targets["output_hashes"], output_hashes
+    planned["source_contract/output_hashes.json"] = _json_bytes(
+        output_hashes
     )
+    return planned
+
+
+def write_screen(output: Path) -> None:
+    """Write the deterministic A1 package strictly beneath ``ROOT/tmp``."""
+    output, output_existed = _preflight_output(output)
+    package = build_screen()
+    planned = _planned_payloads(package)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(
+        tempfile.mkdtemp(
+            prefix=f".{output.name}.screen-", dir=output.parent
+        )
+    )
+    removed_empty_output = False
+    try:
+        for relative, payload in planned.items():
+            relative_path = Path(relative)
+            if (
+                relative_path.is_absolute()
+                or ".." in relative_path.parts
+                or not relative_path.parts
+            ):
+                raise ValueError(f"unsafe planned output path: {relative}")
+            _write_bytes_exclusive(staging / relative_path, payload)
+
+        actual_files = {
+            str(path.relative_to(staging)): hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+            for path in staging.rglob("*")
+            if path.is_file()
+        }
+        planned_files = {
+            relative: hashlib.sha256(payload).hexdigest()
+            for relative, payload in planned.items()
+        }
+        if actual_files != planned_files:
+            raise RuntimeError("staged output does not match planned payloads")
+
+        if output_existed:
+            output.rmdir()
+            removed_empty_output = True
+        os.replace(staging, output)
+        removed_empty_output = False
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        if removed_empty_output and not output.exists():
+            output.mkdir()
+        raise
 
 
 def main() -> None:
