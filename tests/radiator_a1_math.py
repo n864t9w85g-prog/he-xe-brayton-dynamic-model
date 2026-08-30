@@ -14,6 +14,11 @@ T_IN_K = 609.58
 T_OUT_K = 360.10
 T_MEAN_K = 0.8 * T_IN_K + 0.2 * T_OUT_K
 MASS_UPPER_KG = 4650.0
+RESIDUAL_TOLERANCE_W = 1e-6
+
+
+class NoPhysicalWallRoot(ValueError):
+    """Raised when no representable root exists in the physical interval."""
 
 
 @dataclass(frozen=True)
@@ -62,7 +67,7 @@ def _wall_root(epsilon: float, sink_K: float, h_W_m2K: float) -> float:
     low_balance = balance(low_K)
     high_balance = balance(high_K)
     if not (low_balance > 0.0 and high_balance < 0.0):
-        raise ValueError("no_physical_wall_root")
+        raise NoPhysicalWallRoot("no_physical_wall_root")
 
     for _ in range(100):
         midpoint_K = (low_K + high_K) / 2.0
@@ -87,9 +92,27 @@ def solve_static_case(
     h_W_m2K: float,
     evidence_status_per_input: str,
     technology_maturity: str = "test",
+    input_units_complete: bool = True,
 ) -> StaticRow:
+    identity_values = (
+        branch_id,
+        flow_case,
+        epsilon_case,
+        sink_case,
+        h_case,
+        technology_maturity,
+        evidence_status_per_input,
+    )
+    identity_or_unit_missing = (
+        any(
+            not isinstance(value, str) or not value
+            for value in identity_values
+        )
+        or input_units_complete is not True
+    )
     row_id = "__".join(
-        (branch_id, flow_case, epsilon_case, sink_case, h_case)
+        value if isinstance(value, str) else ""
+        for value in (branch_id, flow_case, epsilon_case, sink_case, h_case)
     )
     rejection_reasons = []
     if not (0.0 < epsilon <= 1.0):
@@ -104,6 +127,8 @@ def solve_static_case(
 
     nan = math.nan
     if rejection_reasons:
+        if identity_or_unit_missing:
+            rejection_reasons.append("missing_input_identity_or_unit")
         return StaticRow(
             row_id,
             branch_id,
@@ -127,16 +152,21 @@ def solve_static_case(
             nan,
             nan,
             "rejected",
-            evidence_status_per_input,
+            (
+                evidence_status_per_input
+                if isinstance(evidence_status_per_input, str)
+                else ""
+            ),
             tuple(rejection_reasons),
         )
 
     power_W = m_dot_kg_s * _enthalpy_rise_J_kg()
     try:
         wall_K = _wall_root(epsilon, sink_K, h_W_m2K)
-    except ValueError as exc:
-        if str(exc) != "no_physical_wall_root":
-            raise
+    except NoPhysicalWallRoot:
+        rejection_reasons = ["no_physical_wall_root"]
+        if identity_or_unit_missing:
+            rejection_reasons.append("missing_input_identity_or_unit")
         return StaticRow(
             row_id,
             branch_id,
@@ -160,11 +190,18 @@ def solve_static_case(
             nan,
             nan,
             "rejected",
-            evidence_status_per_input,
-            ("no_physical_wall_root",),
+            (
+                evidence_status_per_input
+                if isinstance(evidence_status_per_input, str)
+                else ""
+            ),
+            tuple(rejection_reasons),
         )
 
-    area_m2 = power_W / (h_W_m2K * (T_MEAN_K - wall_K))
+    try:
+        area_m2 = power_W / (h_W_m2K * (T_MEAN_K - wall_K))
+    except (ArithmeticError, ValueError):
+        area_m2 = nan
     ua_W_K = h_W_m2K * area_m2
     mass_kg = kappa_kg_m2 * area_m2
     mass_margin_kg = MASS_UPPER_KG - mass_kg
@@ -175,23 +212,48 @@ def solve_static_case(
     exchange_residual_W = exchange_W - power_W
     radiation_residual_W = radiation_W - power_W
 
-    derived_values = (area_m2, ua_W_K, mass_kg)
-    rejection_reasons = []
-    if any(
-        not math.isfinite(value) or value <= 0.0
-        for value in derived_values
-    ):
-        rejection_reasons.append("nonpositive_or_nonfinite_derived_quantity")
-    if mass_kg > MASS_UPPER_KG:
-        rejection_reasons.append("mass_above_4650_kg")
-    if radiation_W + 1e-6 < power_W:
-        rejection_reasons.append("insufficient_radiation_capacity")
-
-    condition_status = (
-        "rejected"
-        if rejection_reasons
-        else "not_rejected_under_necessary_conditions"
+    residual_is_invalid = (
+        not math.isfinite(exchange_residual_W)
+        or not math.isfinite(radiation_residual_W)
     )
+    derived_is_invalid = (
+        not math.isfinite(power_W)
+        or power_W <= 0.0
+        or not math.isfinite(wall_K)
+        or not (sink_K < wall_K < T_MEAN_K)
+        or any(
+            not math.isfinite(value) or value <= 0.0
+            for value in (area_m2, ua_W_K, mass_kg)
+        )
+        or not math.isfinite(mass_margin_kg)
+        or residual_is_invalid
+    )
+    residual_is_above_tolerance = (
+        residual_is_invalid
+        or abs(exchange_residual_W) > RESIDUAL_TOLERANCE_W
+        or abs(radiation_residual_W) > RESIDUAL_TOLERANCE_W
+    )
+    rejection_reasons = []
+    if derived_is_invalid:
+        rejection_reasons.append("nonpositive_or_nonfinite_derived_quantity")
+    if math.isfinite(mass_kg) and mass_kg > MASS_UPPER_KG:
+        rejection_reasons.append("mass_above_4650_kg")
+    if (
+        math.isfinite(radiation_residual_W)
+        and radiation_residual_W < -RESIDUAL_TOLERANCE_W
+    ):
+        rejection_reasons.append("insufficient_radiation_capacity")
+    if residual_is_above_tolerance:
+        rejection_reasons.append("equation_residual_above_tolerance")
+    if identity_or_unit_missing:
+        rejection_reasons.append("missing_input_identity_or_unit")
+
+    if not rejection_reasons:
+        condition_status = "not_rejected_under_necessary_conditions"
+    elif rejection_reasons == ["missing_input_identity_or_unit"]:
+        condition_status = "unidentifiable_due_to_missing_input"
+    else:
+        condition_status = "rejected"
     return StaticRow(
         row_id,
         branch_id,
@@ -215,7 +277,11 @@ def solve_static_case(
         exchange_residual_W,
         radiation_residual_W,
         condition_status,
-        evidence_status_per_input,
+        (
+            evidence_status_per_input
+            if isinstance(evidence_status_per_input, str)
+            else ""
+        ),
         tuple(rejection_reasons),
     )
 
@@ -252,6 +318,12 @@ def generate_static_rows() -> list[StaticRow]:
                 h_case=h_anchor.case_id,
                 h_W_m2K=h_anchor.value,
                 evidence_status_per_input=evidence,
+                input_units_complete=(
+                    flow.unit == "kg/s"
+                    and emissivity.unit == "1"
+                    and sink.unit == "K"
+                    and h_anchor.unit == "W/(m^2*K)"
+                ),
             )
         )
     return rows
