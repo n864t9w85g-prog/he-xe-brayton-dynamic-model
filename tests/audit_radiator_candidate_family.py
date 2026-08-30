@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 from pathlib import Path
 import sys
@@ -16,7 +15,6 @@ from tests import radiator_candidate_math as mathlib
 
 ROOT = Path(__file__).resolve().parents[1]
 PROVENANCE = ROOT / "data/provenance/radiator_source/juhasz"
-PROTECTED = ROOT / "tmp/tp7d213f64_7fad_4bfa_b722_0771b21d9640/protected_after.csv"
 POWER_W = 1_622_000.0
 LOW_K = 360.10
 HIGH_K = 609.58
@@ -27,19 +25,8 @@ SINK_SCENARIOS = (
 )
 
 
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def verify_protected() -> int:
-    with PROTECTED.open() as handle:
-        rows = list(csv.DictReader(handle))
-    if len(rows) != 34:
-        raise AssertionError(f"expected 34 protected files, got {len(rows)}")
-    for row in rows:
-        if sha256(Path(row["paths"])) != row["hashes"]:
-            raise AssertionError(f"protected file changed: {row['paths']}")
-    return len(rows)
+    return source_audit.verify_protected()
 
 
 def _candidate_rows() -> list[dict]:

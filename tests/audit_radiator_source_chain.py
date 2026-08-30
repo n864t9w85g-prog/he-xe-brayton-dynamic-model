@@ -10,7 +10,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROVENANCE = ROOT / "data/provenance/radiator_source/juhasz"
-PROTECTED = ROOT / "tmp/tp7d213f64_7fad_4bfa_b722_0771b21d9640/protected_after.csv"
+PROTECTED = (
+    ROOT
+    / "data/provenance/baselines/f8bcd83/protected_manifest_recovery.csv"
+)
 EXPECTED_HASHES = {
     ROOT / "sources/NASA-TM-2007-215003-Juhasz-2007.pdf":
         "2f1a8b19be7deea95a43e6d30468e234e48e9955eed1dc5005b0efa3119fd732",
@@ -43,7 +46,14 @@ def verify_protected() -> int:
         rows = list(csv.DictReader(handle))
     assert len(rows) == 34
     for row in rows:
-        assert sha256(Path(row["paths"])) == row["hashes"], row["paths"]
+        resolved = Path(row["resolved_path"])
+        expected = row["expected_sha256"]
+        assert row["resolution"] in {
+            "original_path_hash_match",
+            "durable_hash_equivalent",
+        }, row["original_path"]
+        assert row["resolved_sha256"] == expected, row["original_path"]
+        assert sha256(resolved) == expected, row["original_path"]
     return len(rows)
 
 
