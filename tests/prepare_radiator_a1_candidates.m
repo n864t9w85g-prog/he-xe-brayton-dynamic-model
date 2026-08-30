@@ -25,45 +25,50 @@ evalin('base', "run('" + ...
     replace(fullfile(sourceDir, 'start.m'), "'", "''") + "')");
 
 for k = 1:numel(ids)
-    id = ids(k);
-    destination = fullfile(runRoot, 'candidates_500s', id);
-    mkdir(destination);
-    candidateFile = fullfile(destination, 'candidate.slx');
-    manifest = fullfile(runRoot, 'representatives', id, ...
-        'parameter_manifest.json');
-    row = struct('candidate_id', id, 'prepared', false, 'error', "", ...
-        'candidate_file', candidateFile, 'candidate_sha256', "");
-    oldConfig = Simulink.fileGenControl('getConfig');
-    cleanupConfig = onCleanup(@() Simulink.fileGenControl('set', ...
-        'CacheFolder', oldConfig.CacheFolder, ...
-        'CodeGenFolder', oldConfig.CodeGenFolder, 'createDir', true)); %#ok<NASGU>
-    Simulink.fileGenControl('set', ...
-        'CacheFolder', fullfile(destination, 'cache'), ...
-        'CodeGenFolder', fullfile(destination, 'codegen'), 'createDir', true);
-    try
-        copyfile(source, candidateFile);
-        assert(hashFile(candidateFile) == sourceHash);
-        load_system(candidateFile);
-        cleanupModel = onCleanup(@() closeOwnedModel()); %#ok<NASGU>
-        audit = patch_radiator_a1_candidate("candidate", manifest, destination);
-        set_param('candidate', 'SimulationCommand', 'update');
-        close_system('candidate', 0);
-        load_system(candidateFile);
-        set_param('candidate', 'SimulationCommand', 'update');
-        close_system('candidate', 0);
-        row.prepared = true;
-        row.candidate_sha256 = audit.candidate_sha256;
-    catch exception
-        row.error = string(getReport(exception, 'extended', 'hyperlinks', 'off'));
-        if bdIsLoaded('candidate'), close_system('candidate', 0); end
-    end
-    writeJSON(fullfile(destination, 'preparation_status.json'), row);
-    summary(end+1) = row; %#ok<AGROW>
+    summary(end+1) = prepareOne( ...
+        runRoot, source, sourceHash, ids(k)); %#ok<AGROW>
 end
 writeJSON(fullfile(runRoot, 'final_audit', 'preparation_summary.json'), summary);
+end
+
+function row = prepareOne(runRoot, source, sourceHash, id)
+destination = fullfile(runRoot, 'candidates_500s', id);
+mkdir(destination);
+candidateFile = fullfile(destination, 'candidate.slx');
+manifest = fullfile(runRoot, 'representatives', id, ...
+    'parameter_manifest.json');
+row = struct('candidate_id', id, 'prepared', false, 'error', "", ...
+    'candidate_file', candidateFile, 'candidate_sha256', "");
+oldConfig = Simulink.fileGenControl('getConfig');
+cleanupConfig = onCleanup(@() Simulink.fileGenControl('set', ...
+    'CacheFolder', oldConfig.CacheFolder, ...
+    'CodeGenFolder', oldConfig.CodeGenFolder, 'createDir', true)); %#ok<NASGU>
+Simulink.fileGenControl('set', ...
+    'CacheFolder', fullfile(destination, 'cache'), ...
+    'CodeGenFolder', fullfile(destination, 'codegen'), 'createDir', true);
+try
+    copyfile(source, candidateFile);
+    assert(hashFile(candidateFile) == sourceHash);
+    load_system(candidateFile);
+    cleanupModel = onCleanup(@() closeOwnedModel()); %#ok<NASGU>
+    audit = patch_radiator_a1_candidate("candidate", manifest, destination);
+    set_param('candidate', 'SimulationCommand', 'update');
+    close_system('candidate', 0);
+    load_system(candidateFile);
+    set_param('candidate', 'SimulationCommand', 'update');
+    close_system('candidate', 0);
+    row.prepared = true;
+    row.candidate_sha256 = audit.candidate_sha256;
+catch exception
+    row.error = string(getReport(exception, 'extended', 'hyperlinks', 'off'));
+    if bdIsLoaded('candidate'), close_system('candidate', 0); end
+end
+writeJSON(fullfile(destination, 'preparation_status.json'), row);
 
     function closeOwnedModel()
-        if bdIsLoaded('candidate'), close_system('candidate', 0); end
+        if bdIsLoaded('candidate')
+            close_system('candidate', 0);
+        end
     end
 end
 
