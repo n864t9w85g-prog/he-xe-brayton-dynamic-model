@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -204,6 +205,60 @@ class BuildRadiatorA1ScreenTests(unittest.TestCase):
                 builder.write_screen(output)
             self.assertEqual(digest_tree(output), before)
 
+    def test_late_matrix_collision_cannot_leave_a_partial_package(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as folder:
+            output = Path(folder)
+            collision = output / "representatives/representative_matrix.csv"
+            collision.parent.mkdir(parents=True)
+            collision.write_text("reserved\n", encoding="utf-8")
+            before = digest_tree(output)
+
+            with self.assertRaises(FileExistsError):
+                builder.write_screen(output)
+
+            self.assertEqual(digest_tree(output), before)
+
+    def test_late_manifest_collision_cannot_leave_a_partial_package(self):
+        package = builder.build_screen()
+        candidate_id = next(
+            row["candidate_id"]
+            for row in package["representatives"]
+            if row["eligible_for_slx"]
+        )
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as folder:
+            output = Path(folder)
+            collision = (
+                output
+                / "representatives"
+                / candidate_id
+                / "parameter_manifest.json"
+            )
+            collision.parent.mkdir(parents=True)
+            collision.write_text("reserved\n", encoding="utf-8")
+            before = digest_tree(output)
+
+            with self.assertRaises(FileExistsError):
+                builder.write_screen(output)
+
+            self.assertEqual(digest_tree(output), before)
+
+    def test_symlinked_output_component_cannot_escape_output(self):
+        with (
+            tempfile.TemporaryDirectory(dir=ROOT / "tmp") as folder,
+            tempfile.TemporaryDirectory() as outside,
+        ):
+            output = Path(folder)
+            outside_path = Path(outside)
+            (output / "representatives").symlink_to(
+                outside_path, target_is_directory=True
+            )
+
+            with self.assertRaises(ValueError):
+                builder.write_screen(output)
+
+            self.assertEqual(digest_tree(outside_path), {})
+            self.assertEqual(digest_tree(output), {})
+
     def test_output_hash_manifest_covers_prior_files_but_not_itself(self):
         with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as folder:
             output = Path(folder)
@@ -236,6 +291,63 @@ class BuildRadiatorA1ScreenTests(unittest.TestCase):
             self.assertTrue(
                 (Path(folder) / "offline_screen/offline_96.csv").is_file()
             )
+
+    def test_unidentifiable_row_with_missing_reason_is_never_eligible(self):
+        self._verify_unidentifiable_role_is_not_written(
+            ("missing_input_identity_or_unit",)
+        )
+
+    def test_unidentifiable_row_without_reason_is_never_eligible(self):
+        self._verify_unidentifiable_role_is_not_written(())
+
+    def _verify_unidentifiable_role_is_not_written(self, reasons):
+        target_branch = contract.BRANCHES[0].branch_id
+        target_role = contract.ROLES[1].role_id
+        target_id = f"{target_branch}__{target_role}"
+        original = builder._static_for_role
+
+        def unidentifiable_row(rows, branch_id, role):
+            row = original(rows, branch_id, role)
+            if branch_id == target_branch and role.role_id == target_role:
+                return replace(
+                    row,
+                    condition_status="unidentifiable_due_to_missing_input",
+                    rejection_reasons=reasons,
+                )
+            return row
+
+        with mock.patch.object(
+            builder, "_static_for_role", side_effect=unidentifiable_row
+        ):
+            package = builder.build_screen()
+            target = next(
+                row
+                for row in package["representatives"]
+                if row["candidate_id"] == target_id
+            )
+            self.assertFalse(target["eligible_for_slx"])
+            self.assertTrue(math.isfinite(target["tau_predicted_s"]))
+            self.assertGreater(target["tau_predicted_s"], 0.0)
+            with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as folder:
+                output = Path(folder)
+                builder.write_screen(output)
+                self.assertFalse(
+                    (
+                        output
+                        / "representatives"
+                        / target_id
+                        / "parameter_manifest.json"
+                    ).exists()
+                )
+
+    def test_unknown_forced_rejection_id_fails_before_source_verification(self):
+        unknown = "unknown_branch__unknown_role"
+        with mock.patch.object(
+            builder.contract, "verify_source_contract"
+        ) as verify:
+            with self.assertRaisesRegex(ValueError, re.escape(unknown)):
+                builder.build_screen(force_reject_candidate=unknown)
+            verify.assert_not_called()
 
     def test_build_screen_exact_fields_units_order_and_statuses(self):
         package = builder.build_screen()

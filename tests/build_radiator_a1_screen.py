@@ -72,14 +72,32 @@ def _timescale_relation(tau_s: float) -> str:
 
 def build_screen(force_reject_candidate: str | None = None) -> dict:
     """Build the fixed 96-row screen and 12-role representative matrix."""
+    candidate_ids = tuple(
+        f"{branch.branch_id}__{role.role_id}"
+        for branch in contract.BRANCHES
+        for role in contract.ROLES
+    )
+    if len(set(candidate_ids)) != len(candidate_ids):
+        raise RuntimeError("fixed candidate ids must be unique")
+    if (
+        force_reject_candidate is not None
+        and force_reject_candidate not in candidate_ids
+    ):
+        raise ValueError(
+            "unknown force_reject_candidate: "
+            f"{force_reject_candidate}"
+        )
+
     source_contract = contract.verify_source_contract()
     rows = a1math.generate_static_rows()
     representatives = []
 
+    candidate_index = 0
     for branch in contract.BRANCHES:
         for role in contract.ROLES:
             row = _static_for_role(rows, branch.branch_id, role)
-            candidate_id = f"{branch.branch_id}__{role.role_id}"
+            candidate_id = candidate_ids[candidate_index]
+            candidate_index += 1
             rejection_reasons = list(row.rejection_reasons)
             if candidate_id == force_reject_candidate:
                 rejection_reasons.append("test_forced_rejection")
@@ -111,7 +129,8 @@ def build_screen(force_reject_candidate: str | None = None) -> dict:
                 )
             )
             eligible = (
-                row.condition_status != "rejected"
+                row.condition_status
+                == "not_rejected_under_necessary_conditions"
                 and not rejection_reasons
                 and positive_derived_values
             )
@@ -206,6 +225,34 @@ def _write_json(path: Path, value: Any) -> None:
         handle.write("\n")
 
 
+def _preflight_targets(output: Path, targets: list[Path]) -> None:
+    if len(set(targets)) != len(targets):
+        raise RuntimeError("planned output targets must be unique")
+
+    for target in targets:
+        if target.exists() or target.is_symlink():
+            raise FileExistsError(f"refuse existing output target: {target}")
+
+        resolved_target = target.resolve(strict=False)
+        if (
+            resolved_target == output
+            or not resolved_target.is_relative_to(output)
+        ):
+            raise ValueError(f"output target escapes output root: {target}")
+
+        current = output
+        for component in target.relative_to(output).parts[:-1]:
+            current = current / component
+            if current.is_symlink():
+                raise ValueError(
+                    f"symlinked output path component is forbidden: {current}"
+                )
+            if current.exists() and not current.is_dir():
+                raise FileExistsError(
+                    f"output path component is not a directory: {current}"
+                )
+
+
 def write_screen(output: Path) -> None:
     """Write the deterministic A1 package strictly beneath ``ROOT/tmp``."""
     output = output.resolve()
@@ -216,17 +263,43 @@ def write_screen(output: Path) -> None:
     package = build_screen()
     offline_directory = output / "offline_screen"
     representatives_directory = output / "representatives"
+    eligible_representatives = [
+        row
+        for row in package["representatives"]
+        if row["eligible_for_slx"]
+    ]
+    fixed_targets = {
+        "source_contract": output / "source_contract/source_contract.json",
+        "unit_contract": output / "source_contract/unit_contract.json",
+        "offline_rows": offline_directory / "offline_96.csv",
+        "rejection_log": offline_directory / "offline_rejection_log.csv",
+        "representative_matrix": (
+            representatives_directory / "representative_matrix.csv"
+        ),
+        "selection": representatives_directory / "selection.json",
+        "output_hashes": output / "source_contract/output_hashes.json",
+    }
+    manifest_targets = [
+        representatives_directory
+        / representative["candidate_id"]
+        / "parameter_manifest.json"
+        for representative in eligible_representatives
+    ]
+    _preflight_targets(
+        output,
+        [*fixed_targets.values(), *manifest_targets],
+    )
 
     _write_json(
-        output / "source_contract/source_contract.json",
+        fixed_targets["source_contract"],
         package["source_contract"],
     )
     _write_json(
-        output / "source_contract/unit_contract.json",
+        fixed_targets["unit_contract"],
         package["unit_contract"],
     )
     _write_csv(
-        offline_directory / "offline_96.csv", package["offline_rows"]
+        fixed_targets["offline_rows"], package["offline_rows"]
     )
     rejected_rows = [
         row
@@ -234,21 +307,16 @@ def write_screen(output: Path) -> None:
         if row["condition_status"] == "rejected"
     ]
     _write_csv(
-        offline_directory / "offline_rejection_log.csv",
+        fixed_targets["rejection_log"],
         rejected_rows or [{"status": "none_rejected"}],
     )
     _write_csv(
-        representatives_directory / "representative_matrix.csv",
+        fixed_targets["representative_matrix"],
         package["representatives"],
     )
 
-    eligible_representatives = [
-        row
-        for row in package["representatives"]
-        if row["eligible_for_slx"]
-    ]
     _write_json(
-        representatives_directory / "selection.json",
+        fixed_targets["selection"],
         {
             "eligible_candidate_ids": [
                 row["candidate_id"] for row in eligible_representatives
@@ -259,11 +327,11 @@ def write_screen(output: Path) -> None:
             "paper_reproduced": False,
         },
     )
-    for representative in eligible_representatives:
+    for representative, manifest_target in zip(
+        eligible_representatives, manifest_targets, strict=True
+    ):
         _write_json(
-            representatives_directory
-            / representative["candidate_id"]
-            / "parameter_manifest.json",
+            manifest_target,
             representative,
         )
 
@@ -275,7 +343,7 @@ def write_screen(output: Path) -> None:
         if path.is_file()
     }
     _write_json(
-        output / "source_contract/output_hashes.json", output_hashes
+        fixed_targets["output_hashes"], output_hashes
     )
 
 
