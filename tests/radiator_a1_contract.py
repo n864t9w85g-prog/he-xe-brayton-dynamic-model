@@ -20,6 +20,10 @@ PROTECTED = (
     ROOT
     / "tmp/tp7d213f64_7fad_4bfa_b722_0771b21d9640/protected_after.csv"
 )
+PROTECTED_SHA256 = (
+    "496e4bbbbe5786bbb21b63d3c320dcfd"
+    "f3c741935736624ed2912ab81afc9a0a"
+)
 
 SOURCE_HASHES = {
     "sources/NASA-TM-2007-215003-Juhasz-2007.pdf": (
@@ -51,6 +55,15 @@ CURVE_EVIDENCE_HASHES = {
 def sha256(path: Path) -> str:
     """Return the hexadecimal SHA256 digest of *path*."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+class A1ContractError(RuntimeError):
+    """Raised when an immutable A1 source or parameter gate is violated."""
+
+
+def _require(condition: bool, message: str) -> None:
+    if not condition:
+        raise A1ContractError(message)
 
 
 @dataclass(frozen=True)
@@ -152,44 +165,124 @@ PATCH_BLOCKS = {
 }
 
 
-def _verify_hashes(expected_hashes: dict[str, str]) -> dict[str, str]:
+def _verify_hashes(
+    expected_hashes: dict[str, str],
+    category: str = "source",
+) -> dict[str, str]:
     actual_hashes = {}
     for relative_path, expected_hash in expected_hashes.items():
-        path = ROOT / relative_path
-        assert path.is_file(), f"missing source: {relative_path}"
+        path = Path(relative_path)
+        if not path.is_absolute():
+            path = ROOT / path
+        _require(
+            path.is_file(),
+            f"category={category}; path={path}; "
+            "expected=file_exists; actual=missing",
+        )
         actual_hash = sha256(path)
-        assert actual_hash == expected_hash, f"source hash changed: {relative_path}"
+        _require(
+            actual_hash == expected_hash,
+            f"category={category}; path={path}; "
+            f"expected={expected_hash}; actual={actual_hash}",
+        )
         actual_hashes[relative_path] = actual_hash
     return actual_hashes
 
 
 def verify_source_contract() -> dict[str, object]:
     """Verify every immutable A1 input and return its provenance summary."""
-    assert BASELINE.is_file(), f"missing baseline: {BASELINE}"
-    baseline_sha256 = sha256(BASELINE)
-    assert baseline_sha256 == BASELINE_SHA256, "baseline hash changed"
-
-    source_hashes = _verify_hashes(SOURCE_HASHES)
-    curve_evidence_hashes = _verify_hashes(CURVE_EVIDENCE_HASHES)
-
-    assert PROTECTED.is_file(), f"missing protected manifest: {PROTECTED}"
-    with PROTECTED.open(newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        assert reader.fieldnames == ["paths", "hashes"], (
-            f"unexpected protected manifest columns: {reader.fieldnames}"
-        )
-        protected_rows = list(reader)
-    assert len(protected_rows) == 34, (
-        f"expected 34 protected files, got {len(protected_rows)}"
+    _require(
+        BASELINE.is_file(),
+        f"category=baseline; path={BASELINE}; "
+        "expected=file_exists; actual=missing",
     )
+    baseline_sha256 = sha256(BASELINE)
+    _require(
+        baseline_sha256 == BASELINE_SHA256,
+        f"category=baseline; path={BASELINE}; "
+        f"expected={BASELINE_SHA256}; actual={baseline_sha256}",
+    )
+
+    source_hashes = _verify_hashes(SOURCE_HASHES, "source")
+    curve_evidence_hashes = _verify_hashes(
+        CURVE_EVIDENCE_HASHES,
+        "curve_evidence",
+    )
+
+    _require(
+        PROTECTED.is_file(),
+        f"category=protected_manifest; path={PROTECTED}; "
+        "expected=file_exists; actual=missing",
+    )
+    protected_manifest_sha256 = sha256(PROTECTED)
+    _require(
+        protected_manifest_sha256 == PROTECTED_SHA256,
+        f"category=protected_manifest; path={PROTECTED}; "
+        f"expected={PROTECTED_SHA256}; actual={protected_manifest_sha256}",
+    )
+    try:
+        with PROTECTED.open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            fieldnames = reader.fieldnames
+            protected_rows = list(reader)
+    except (OSError, UnicodeError, csv.Error) as exc:
+        raise A1ContractError(
+            f"category=protected_manifest_csv; path={PROTECTED}; "
+            f"expected=readable_csv; actual={type(exc).__name__}: {exc}"
+        ) from exc
+    _require(
+        fieldnames == ["paths", "hashes"],
+        f"category=protected_manifest_header; path={PROTECTED}; "
+        f"expected=['paths', 'hashes']; actual={fieldnames}",
+    )
+    _require(
+        len(protected_rows) == 34,
+        f"category=protected_manifest_rows; path={PROTECTED}; "
+        f"expected=34; actual={len(protected_rows)}",
+    )
+
+    protected_paths = []
+    for row_number, row in enumerate(protected_rows, start=2):
+        path_text = row["paths"]
+        expected_hash = row["hashes"]
+        _require(
+            isinstance(path_text, str) and bool(path_text),
+            f"category=protected_manifest_path; path={PROTECTED}; "
+            f"row={row_number}; expected=nonempty_string; actual={path_text!r}",
+        )
+        _require(
+            isinstance(expected_hash, str)
+            and len(expected_hash) == 64
+            and all(character in "0123456789abcdef" for character in expected_hash),
+            f"category=protected_manifest_hash_format; path={path_text}; "
+            "expected=64_lowercase_hex; "
+            f"actual={expected_hash!r}",
+        )
+        protected_paths.append(path_text)
+    unique_path_count = len(set(protected_paths))
+    _require(
+        unique_path_count == 34,
+        f"category=protected_manifest_paths; path={PROTECTED}; "
+        f"expected=34_unique; actual={unique_path_count}_unique",
+    )
+
     for row in protected_rows:
         protected_path = Path(row["paths"])
-        assert protected_path.is_absolute(), (
-            f"protected path is not absolute: {protected_path}"
+        _require(
+            protected_path.is_absolute(),
+            f"category=protected_path; path={protected_path}; "
+            "expected=absolute; actual=relative",
         )
-        assert protected_path.is_file(), f"missing protected file: {protected_path}"
-        assert sha256(protected_path) == row["hashes"], (
-            f"protected file changed: {protected_path}"
+        _require(
+            protected_path.is_file(),
+            f"category=protected_file; path={protected_path}; "
+            "expected=file_exists; actual=missing",
+        )
+        protected_actual_hash = sha256(protected_path)
+        _require(
+            protected_actual_hash == row["hashes"],
+            f"category=protected_file; path={protected_path}; "
+            f"expected={row['hashes']}; actual={protected_actual_hash}",
         )
 
     return {
