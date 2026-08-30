@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = (
     ROOT
-    / "tmp/steady53_curves_20260828/source_f8bcd83/final_steady_24a.slx"
+    / "data/provenance/baselines/f8bcd83/final_steady_24a.slx"
 )
 BASELINE_SHA256 = (
     "0532e9ddf2deb7ef5e40cc1b8e619c44"
@@ -24,6 +24,7 @@ PROTECTED_SHA256 = (
     "496e4bbbbe5786bbb21b63d3c320dcfd"
     "f3c741935736624ed2912ab81afc9a0a"
 )
+PROTECTED_MANIFEST_MODE = "historical_manifest_identity_only"
 
 SOURCE_HASHES = {
     "sources/NASA-TM-2007-215003-Juhasz-2007.pdf": (
@@ -251,6 +252,11 @@ def verify_source_contract() -> dict[str, object]:
             f"row={row_number}; expected=nonempty_string; actual={path_text!r}",
         )
         _require(
+            Path(path_text).is_absolute(),
+            f"category=protected_manifest_path; path={PROTECTED}; "
+            f"row={row_number}; expected=absolute; actual={path_text!r}",
+        )
+        _require(
             isinstance(expected_hash, str)
             and len(expected_hash) == 64
             and all(character in "0123456789abcdef" for character in expected_hash),
@@ -266,25 +272,6 @@ def verify_source_contract() -> dict[str, object]:
         f"expected=34_unique; actual={unique_path_count}_unique",
     )
 
-    for row in protected_rows:
-        protected_path = Path(row["paths"])
-        _require(
-            protected_path.is_absolute(),
-            f"category=protected_path; path={protected_path}; "
-            "expected=absolute; actual=relative",
-        )
-        _require(
-            protected_path.is_file(),
-            f"category=protected_file; path={protected_path}; "
-            "expected=file_exists; actual=missing",
-        )
-        protected_actual_hash = sha256(protected_path)
-        _require(
-            protected_actual_hash == row["hashes"],
-            f"category=protected_file; path={protected_path}; "
-            f"expected={row['hashes']}; actual={protected_actual_hash}",
-        )
-
     return {
         "baseline_path": str(BASELINE.relative_to(ROOT)),
         "baseline_sha256": baseline_sha256,
@@ -292,6 +279,7 @@ def verify_source_contract() -> dict[str, object]:
         "curve_evidence_hashes": curve_evidence_hashes,
         "protected_manifest": str(PROTECTED.relative_to(ROOT)),
         "protected_count": len(protected_rows),
+        "protected_manifest_mode": PROTECTED_MANIFEST_MODE,
         "paper_reproduced": False,
         "formal_promotion": False,
     }

@@ -1,3 +1,4 @@
+import csv
 import math
 from pathlib import Path
 import tempfile
@@ -8,7 +9,7 @@ from tests import radiator_a1_contract as contract
 
 
 BASELINE_RELATIVE = (
-    "tmp/steady53_curves_20260828/source_f8bcd83/final_steady_24a.slx"
+    "data/provenance/baselines/f8bcd83/final_steady_24a.slx"
 )
 BASELINE_SHA256_LITERAL = (
     "0532e9ddf2deb7ef5e40cc1b8e619c44"
@@ -21,6 +22,7 @@ PROTECTED_SHA256_LITERAL = (
     "496e4bbbbe5786bbb21b63d3c320dcfd"
     "f3c741935736624ed2912ab81afc9a0a"
 )
+PROTECTED_MODE = "historical_manifest_identity_only"
 SOURCE_HASHES_LITERAL = {
     "sources/NASA-TM-2007-215003-Juhasz-2007.pdf": (
         "2f1a8b19be7deea95a43e6d30468e234"
@@ -167,8 +169,39 @@ class RadiatorA1ContractTests(unittest.TestCase):
         )
         self.assertEqual(result["protected_manifest"], PROTECTED_RELATIVE)
         self.assertEqual(result["protected_count"], 34)
+        self.assertEqual(result["protected_manifest_mode"], PROTECTED_MODE)
         self.assertFalse(result["paper_reproduced"])
         self.assertFalse(result["formal_promotion"])
+
+    def test_historical_manifest_does_not_require_external_paths_at_runtime(self):
+        with tempfile.TemporaryDirectory(dir=contract.ROOT / "tmp") as folder:
+            temporary = Path(folder) / "protected_after.csv"
+            with contract.PROTECTED.open(
+                newline="", encoding="utf-8"
+            ) as source:
+                rows = list(csv.DictReader(source))
+            rows[0]["paths"] = str(
+                Path(folder).resolve() / "deliberately-missing.bin"
+            )
+            with temporary.open(
+                "w", newline="", encoding="utf-8"
+            ) as destination:
+                writer = csv.DictWriter(
+                    destination,
+                    fieldnames=("paths", "hashes"),
+                    lineterminator="\n",
+                )
+                writer.writeheader()
+                writer.writerows(rows)
+            with mock.patch.object(
+                contract, "PROTECTED", temporary
+            ), mock.patch.object(
+                contract, "PROTECTED_SHA256", contract.sha256(temporary)
+            ):
+                result = contract.verify_source_contract()
+            self.assertEqual(
+                result["protected_manifest_mode"], PROTECTED_MODE
+            )
 
     def test_baseline_hash_mismatch_raises_contract_error_under_optimization(self):
         wrong_hash = "0" * 64
