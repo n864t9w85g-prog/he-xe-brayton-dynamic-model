@@ -1,5 +1,5 @@
 import math
-from dataclasses import fields
+from dataclasses import fields, replace
 import itertools
 import sys
 import unittest
@@ -315,6 +315,114 @@ class RadiatorA1MathTests(unittest.TestCase):
             row.rejection_reasons,
             ("no_physical_wall_root",),
         )
+
+    def test_invalid_wall_root_values_are_structurally_rejected(self):
+        kwargs = self._valid_kwargs()
+        expected_power_W = (
+            kwargs["m_dot_kg_s"] * a1_math._enthalpy_rise_J_kg()
+        )
+        invalid_wall_values = (
+            math.nan,
+            math.inf,
+            -math.inf,
+            kwargs["sink_K"],
+            a1_math.T_MEAN_K,
+            math.nextafter(a1_math.T_MEAN_K, math.inf),
+            sys.float_info.max,
+        )
+        for wall_K in invalid_wall_values:
+            with self.subTest(wall_K=wall_K):
+                with mock.patch.object(
+                    a1_math,
+                    "_wall_root",
+                    return_value=wall_K,
+                ):
+                    row = a1_math.solve_static_case(**kwargs)
+                self.assertEqual(row.Q_NaK_W, expected_power_W)
+                for value in (
+                    row.Twall_K,
+                    row.A_exchange_m2,
+                    row.A_rad_m2,
+                    row.UA_W_K,
+                    row.M_rad_kg,
+                    row.mass_margin_kg,
+                    row.exchange_residual_W,
+                    row.radiation_residual_W,
+                ):
+                    self.assertTrue(math.isnan(value))
+                self.assertEqual(row.condition_status, "rejected")
+                self.assertEqual(row.rejection_reasons, (
+                    "nonpositive_or_nonfinite_derived_quantity",
+                    "equation_residual_above_tolerance",
+                ))
+
+        kwargs["input_units_complete"] = False
+        with mock.patch.object(
+            a1_math,
+            "_wall_root",
+            return_value=math.nan,
+        ):
+            row = a1_math.solve_static_case(**kwargs)
+        self.assertEqual(row.condition_status, "rejected")
+        self.assertEqual(row.rejection_reasons, (
+            "nonpositive_or_nonfinite_derived_quantity",
+            "equation_residual_above_tolerance",
+            "missing_input_identity_or_unit",
+        ))
+
+    def test_generator_checks_each_evidence_component_before_joining(self):
+        baseline_rows = a1_math.generate_static_rows()
+        baseline_by_id = {row.row_id: row for row in baseline_rows}
+        evidence_axes = (
+            ("BRANCHES", "maturity", "branch_id", "branch_id"),
+            ("FLOWS", "evidence", "case_id", "flow_case"),
+            (
+                "EMISSIVITIES",
+                "evidence",
+                "case_id",
+                "epsilon_case",
+            ),
+            ("SINKS", "evidence", "case_id", "sink_case"),
+            ("H_ANCHORS", "evidence", "case_id", "h_case"),
+        )
+        for axis_name, evidence_field, key_field, row_field in evidence_axes:
+            original_axis = getattr(contract, axis_name)
+            changed_value = replace(
+                original_axis[0],
+                **{evidence_field: ""},
+            )
+            changed_axis = (changed_value, *original_axis[1:])
+            affected_key = getattr(changed_value, key_field)
+            with self.subTest(axis=axis_name):
+                with mock.patch.object(contract, axis_name, changed_axis):
+                    actual_rows = a1_math.generate_static_rows()
+
+                self.assertEqual(len(actual_rows), len(baseline_rows))
+                for actual in actual_rows:
+                    baseline = baseline_by_id[actual.row_id]
+                    if getattr(actual, row_field) != affected_key:
+                        self.assertEqual(actual, baseline)
+                        continue
+
+                    expected_reasons = (
+                        baseline.rejection_reasons
+                        + ("missing_input_identity_or_unit",)
+                    )
+                    expected_status = (
+                        "rejected"
+                        if baseline.rejection_reasons
+                        else "unidentifiable_due_to_missing_input"
+                    )
+                    self.assertEqual(
+                        actual.rejection_reasons,
+                        expected_reasons,
+                    )
+                    self.assertEqual(actual.condition_status, expected_status)
+
+                self.assertEqual(
+                    a1_math.generate_static_rows(),
+                    baseline_rows,
+                )
 
     def test_finite_huge_flow_is_structurally_rejected_without_exception(self):
         kwargs = self._valid_kwargs()

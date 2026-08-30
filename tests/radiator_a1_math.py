@@ -198,6 +198,47 @@ def solve_static_case(
             tuple(rejection_reasons),
         )
 
+    if not (
+        math.isfinite(wall_K)
+        and sink_K < wall_K < T_MEAN_K
+    ):
+        rejection_reasons = [
+            "nonpositive_or_nonfinite_derived_quantity",
+            "equation_residual_above_tolerance",
+        ]
+        if identity_or_unit_missing:
+            rejection_reasons.append("missing_input_identity_or_unit")
+        return StaticRow(
+            row_id,
+            branch_id,
+            kappa_kg_m2,
+            technology_maturity,
+            flow_case,
+            m_dot_kg_s,
+            epsilon_case,
+            epsilon,
+            sink_case,
+            sink_K,
+            h_case,
+            h_W_m2K,
+            power_W,
+            nan,
+            nan,
+            nan,
+            nan,
+            nan,
+            nan,
+            nan,
+            nan,
+            "rejected",
+            (
+                evidence_status_per_input
+                if isinstance(evidence_status_per_input, str)
+                else ""
+            ),
+            tuple(rejection_reasons),
+        )
+
     try:
         area_m2 = power_W / (h_W_m2K * (T_MEAN_K - wall_K))
     except (ArithmeticError, ValueError):
@@ -295,14 +336,20 @@ def generate_static_rows() -> list[StaticRow]:
         contract.SINKS,
         contract.H_ANCHORS,
     ):
-        evidence = "|".join(
-            (
-                branch.maturity,
-                flow.evidence,
-                emissivity.evidence,
-                sink.evidence,
-                h_anchor.evidence,
+        evidence_components = (
+            branch.maturity,
+            flow.evidence,
+            emissivity.evidence,
+            sink.evidence,
+            h_anchor.evidence,
+        )
+        evidence = (
+            "|".join(evidence_components)
+            if all(
+                isinstance(value, str) and bool(value)
+                for value in evidence_components
             )
+            else ""
         )
         rows.append(
             solve_static_case(
