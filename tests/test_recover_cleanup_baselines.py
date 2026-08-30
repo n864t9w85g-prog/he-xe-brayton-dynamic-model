@@ -72,6 +72,11 @@ class RecoverCleanupBaselinesTests(unittest.TestCase):
                 self.assertEqual((output / name).read_bytes(), payload)
             self.assertTrue((output / "baseline_manifest.csv").is_file())
             self.assertTrue((output / "README.md").is_file())
+            for name in ("baseline_manifest.csv", "README.md"):
+                text = (output / name).read_text(encoding="utf-8")
+                self.assertFalse(
+                    any(line.endswith(" ") for line in text.splitlines())
+                )
 
     def test_wrong_hash_leaves_no_output(self):
         with tempfile.TemporaryDirectory() as folder:

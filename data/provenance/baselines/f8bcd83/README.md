@@ -6,5 +6,6 @@ Source commit: `f8bcd833e816eb681982b7dd04364e4b856948e3`.
 
 These SLX files are recovered as opaque Git blobs. They were not loaded, unpacked, simulated, or edited during recovery.
 
-`paper_reproduced = false`  
+`paper_reproduced = false`
+
 `formal_promotion = false`

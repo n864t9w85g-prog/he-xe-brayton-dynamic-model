@@ -109,7 +109,7 @@ def _readme_bytes(commit: str) -> bytes:
         "any conclusion obtained from the superseded dynamic-model state.\n\n"
         "These SLX files are recovered as opaque Git blobs. They were not loaded, "
         "unpacked, simulated, or edited during recovery.\n\n"
-        "`paper_reproduced = false`  \n"
+        "`paper_reproduced = false`\n\n"
         "`formal_promotion = false`\n"
     ).encode("utf-8")
 
