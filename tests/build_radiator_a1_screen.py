@@ -19,11 +19,48 @@ from tests import radiator_a1_math as a1math
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SPEC_RELATIVE = (
+    "docs/superpowers/specs/"
+    "2026-08-30-radiator-a1-staged-parameter-envelope-design.md"
+)
+UNIT_CONTRACT = {
+    "kappa_kg_m2": "kg/m^2",
+    "m_dot_NaK_kg_s": "kg/s",
+    "epsilon": "1",
+    "T_sink_K": "K",
+    "h_W_m2K": "W/(m^2*K)",
+    "cp_proxy_J_kgK": "J/(kg*K)",
+    "Q_NaK_W": "W",
+    "Twall_K": "K",
+    "Twall_condition_K": "K",
+    "A_exchange_m2": "m^2",
+    "A_rad_m2": "m^2",
+    "UA_W_K": "W/K",
+    "M_rad_kg": "kg",
+    "mass_margin_kg": "kg",
+    "exchange_residual_W": "W",
+    "radiation_residual_W": "W",
+    "C_eff_proxy_J_K": "J/K",
+    "G_effective_W_K": "W/K",
+    "tau_predicted_s": "s",
+}
 
 
-def _same(left: float, right: float) -> bool:
-    """Compare contract numbers with a fixed absolute-only tolerance."""
-    return math.isclose(left, right, rel_tol=0.0, abs_tol=1e-9)
+def _contract_axis(values, expected_value: float, expected_unit: str, label: str):
+    matches = [value for value in values if value.value == expected_value]
+    if len(matches) != 1:
+        raise ValueError(
+            f"{label} value must identify exactly one contract axis: "
+            f"value={expected_value}; matches={len(matches)}"
+        )
+    selected = matches[0]
+    if selected.unit != expected_unit or not selected.evidence:
+        raise ValueError(
+            f"{label} contract identity is incomplete: "
+            f"case_id={selected.case_id}; unit={selected.unit!r}; "
+            f"evidence={selected.evidence!r}"
+        )
+    return selected
 
 
 def _static_for_role(rows: Iterable, branch_id: str, role):
@@ -37,15 +74,58 @@ def _static_for_role(rows: Iterable, branch_id: str, role):
             f"branch_id={branch_id}; matches={len(branches)}"
         )
     branch = branches[0]
+    if not branch.maturity:
+        raise ValueError(f"branch maturity is empty: branch_id={branch_id}")
+    flow = _contract_axis(
+        contract.FLOWS, role.flow_kg_s, "kg/s", "flow"
+    )
+    emissivity = _contract_axis(
+        contract.EMISSIVITIES, role.epsilon, "1", "emissivity"
+    )
+    sink = _contract_axis(contract.SINKS, role.sink_K, "K", "sink")
+    h_anchor = _contract_axis(
+        contract.H_ANCHORS, role.h_W_m2K, "W/(m^2*K)", "h"
+    )
+    expected_row_id = "__".join(
+        (
+            branch.branch_id,
+            flow.case_id,
+            emissivity.case_id,
+            sink.case_id,
+            h_anchor.case_id,
+        )
+    )
+    expected_evidence = "|".join(
+        (
+            branch.maturity,
+            flow.evidence,
+            emissivity.evidence,
+            sink.evidence,
+            h_anchor.evidence,
+        )
+    )
+    valid_statuses = {
+        "not_rejected_under_necessary_conditions",
+        "rejected",
+        "unidentifiable_due_to_missing_input",
+    }
     matches = [
         row
         for row in rows
-        if row.branch_id == branch_id
-        and _same(row.kappa_kg_m2, branch.kappa_kg_m2)
-        and _same(row.m_dot_NaK_kg_s, role.flow_kg_s)
-        and _same(row.epsilon, role.epsilon)
-        and _same(row.T_sink_K, role.sink_K)
-        and _same(row.h_W_m2K, role.h_W_m2K)
+        if row.row_id == expected_row_id
+        and row.branch_id == branch_id
+        and row.kappa_kg_m2 == branch.kappa_kg_m2
+        and row.technology_maturity == branch.maturity
+        and row.flow_case == flow.case_id
+        and row.m_dot_NaK_kg_s == flow.value
+        and row.epsilon_case == emissivity.case_id
+        and row.epsilon == emissivity.value
+        and row.sink_case == sink.case_id
+        and row.T_sink_K == sink.value
+        and row.h_case == h_anchor.case_id
+        and row.h_W_m2K == h_anchor.value
+        and row.evidence_status_per_input == expected_evidence
+        and row.condition_status in valid_statuses
     ]
     if len(matches) != 1:
         raise ValueError(
@@ -91,6 +171,16 @@ def build_screen(force_reject_candidate: str | None = None) -> dict:
     source_contract = contract.verify_source_contract()
     rows = a1math.generate_static_rows()
     representatives = []
+    identity_hashes = {
+        "spec_sha256": contract.sha256(ROOT / SPEC_RELATIVE),
+        "generator_sha256": contract.sha256(Path(__file__)),
+        "contract_module_sha256": contract.sha256(
+            ROOT / "tests/radiator_a1_contract.py"
+        ),
+        "math_module_sha256": contract.sha256(
+            ROOT / "tests/radiator_a1_math.py"
+        ),
+    }
 
     candidate_index = 0
     for branch in contract.BRANCHES:
@@ -99,28 +189,49 @@ def build_screen(force_reject_candidate: str | None = None) -> dict:
             candidate_id = candidate_ids[candidate_index]
             candidate_index += 1
             rejection_reasons = list(row.rejection_reasons)
+            if (
+                row.condition_status
+                != "not_rejected_under_necessary_conditions"
+            ):
+                rejection_reasons.append("source_row_not_eligible")
             if candidate_id == force_reject_candidate:
                 rejection_reasons.append("test_forced_rejection")
 
-            capacity_J_K = row.M_rad_kg * role.cp_proxy_J_kgK
-            radiation_conductance_W_K = (
-                4.0
-                * a1math.SIGMA
-                * row.epsilon
-                * row.A_rad_m2
-                * row.Twall_K**3
+            try:
+                capacity_J_K = row.M_rad_kg * role.cp_proxy_J_kgK
+            except (ArithmeticError, ValueError):
+                capacity_J_K = math.nan
+            proxy_inputs_are_valid = all(
+                _finite_positive(value)
+                for value in (
+                    row.M_rad_kg,
+                    role.cp_proxy_J_kgK,
+                    row.UA_W_K,
+                    row.epsilon,
+                    row.A_rad_m2,
+                    row.Twall_K,
+                )
             )
-            effective_conductance_W_K = (
-                row.UA_W_K + radiation_conductance_W_K
-            )
-            if _finite_positive(capacity_J_K) and _finite_positive(
-                effective_conductance_W_K
-            ):
-                tau_s = capacity_J_K / effective_conductance_W_K
+            if proxy_inputs_are_valid and _finite_positive(capacity_J_K):
+                try:
+                    radiation_conductance_W_K = (
+                        4.0
+                        * a1math.SIGMA
+                        * row.epsilon
+                        * row.A_rad_m2
+                        * row.Twall_K**3
+                    )
+                    effective_conductance_W_K = (
+                        row.UA_W_K + radiation_conductance_W_K
+                    )
+                    tau_s = capacity_J_K / effective_conductance_W_K
+                except (ArithmeticError, OverflowError, ValueError):
+                    effective_conductance_W_K = math.nan
+                    tau_s = math.nan
             else:
+                effective_conductance_W_K = math.nan
                 tau_s = math.nan
-
-            positive_derived_values = all(
+            proxy_derived_values_are_valid = all(
                 _finite_positive(value)
                 for value in (
                     capacity_J_K,
@@ -128,23 +239,57 @@ def build_screen(force_reject_candidate: str | None = None) -> dict:
                     tau_s,
                 )
             )
+            if not proxy_derived_values_are_valid:
+                rejection_reasons.append(
+                    "nonpositive_or_nonfinite_proxy_derived_quantity"
+                )
+            rejection_reasons = list(dict.fromkeys(rejection_reasons))
             eligible = (
                 row.condition_status
                 == "not_rejected_under_necessary_conditions"
                 and not rejection_reasons
-                and positive_derived_values
+                and proxy_derived_values_are_valid
             )
+            input_provenance = {
+                "branch": {
+                    "branch_id": branch.branch_id,
+                    "kappa_kg_m2": branch.kappa_kg_m2,
+                    "technology_maturity": branch.maturity,
+                },
+                "static_inputs": {
+                    "flow_case": row.flow_case,
+                    "epsilon_case": row.epsilon_case,
+                    "sink_case": row.sink_case,
+                    "h_case": row.h_case,
+                    "evidence_status_per_input": (
+                        row.evidence_status_per_input
+                    ),
+                },
+                "cp_proxy": {
+                    "value_J_kgK": role.cp_proxy_J_kgK,
+                    "identity": "sensitivity_proxy",
+                    "evidence": "approved_engineering_sensitivity_axis",
+                },
+            }
             representatives.append(
                 {
                     "candidate_id": candidate_id,
                     "source_row_id": row.row_id,
                     "branch_id": branch.branch_id,
+                    "kappa_kg_m2": branch.kappa_kg_m2,
                     "technology_maturity": branch.maturity,
                     "role_id": role.role_id,
+                    "flow_case": row.flow_case,
                     "m_dot_NaK_kg_s": role.flow_kg_s,
+                    "epsilon_case": row.epsilon_case,
                     "epsilon": role.epsilon,
+                    "sink_case": row.sink_case,
                     "T_sink_K": role.sink_K,
+                    "h_case": row.h_case,
                     "h_W_m2K": role.h_W_m2K,
+                    "evidence_status_per_input": (
+                        row.evidence_status_per_input
+                    ),
                     "cp_proxy_J_kgK": role.cp_proxy_J_kgK,
                     "cp_identity": "sensitivity_proxy",
                     "Q_NaK_W": row.Q_NaK_W,
@@ -160,6 +305,21 @@ def build_screen(force_reject_candidate: str | None = None) -> dict:
                     "timescale_relation": _timescale_relation(tau_s),
                     "eligible_for_slx": eligible,
                     "rejection_reasons": rejection_reasons,
+                    "input_provenance": input_provenance,
+                    "unit_contract_ref": (
+                        "source_contract/unit_contract.json"
+                    ),
+                    "source_contract_ref": (
+                        "source_contract/source_contract.json"
+                    ),
+                    "equation_version": "radiator_a1_static_v1",
+                    "spec_path": SPEC_RELATIVE,
+                    **identity_hashes,
+                    "run_time_record": {
+                        "mode": "deferred_to_execution_stage",
+                        "wall_clock_utc": None,
+                        "reason": "deterministic_offline_core",
+                    },
                     "paper_reproduced": False,
                     "formal_promotion": False,
                 }
@@ -167,20 +327,7 @@ def build_screen(force_reject_candidate: str | None = None) -> dict:
 
     return {
         "source_contract": source_contract,
-        "unit_contract": {
-            "m_dot_NaK_kg_s": "kg/s",
-            "epsilon": "1",
-            "T_sink_K": "K",
-            "h_W_m2K": "W/(m^2*K)",
-            "Q_NaK_W": "W",
-            "Twall_K": "K",
-            "A_exchange_m2": "m^2",
-            "A_rad_m2": "m^2",
-            "UA_W_K": "W/K",
-            "M_rad_kg": "kg",
-            "C_eff_proxy_J_K": "J/K",
-            "tau_predicted_s": "s",
-        },
+        "unit_contract": UNIT_CONTRACT,
         "offline_rows": [asdict(row) for row in rows],
         "representatives": representatives,
         "paper_reproduced": False,
