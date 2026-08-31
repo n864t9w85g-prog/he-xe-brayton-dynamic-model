@@ -11,6 +11,8 @@ import csv
 import hashlib
 import io
 import json
+import os
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,6 +27,7 @@ PDF_SHA256 = "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a"
 THRESHOLD = 120
 X_NEIGHBORHOOD = 1
 SAMPLE_TIMES = (10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 230, 300, 400, 450, 495)
+ARTIFACT_NAMES = ("source_page_106.png", "paper_points.csv", "provenance.json", "digitization_overlay.png", "README.md")
 
 
 @dataclass(frozen=True)
@@ -48,13 +51,24 @@ def _hash(data: bytes) -> str:
 
 
 def _safe_output(output: Path) -> Path:
-    output = output.resolve(strict=False)
-    probe = output
-    while probe != probe.parent:
-        if probe.exists() and probe.is_symlink():
-            raise RuntimeError("refusing symlinked output path")
-        probe = probe.parent
-    return output
+    raw = Path(output)
+    if not raw.is_absolute():
+        raw = ROOT / raw
+    if ".." in raw.parts:
+        raise RuntimeError("refusing lexical path escape")
+    probe = Path(raw.anchor)
+    for part in raw.parts[1:]:
+        probe /= part
+        if os.path.lexists(probe):
+            mode = os.lstat(probe).st_mode
+            if stat.S_ISLNK(mode):
+                raise RuntimeError("refusing symlinked output path")
+            if probe != raw and not stat.S_ISDIR(mode):
+                raise RuntimeError("output parent is not a directory")
+    resolved = raw.resolve(strict=False)
+    if ROOT.resolve() not in resolved.parents:
+        raise RuntimeError("output must remain under the repository root")
+    return resolved
 
 
 def _source_bytes(source: Path) -> bytes:
@@ -82,6 +96,11 @@ def _groups_at_x(gray: Image.Image, panel: Panel, x: int) -> list[tuple[int, int
     for y in range(top + 4, bottom - 3):  # axis-border rejection
         if min(gray.getpixel((xx, y)) for xx in range(x - X_NEIGHBORHOOD, x + X_NEIGHBORHOOD + 1)) < THRESHOLD:
             dark.append(y)
+    return _groups_from_dark_y(dark)
+
+
+def _groups_from_dark_y(dark: list[int]) -> list[tuple[int, int, float]]:
+    """Return contiguous ink groups; centers are their arithmetic pixel centers."""
     groups: list[list[int]] = []
     for y in dark:
         if not groups or y > groups[-1][-1] + 1:
@@ -91,9 +110,17 @@ def _groups_at_x(gray: Image.Image, panel: Panel, x: int) -> list[tuple[int, int
     return [(group[0], group[-1], sum(group) / len(group)) for group in groups]
 
 
-def extract(source: Path = SOURCE) -> tuple[list[dict[str, object]], Image.Image]:
+def _select_group(groups: list[tuple[int, int, float]], later_center: float | None) -> tuple[int, int, float] | None:
+    if later_center is not None:
+        groups = [group for group in groups if abs(group[2] - later_center) <= 80]
+    if not groups:
+        return None
+    # Fixed image-only tie break: closest to later center, then uppermost center.
+    return min(groups, key=lambda group: (0.0 if later_center is None else abs(group[2] - later_center), group[2]))
+
+
+def extract_bytes(data: bytes) -> tuple[list[dict[str, object]], Image.Image]:
     """Trace each panel from right to left, selecting only image-continuous ink."""
-    data = _source_bytes(source)
     image = Image.open(io.BytesIO(data)).convert("RGB")
     gray = image.convert("L")
     points: list[dict[str, object]] = []
@@ -105,12 +132,9 @@ def extract(source: Path = SOURCE) -> tuple[list[dict[str, object]], Image.Image
             groups = _groups_at_x(gray, panel, x)
             if not groups:
                 raise RuntimeError(f"empty trace column: panel {panel.panel_id}, t={time_s}")
-            candidates = groups if later_center is None else [g for g in groups if abs(g[2] - later_center) <= 80]
-            if not candidates:
+            selected = _select_group(groups, later_center)
+            if selected is None:
                 raise RuntimeError(f"trace jump exceeds 80 pixels: panel {panel.panel_id}, t={time_s}")
-            # Fixed image-only tie break: closest to the later accepted center,
-            # then the uppermost group. This avoids incidental scan specks.
-            selected = min(candidates, key=lambda g: (0.0 if later_center is None else abs(g[2] - later_center), g[2]))
             later_center = selected[2]
             accepted.append({
                 "panel_id": panel.panel_id, "trace_id": f"fig5.19-{panel.panel_id}",
@@ -121,6 +145,10 @@ def extract(source: Path = SOURCE) -> tuple[list[dict[str, object]], Image.Image
             })
         points.extend(reversed(accepted))
     return points, image
+
+
+def extract(source: Path = SOURCE) -> tuple[list[dict[str, object]], Image.Image]:
+    return extract_bytes(_source_bytes(source))
 
 
 def _csv_bytes(rows: list[dict[str, object]]) -> bytes:
@@ -175,51 +203,94 @@ def _manifest(artifacts: dict[str, bytes]) -> bytes:
     return stream.getvalue().encode()
 
 
+def _artifacts_from_source_bytes(source_bytes: bytes) -> dict[str, bytes]:
+    if _hash(source_bytes) != SOURCE_SHA256:
+        raise RuntimeError("source page hash does not match the source contract")
+    rows, image = extract_bytes(source_bytes)
+    return {
+        "source_page_106.png": source_bytes,
+        "paper_points.csv": _csv_bytes(rows),
+        "provenance.json": _provenance(),
+        "digitization_overlay.png": _overlay_bytes(image, rows),
+        "README.md": _readme(),
+    }
+
+
 def _planned(source: Path) -> dict[str, bytes]:
-    rows, image = extract(source)
-    artifacts = {"source_page_106.png": _source_bytes(source), "paper_points.csv": _csv_bytes(rows), "provenance.json": _provenance(), "digitization_overlay.png": _overlay_bytes(image, rows), "README.md": _readme()}
+    artifacts = _artifacts_from_source_bytes(_source_bytes(source))
     artifacts["manifest.csv"] = _manifest(artifacts)
     return artifacts
 
 
-def _check_existing(output: Path, artifacts: dict[str, bytes]) -> None:
-    if output.exists() and output.is_symlink():
-        raise RuntimeError("refusing symlinked destination")
+def _check_exact_directory(output: Path, artifacts: dict[str, bytes]) -> None:
+    if not output.is_dir() or output.is_symlink():
+        raise RuntimeError("destination is not a safe directory")
+    names = {entry.name for entry in output.iterdir()}
+    if names != set(artifacts):
+        raise RuntimeError("artifact set is incomplete or unexpected")
     for name, payload in artifacts.items():
         target = output / name
-        if target.is_symlink():
-            raise RuntimeError(f"refusing symlinked artifact: {name}")
-        if target.exists() and target.read_bytes() != payload:
+        if target.is_symlink() or not target.is_file() or target.read_bytes() != payload:
             raise RuntimeError(f"conflicting existing artifact: {name}")
+
+
+def _write_file_exclusive(path: Path, payload: bytes) -> None:
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    try:
+        offset = 0
+        while offset < len(payload):
+            offset += os.write(fd, payload[offset:])
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _fsync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _publish_new_atomic(output: Path, artifacts: dict[str, bytes]) -> None:
+    staging = output.parent / (output.name + ".staging")
+    if os.path.lexists(staging):
+        raise RuntimeError("stale staging directory requires manual audit")
+    os.mkdir(staging, 0o755)
+    try:
+        for name, payload in artifacts.items():
+            _write_file_exclusive(staging / name, payload)
+        _check_exact_directory(staging, artifacts)
+        _fsync_directory(staging)
+        if os.path.lexists(output):
+            raise RuntimeError("destination appeared during publication")
+        os.rename(staging, output)
+        _fsync_directory(output.parent)
+    except Exception:
+        # Preserve staging for audit; never delete a path that could be replaced.
+        raise
 
 
 def publish(source: Path = SOURCE, output: Path = OUTPUT) -> None:
     output = _safe_output(Path(output))
     artifacts = _planned(Path(source))
-    _check_existing(output, artifacts)
-    output.mkdir(parents=True, exist_ok=True)
-    for name, payload in artifacts.items():
-        target = output / name
-        if not target.exists():
-            target.write_bytes(payload)
+    if os.path.lexists(output):
+        _check_exact_directory(output, artifacts)
+        return
+    _publish_new_atomic(output, artifacts)
 
 
 def verify_only(output: Path = OUTPUT) -> None:
     output = _safe_output(Path(output))
     if not output.is_dir() or output.is_symlink():
         raise RuntimeError("durable publication directory is missing or unsafe")
-    expected = {"source_page_106.png", "paper_points.csv", "provenance.json", "digitization_overlay.png", "README.md", "manifest.csv"}
-    if {path.name for path in output.iterdir() if path.is_file()} != expected:
-        raise RuntimeError("durable artifact set is incomplete or unexpected")
-    manifest = list(csv.DictReader((output / "manifest.csv").read_text().splitlines()))
-    if {row["path"] for row in manifest} != expected - {"manifest.csv"}:
-        raise RuntimeError("manifest coverage is incorrect")
-    for row in manifest:
-        artifact = output / row["path"]
-        if artifact.is_symlink() or _hash(artifact.read_bytes()) != row["sha256"] or artifact.stat().st_size != int(row["bytes"]):
-            raise RuntimeError(f"manifest validation failed: {row['path']}")
-    if _hash((output / "source_page_106.png").read_bytes()) != SOURCE_SHA256:
+    source_bytes = (output / "source_page_106.png").read_bytes()
+    if _hash(source_bytes) != SOURCE_SHA256:
         raise RuntimeError("durable source page hash is wrong")
+    artifacts = _artifacts_from_source_bytes(source_bytes)
+    artifacts["manifest.csv"] = _manifest(artifacts)
+    _check_exact_directory(output, artifacts)
 
 
 def main() -> None:

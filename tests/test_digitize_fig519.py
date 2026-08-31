@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import math
+import os
 import subprocess
 import sys
 import tempfile
@@ -21,6 +22,13 @@ TIMES = (10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 230, 300, 400, 450, 495)
 
 
 class Figure519DigitizationTests(unittest.TestCase):
+    def _temporary_output(self, work: str, label: str) -> Path:
+        return Path(work) / label
+
+    def _coherent_manifest(self, output: Path) -> None:
+        artifacts = {name: (output / name).read_bytes() for name in subject.ARTIFACT_NAMES}
+        (output / "manifest.csv").write_bytes(subject._manifest(artifacts))
+
     def test_literal_calibrations_and_fixed_times(self):
         self.assertEqual(subject.PANELS[0], subject.Panel("a", (179, 503, 0.0, 500.0), (341, 593, 3750.0, 1750.0), 25.0))
         self.assertEqual(subject.PANELS[1], subject.Panel("b", (555, 880, 0.0, 500.0), (338, 580, 2300.0, 1800.0), 6.0))
@@ -117,7 +125,7 @@ class Figure519DigitizationTests(unittest.TestCase):
             self.assertNotIn(forbidden, source)
 
     def test_rejects_conflicting_destination_and_verify_only_writes_nothing(self):
-        with tempfile.TemporaryDirectory() as work:
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
             output = Path(work) / "out"
             subject.publish(output=output)
             (output / "README.md").write_text("conflict")
@@ -127,6 +135,77 @@ class Figure519DigitizationTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 subject.verify_only(output=output)
             self.assertEqual(before, {p.name: p.read_bytes() for p in output.iterdir()})
+
+    def test_verify_only_recomputes_every_artifact_from_durable_source(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            for name in ("paper_points.csv", "provenance.json", "digitization_overlay.png", "README.md"):
+                output = self._temporary_output(work, name.replace(".", "_"))
+                subject.publish(output=output)
+                target = output / name
+                target.write_bytes(target.read_bytes() + b"corruption")
+                self._coherent_manifest(output)
+                before = {p.name: p.read_bytes() for p in output.iterdir()}
+                with self.assertRaises(RuntimeError):
+                    subject.verify_only(output=output)
+                self.assertEqual(before, {p.name: p.read_bytes() for p in output.iterdir()})
+            output = self._temporary_output(work, "source_independent")
+            subject.publish(output=output)
+            with mock.patch.object(subject, "SOURCE", Path("missing-paper-page.png")):
+                subject.verify_only(output=output)
+
+    def test_rejects_symlink_paths_unexpected_entries_and_stale_staging(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            parent = Path(work)
+            actual = parent / "actual"
+            actual.mkdir()
+            direct = parent / "direct"
+            os.symlink(actual, direct)
+            with self.assertRaises(RuntimeError):
+                subject.publish(output=direct / "out")
+            ancestor = parent / "ancestor"
+            os.symlink(actual, ancestor)
+            with self.assertRaises(RuntimeError):
+                subject.publish(output=ancestor / "out")
+            output = self._temporary_output(work, "entries")
+            subject.publish(output=output)
+            (output / "unexpected").mkdir()
+            with self.assertRaises(RuntimeError):
+                subject.verify_only(output=output)
+            output = self._temporary_output(work, "stale")
+            staging = output.parent / (output.name + ".staging")
+            staging.mkdir(parents=True)
+            with self.assertRaises(RuntimeError):
+                subject.publish(output=output)
+
+    def test_first_publication_is_atomic_on_injected_write_failure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._temporary_output(work, "atomic")
+            original = subject._write_file_exclusive
+            calls = 0
+            def fail_second(path, payload):
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    raise OSError("injected write failure")
+                original(path, payload)
+            with mock.patch.object(subject, "_write_file_exclusive", fail_second):
+                with self.assertRaises(OSError):
+                    subject.publish(output=output)
+            self.assertFalse(output.exists())
+            self.assertTrue((output.parent / (output.name + ".staging")).is_dir())
+
+    def test_synthetic_trace_helpers_follow_image_only_rules(self):
+        self.assertEqual(subject._groups_from_dark_y([5, 6, 8, 9, 10]), [(5, 6, 5.5), (8, 10, 9.0)])
+        groups = [(100, 102, 101.0), (104, 106, 105.0)]
+        self.assertEqual(subject._select_group(groups, 103.0), (100, 102, 101.0))  # uppermost center resolves equal distance
+        self.assertEqual(subject._select_group(groups, None), (100, 102, 101.0))
+        self.assertIsNone(subject._select_group([(200, 202, 201.0)], 100.0))
+        panel = subject.Panel("z", (0, 10, 0.0, 10.0), (10, 30, 30.0, 10.0), 1.0)
+        gray = __import__("PIL.Image", fromlist=["Image"]).new("L", (20, 40), 255)
+        for x in range(4, 7):
+            gray.putpixel((x, 10), 0)  # border ink, must be excluded
+            gray.putpixel((x, 15), 0)
+        self.assertEqual(subject._groups_at_x(gray, panel, 5), [(15, 15, 15.0)])
 
 
 if __name__ == "__main__":
