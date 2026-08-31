@@ -463,16 +463,38 @@ class Figure519CounterfactualTests(unittest.TestCase):
             a2_attempt = summary["attempts"][1]
             self.assertEqual(a2_attempt["attempt_summary"]["analysis"]["conclusion"],
                              "reactor_ic_alone_falsified")
+            a2_analysis = a2_attempt["attempt_summary"]["analysis"]
             self.assertEqual(a2_attempt["execution_record"]["formal_process_exit_code"], 0)
             self.assertEqual(a2_attempt["execution_record"]["formal_command_invocation_count"], 1)
             self.assertEqual(a2_attempt["execution_record"]["run_steady53_case_call_count"], 1)
             self.assertEqual(a2_attempt["execution_record"]["retry_count"], 0)
+            executed_runner = a2_attempt["execution_record"]["attempted_runner_sha256"]
+            self.assertEqual(a2_analysis["attempted_runner_sha256"], executed_runner)
+            self.assertEqual(a2_analysis["post_fix_runner_sha256"], executed_runner)
+            self.assertTrue(a2_analysis["post_fix_runner_executed_in_formal_attempt"])
+            post_hoc = a2_attempt["runtime_helper_post_hoc_evidence"]
+            self.assertEqual(post_hoc["evidence_class"], "post_hoc_git_inference")
+            self.assertFalse(post_hoc["contemporaneously_captured_before_execution"])
+            self.assertFalse(post_hoc["additional_uncaptured_command_dependency"]
+                             ["commit_tree_identity_continuity_claimed"])
             self.assertEqual(summary["latest_attempt_id"], "20260901_A2")
             self.assertEqual(summary["latest_scientific_conclusion"],
                              "reactor_ic_alone_falsified")
             self.assertFalse(summary["paper_reproduced"])
             self.assertFalse(summary["author_initial_state_identified"])
             self.assertFalse(summary["formal_promotion"])
+            damaged = json.loads(json.dumps(summary))
+            damaged["attempts"][1]["attempt_summary"]["analysis"][
+                "attempted_runner_sha256"] = None
+            with self.assertRaises(RuntimeError):
+                subject.validate_durable_summary(
+                    damaged, run_dir=A2, execution_capture=CAPTURE)
+            damaged = json.loads(json.dumps(summary))
+            damaged["attempts"][1]["runtime_helper_post_hoc_evidence"][
+                "evidence_class"] = "contemporaneous_capture"
+            with self.assertRaises(RuntimeError):
+                subject.validate_durable_summary(
+                    damaged, run_dir=A2, execution_capture=CAPTURE)
             with (output / "manifest.csv").open(newline="") as handle:
                 rows = {row["path"]: row for row in csv.DictReader(handle)}
             expected = {
@@ -535,6 +557,74 @@ class Figure519CounterfactualTests(unittest.TestCase):
             subject.publish(A2, output, execution_capture=CAPTURE)
             subject.verify_only(A2, output, execution_capture=CAPTURE)
             self.assertFalse(subject.transaction_dir(output).exists())
+
+    def test_a2_completed_analysis_binds_the_executed_fixed_runner(self):
+        execution = a2_capture.verify_execution(CAPTURE, A2)
+        a2_analysis = subject.analyze(A2)
+        runner_sha = execution["attempted_runner_sha256"]
+        self.assertEqual(runner_sha,
+                         "5183aa8e0add0ecc409e420ba88723639f5f53c37d42cc8a8288f0c9e186eece")
+        self.assertEqual(a2_analysis["attempted_runner_sha256"], runner_sha)
+        self.assertEqual(a2_analysis["post_fix_runner_sha256"], runner_sha)
+        self.assertTrue(a2_analysis["post_fix_runner_executed_in_formal_attempt"])
+        self.assertEqual(a2_analysis["run_steady53_case_call_count"], 1)
+        self.assertEqual(a2_analysis["retry_count"], 0)
+
+        a1_analysis = subject.analyze(A1)
+        self.assertEqual(a1_analysis["attempted_runner_sha256"],
+                         subject.ATTEMPTED_RUNNER_SHA256)
+        self.assertNotEqual(a1_analysis["post_fix_runner_sha256"],
+                            subject.ATTEMPTED_RUNNER_SHA256)
+        self.assertFalse(a1_analysis["post_fix_runner_executed_in_formal_attempt"])
+
+    def test_a2_runtime_helpers_are_explicit_post_hoc_git_inference(self):
+        evidence = subject.a2_runtime_helper_post_hoc_evidence()
+        self.assertEqual(evidence["evidence_class"], "post_hoc_git_inference")
+        self.assertFalse(evidence["contemporaneously_captured_before_execution"])
+        self.assertEqual(
+            evidence["limitation"],
+            "cannot exclude execution-time uncommitted modifications that were later reverted",
+        )
+        self.assertEqual(
+            evidence["additional_uncaptured_command_dependency"][
+                "repository_relative_path"],
+            "tests/prepare_fig519_reactor_ic_a2.py",
+        )
+        self.assertFalse(
+            evidence["additional_uncaptured_command_dependency"][
+                "commit_tree_identity_continuity_claimed"])
+        expected = {
+            "tests/steady53/run_steady53_case.m": (
+                "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42",
+                "e813320a30178e2ea5b9708f0526a0f993516df2",
+                "0b93df3541d91a7fbd5dcf719220653d56047c4d",
+            ),
+            "tests/steady53/steady53_signal_manifest.m": (
+                "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd",
+                "e813320a30178e2ea5b9708f0526a0f993516df2",
+                "9f881fe4e4316e0f198d70188f37d625aeb07861",
+            ),
+            "tests/steady53/reset_steady53_property_warning_state.m": (
+                "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0",
+                "e813320a30178e2ea5b9708f0526a0f993516df2",
+                "9f881fe4e4316e0f198d70188f37d625aeb07861",
+            ),
+        }
+        self.assertEqual(set(evidence["files"]), set(expected))
+        for path, (digest, first_commit, last_commit) in expected.items():
+            item = evidence["files"][path]
+            self.assertEqual(item["current_sha256"], digest)
+            self.assertEqual(item["first_relevant_git_commit"], first_commit)
+            self.assertEqual(item["last_relevant_git_commit"], last_commit)
+            self.assertEqual(
+                {row["commit"]: row["sha256"] for row in item["specified_commit_trees"]},
+                {
+                    "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a": digest,
+                    "abcb12530509223c753d6b5055e2eb65f45d58d7": digest,
+                    "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9": digest,
+                },
+            )
+            self.assertTrue(item["all_specified_commits_and_current_identical"])
 
 
 if __name__ == "__main__":

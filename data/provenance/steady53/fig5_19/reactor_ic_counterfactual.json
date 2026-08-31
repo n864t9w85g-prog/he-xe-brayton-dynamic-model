@@ -982,7 +982,7 @@
       "attempt_summary": {
         "analysis": {
           "analysis_schema": "steady53_fig519_reactor_ic_counterfactual_analysis_v1",
-          "attempted_runner_sha256": null,
+          "attempted_runner_sha256": "5183aa8e0add0ecc409e420ba88723639f5f53c37d42cc8a8288f0c9e186eece",
           "author_initial_state_identified": false,
           "candidate_value_W": 3186507.937,
           "candidate_value_identity": "figure_5_19_digitized_t10_proxy_not_author_t0",
@@ -1262,8 +1262,8 @@
           },
           "numerical_or_physical_gate_passed": true,
           "paper_reproduced": false,
-          "post_fix_runner_executed_in_formal_attempt": false,
-          "post_fix_runner_sha256": null,
+          "post_fix_runner_executed_in_formal_attempt": true,
+          "post_fix_runner_sha256": "5183aa8e0add0ecc409e420ba88723639f5f53c37d42cc8a8288f0c9e186eece",
           "retry_count": 0,
           "run_steady53_case_call_count": 1
         },
@@ -1320,10 +1320,10 @@
           },
           {
             "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/analysis.json",
-            "bytes": 9560,
+            "bytes": 9683,
             "identity": "analysis",
             "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/analysis.json",
-            "sha256": "fe59cbede7d886b2cadccf732fe6f81b55755fc49dc8c52fac128c77812c81c4",
+            "sha256": "2575ec31a01ab04f55f273b02e3b74cc5d4c7476321bec5eafbc9b7f9f0c7c96",
             "storage": "external_tmp_not_copied"
           }
         ],
@@ -3076,7 +3076,100 @@
           "scope": "outer_wrapper_timestamp_capture_only"
         }
       },
-      "execution_record_sha256": "1d74e719518dd66fe1ce434c78afdfcda0603ab87c0e955beccd91964fbded38"
+      "execution_record_sha256": "1d74e719518dd66fe1ce434c78afdfcda0603ab87c0e955beccd91964fbded38",
+      "runtime_helper_post_hoc_evidence": {
+        "additional_uncaptured_command_dependency": {
+          "commit_tree_identity_continuity_claimed": false,
+          "observed_effect": "preflight verifier printed READY before MATLAB launch",
+          "repository_relative_path": "tests/prepare_fig519_reactor_ic_a2.py",
+          "status": "not_contemporaneously_captured_and_changed_after_execution"
+        },
+        "all_specified_commits_and_current_identical": true,
+        "attempt_id": "20260901_A2",
+        "author_initial_state_identified": false,
+        "contemporaneously_captured_before_execution": false,
+        "evidence_class": "post_hoc_git_inference",
+        "evidence_schema": "steady53_fig519_a2_runtime_helpers_post_hoc_git_v1",
+        "execution_record_modified": false,
+        "files": {
+          "tests/steady53/reset_steady53_property_warning_state.m": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tests/steady53/reset_steady53_property_warning_state.m",
+            "all_specified_commits_and_current_identical": true,
+            "current_sha256": "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0",
+            "first_relevant_git_commit": "e813320a30178e2ea5b9708f0526a0f993516df2",
+            "last_relevant_git_commit": "9f881fe4e4316e0f198d70188f37d625aeb07861",
+            "repository_relative_path": "tests/steady53/reset_steady53_property_warning_state.m",
+            "specified_commit_trees": [
+              {
+                "commit": "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a",
+                "sha256": "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0"
+              },
+              {
+                "commit": "abcb12530509223c753d6b5055e2eb65f45d58d7",
+                "sha256": "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0"
+              },
+              {
+                "commit": "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9",
+                "sha256": "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0"
+              }
+            ]
+          },
+          "tests/steady53/run_steady53_case.m": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tests/steady53/run_steady53_case.m",
+            "all_specified_commits_and_current_identical": true,
+            "current_sha256": "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42",
+            "first_relevant_git_commit": "e813320a30178e2ea5b9708f0526a0f993516df2",
+            "last_relevant_git_commit": "0b93df3541d91a7fbd5dcf719220653d56047c4d",
+            "repository_relative_path": "tests/steady53/run_steady53_case.m",
+            "specified_commit_trees": [
+              {
+                "commit": "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a",
+                "sha256": "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42"
+              },
+              {
+                "commit": "abcb12530509223c753d6b5055e2eb65f45d58d7",
+                "sha256": "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42"
+              },
+              {
+                "commit": "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9",
+                "sha256": "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42"
+              }
+            ]
+          },
+          "tests/steady53/steady53_signal_manifest.m": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tests/steady53/steady53_signal_manifest.m",
+            "all_specified_commits_and_current_identical": true,
+            "current_sha256": "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd",
+            "first_relevant_git_commit": "e813320a30178e2ea5b9708f0526a0f993516df2",
+            "last_relevant_git_commit": "9f881fe4e4316e0f198d70188f37d625aeb07861",
+            "repository_relative_path": "tests/steady53/steady53_signal_manifest.m",
+            "specified_commit_trees": [
+              {
+                "commit": "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a",
+                "sha256": "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd"
+              },
+              {
+                "commit": "abcb12530509223c753d6b5055e2eb65f45d58d7",
+                "sha256": "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd"
+              },
+              {
+                "commit": "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9",
+                "sha256": "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd"
+              }
+            ]
+          }
+        },
+        "formal_promotion": false,
+        "interpretation": "the three runtime-helper git trees and current worktree agree, but neither that agreement nor the observed preflight output proves all exact execution-time worktree bytes",
+        "limitation": "cannot exclude execution-time uncommitted modifications that were later reverted",
+        "paper_reproduced": false,
+        "raw_or_candidate_modified": false,
+        "specified_commit_order": [
+          "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a",
+          "abcb12530509223c753d6b5055e2eb65f45d58d7",
+          "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9"
+        ]
+      }
     }
   ],
   "author_initial_state_identified": false,
@@ -3085,6 +3178,14 @@
   "latest_attempt_id": "20260901_A2",
   "latest_scientific_conclusion": "reactor_ic_alone_falsified",
   "paper_reproduced": false,
+  "reproducibility_limitations": [
+    {
+      "attempt_id": "20260901_A2",
+      "evidence_class": "post_hoc_git_inference",
+      "limitation": "cannot exclude execution-time uncommitted modifications that were later reverted",
+      "summary_location": "attempts[1].runtime_helper_post_hoc_evidence"
+    }
+  ],
   "summary_schema": "steady53_fig519_reactor_ic_counterfactual_history_v2",
   "total_formal_command_invocation_count": 2,
   "total_retry_count": 0,

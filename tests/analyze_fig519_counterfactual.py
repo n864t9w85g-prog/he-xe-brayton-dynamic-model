@@ -17,6 +17,7 @@ import json
 import math
 import os
 import stat
+import subprocess
 import tempfile
 from bisect import bisect_left
 from contextlib import contextmanager
@@ -61,6 +62,10 @@ NONFLAT_RATIO = 10.0
 PAPER_ETA = 0.98
 HISTORICAL_ETA = 0.96527
 ATTEMPTED_RUNNER_SHA256 = "42f447ae2ddfd6829b037548c2dd7d0af7d0a38aef779ee898cd30bf2ebd109b"
+A2_EXECUTED_RUNNER_SHA256 = "5183aa8e0add0ecc409e420ba88723639f5f53c37d42cc8a8288f0c9e186eece"
+A2_ANALYSIS_PRE_FIX_SHA256 = "fe59cbede7d886b2cadccf732fe6f81b55755fc49dc8c52fac128c77812c81c4"
+A2_HISTORY_PRE_FIX_SUMMARY_SHA256 = "df05533b631c48e0e1bbcb1bf602f95d6dabbf376f247c3cf9bba0132cbf6cde"
+A2_HISTORY_PRE_FIX_MANIFEST_SHA256 = "538c70cbe019edfb1edd4938d32c0b3ae90945c070be2eac0804b677e972f8fe"
 INVOCATION_FAILURE_SHA256 = "7c9906e3dd283624aac3ad7a6bb75de926dd5301eb1501a0c5a1178a3c733554"
 EXPECTED_FORMAL_COMMAND = (
     "test ! -e tmp/fig519_reactor_ic_20260831_A1 && "
@@ -124,6 +129,28 @@ A2_CAPTURE_EXTERNAL_KEYS = {
         "@external/reactor_ic_a2_timestamp_recorder_failure.json",
     "execution_record.json": "@external/reactor_ic_a2_execution_record.json",
 }
+POST_HOC_HELPER_COMMITS = (
+    "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a",
+    "abcb12530509223c753d6b5055e2eb65f45d58d7",
+    "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9",
+)
+POST_HOC_HELPERS = {
+    "tests/steady53/run_steady53_case.m": {
+        "sha256": "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42",
+        "first": "e813320a30178e2ea5b9708f0526a0f993516df2",
+        "last": "0b93df3541d91a7fbd5dcf719220653d56047c4d",
+    },
+    "tests/steady53/steady53_signal_manifest.m": {
+        "sha256": "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd",
+        "first": "e813320a30178e2ea5b9708f0526a0f993516df2",
+        "last": "9f881fe4e4316e0f198d70188f37d625aeb07861",
+    },
+    "tests/steady53/reset_steady53_property_warning_state.m": {
+        "sha256": "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0",
+        "first": "e813320a30178e2ea5b9708f0526a0f993516df2",
+        "last": "9f881fe4e4316e0f198d70188f37d625aeb07861",
+    },
+}
 # Backward-compatible name used by the successful synthetic publication tests.
 EXTERNAL_ARTIFACT_KEYS = SUCCESS_EXTERNAL_ARTIFACT_KEYS
 _SUCCESS_EXTERNAL_IDENTITIES = {
@@ -147,6 +174,75 @@ TARGETS = (SUMMARY_NAME, "manifest.csv")
 
 def _hash(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
+
+
+def _git_bytes(*args: str) -> bytes:
+    completed = subprocess.run(
+        ["git", *args], cwd=ROOT, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "post-hoc git evidence command failed: " +
+            completed.stderr.decode(errors="replace").strip())
+    return completed.stdout
+
+
+def a2_runtime_helper_post_hoc_evidence() -> dict[str, object]:
+    """Reconstruct a bounded git-tree inference without claiming capture."""
+    files: dict[str, object] = {}
+    for relative, fixed in POST_HOC_HELPERS.items():
+        current = _regular_file(ROOT / relative)
+        current_sha = _hash(current.read_bytes())
+        if current_sha != fixed["sha256"]:
+            raise RuntimeError(f"A2 live helper current identity changed: {relative}")
+        history = _git_bytes("log", "--follow", "--format=%H", "--", relative)
+        commits = [line for line in history.decode().splitlines() if line]
+        if (not commits or commits[0] != fixed["last"] or
+                commits[-1] != fixed["first"]):
+            raise RuntimeError(f"A2 live helper git-history bounds changed: {relative}")
+        tree_rows = []
+        for commit in POST_HOC_HELPER_COMMITS:
+            digest = _hash(_git_bytes("show", f"{commit}:{relative}"))
+            if digest != fixed["sha256"]:
+                raise RuntimeError(
+                    f"A2 live helper differs in specified commit {commit}: {relative}")
+            tree_rows.append({"commit": commit, "sha256": digest})
+        files[relative] = {
+            "repository_relative_path": relative,
+            "absolute_path": str(current),
+            "current_sha256": current_sha,
+            "first_relevant_git_commit": fixed["first"],
+            "last_relevant_git_commit": fixed["last"],
+            "specified_commit_trees": tree_rows,
+            "all_specified_commits_and_current_identical": True,
+        }
+    return {
+        "evidence_schema": "steady53_fig519_a2_runtime_helpers_post_hoc_git_v1",
+        "attempt_id": "20260901_A2",
+        "evidence_class": "post_hoc_git_inference",
+        "contemporaneously_captured_before_execution": False,
+        "specified_commit_order": list(POST_HOC_HELPER_COMMITS),
+        "files": files,
+        "all_specified_commits_and_current_identical": True,
+        "limitation": (
+            "cannot exclude execution-time uncommitted modifications that were later reverted"),
+        "additional_uncaptured_command_dependency": {
+            "repository_relative_path": "tests/prepare_fig519_reactor_ic_a2.py",
+            "status": "not_contemporaneously_captured_and_changed_after_execution",
+            "commit_tree_identity_continuity_claimed": False,
+            "observed_effect": "preflight verifier printed READY before MATLAB launch",
+        },
+        "interpretation": (
+            "the three runtime-helper git trees and current worktree agree, but neither "
+            "that agreement nor the observed preflight output proves all exact "
+            "execution-time worktree bytes"),
+        "execution_record_modified": False,
+        "raw_or_candidate_modified": False,
+        "paper_reproduced": False,
+        "author_initial_state_identified": False,
+        "formal_promotion": False,
+    }
 
 
 def _json_bytes(value: object) -> bytes:
@@ -867,6 +963,28 @@ def analyze(run_dir: Path) -> dict[str, object]:
         conclusion = "numerical_or_physical_gate_failed"
     gate_failure_class = ("pre_simulation_infrastructure" if pre_simulation_failure else
                           (None if numerical_gate else status["experiment_status"]))
+    if pre_simulation_failure:
+        attempted_runner_sha256 = status["attempted_runner_sha256"]
+        post_fix_runner_sha256 = _hash(_regular_file(
+            ROOT / "tests/run_fig519_reactor_ic_counterfactual.m").read_bytes())
+        post_fix_runner_executed = False
+    elif run_dir == A2_RUN_DIR.resolve():
+        captured_runner = _regular_file(
+            A2_EXECUTION_CAPTURE / "attempted_runner.m", require_tmp=True)
+        attempted_runner_sha256 = _hash(captured_runner.read_bytes())
+        current_runner_sha256 = _hash(_regular_file(
+            ROOT / "tests/run_fig519_reactor_ic_counterfactual.m").read_bytes())
+        if (attempted_runner_sha256 != A2_EXECUTED_RUNNER_SHA256 or
+                current_runner_sha256 != A2_EXECUTED_RUNNER_SHA256 or
+                status["run_steady53_case_call_count"] != 1 or
+                status["retry_count"] != 0):
+            raise RuntimeError("A2 executed-runner evidence is inconsistent")
+        post_fix_runner_sha256 = attempted_runner_sha256
+        post_fix_runner_executed = True
+    else:
+        attempted_runner_sha256 = None
+        post_fix_runner_sha256 = None
+        post_fix_runner_executed = False
     result = {
         "analysis_schema": "steady53_fig519_reactor_ic_counterfactual_analysis_v1",
         "counterfactual_question": audit["counterfactual_question"],
@@ -882,12 +1000,9 @@ def analyze(run_dir: Path) -> dict[str, object]:
                                                 if pre_simulation_failure else 1),
         "run_steady53_case_call_count": status["run_steady53_case_call_count"],
         "retry_count": status["retry_count"],
-        "attempted_runner_sha256": (status["attempted_runner_sha256"]
-                                       if pre_simulation_failure else None),
-        "post_fix_runner_sha256": (_hash(_regular_file(
-            ROOT / "tests/run_fig519_reactor_ic_counterfactual.m").read_bytes())
-            if pre_simulation_failure else None),
-        "post_fix_runner_executed_in_formal_attempt": False,
+        "attempted_runner_sha256": attempted_runner_sha256,
+        "post_fix_runner_sha256": post_fix_runner_sha256,
+        "post_fix_runner_executed_in_formal_attempt": post_fix_runner_executed,
         "direction_rule": DIRECTION_RULE,
         "nonflat_rule": {"formula": "candidate peak-to-peak > ratio * unmodified reference peak-to-peak noise",
                          "ratio": NONFLAT_RATIO, "declared_before_candidate_result": True},
@@ -898,7 +1013,11 @@ def analyze(run_dir: Path) -> dict[str, object]:
         "conclusion": conclusion, "paper_reproduced": False,
         "author_initial_state_identified": False, "formal_promotion": False,
     }
-    validate_analysis(result)
+    validate_analysis(
+        result,
+        executed_runner_sha256=(A2_EXECUTED_RUNNER_SHA256
+                                if run_dir == A2_RUN_DIR.resolve() else None),
+    )
     return result
 
 
@@ -913,7 +1032,8 @@ def _finite_tree(value: object, path: str = "root") -> None:
             _finite_tree(child, f"{path}[{index}]")
 
 
-def validate_analysis(result: object) -> dict[str, object]:
+def validate_analysis(result: object, *,
+                      executed_runner_sha256: str | None = None) -> dict[str, object]:
     if not isinstance(result, dict):
         raise RuntimeError("analysis must be an object")
     if (result.get("analysis_schema") != "steady53_fig519_reactor_ic_counterfactual_analysis_v1" or
@@ -954,6 +1074,14 @@ def validate_analysis(result: object) -> dict[str, object]:
         note = result.get("gate_failure_enum_semantic_note")
         if not isinstance(note, str) or "broader" not in note:
             raise RuntimeError("pre-simulation enum qualification is missing")
+    if executed_runner_sha256 is not None:
+        if (executed_runner_sha256 != A2_EXECUTED_RUNNER_SHA256 or
+                result.get("attempted_runner_sha256") != executed_runner_sha256 or
+                result.get("post_fix_runner_sha256") != executed_runner_sha256 or
+                result.get("post_fix_runner_executed_in_formal_attempt") is not True or
+                result.get("run_steady53_case_call_count") != 1 or
+                result.get("retry_count") != 0):
+            raise RuntimeError("A2 analysis does not bind the executed fixed runner")
     _finite_tree(result)
     return result
 
@@ -962,8 +1090,31 @@ def _ensure_analysis_file(run_dir: Path, result: dict[str, object]) -> Path:
     path = run_dir / "analysis.json"
     payload = _json_bytes(result)
     if os.path.lexists(path):
-        if path.is_symlink() or not path.is_file() or path.read_bytes() != payload:
+        if path.is_symlink() or not path.is_file():
             raise RuntimeError("existing analysis.json conflicts with recomputation")
+        current = path.read_bytes()
+        if current != payload:
+            if (run_dir != A2_RUN_DIR.resolve() or
+                    _hash(current) != A2_ANALYSIS_PRE_FIX_SHA256):
+                raise RuntimeError("existing analysis.json conflicts with recomputation")
+            validate_analysis(result, executed_runner_sha256=A2_EXECUTED_RUNNER_SHA256)
+            migration = path.with_name(".analysis.runner-binding-migration")
+            if os.path.lexists(migration):
+                raise RuntimeError("stale A2 analysis migration file")
+            fd = os.open(migration, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            try:
+                offset = 0
+                while offset < len(payload):
+                    offset += os.write(fd, payload[offset:])
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            os.replace(migration, path)
+            directory_fd = os.open(run_dir, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
     else:
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
@@ -1021,6 +1172,10 @@ def _history_summary(output: Path, run_dir: Path,
     predecessor = json.loads(predecessor_payload)
     if predecessor.get("summary_schema") == (
             "steady53_fig519_reactor_ic_counterfactual_history_v2"):
+        if _hash(predecessor_payload) != A2_HISTORY_PRE_FIX_SUMMARY_SHA256:
+            validate_durable_summary(
+                predecessor, run_dir=A2_RUN_DIR,
+                execution_capture=execution_capture)
         attempts = predecessor.get("attempts")
         if (not isinstance(attempts, list) or len(attempts) != 2 or
                 attempts[0].get("attempt_id") != "20260831_A1"):
@@ -1042,11 +1197,13 @@ def _history_summary(output: Path, run_dir: Path,
             A1_DURABLE_SUMMARY_SHA256):
         raise RuntimeError("A1 attempt was not preserved byte-for-byte canonically")
     execution = _verified_a2_execution(execution_capture, run_dir)
+    post_hoc_helpers = a2_runtime_helper_post_hoc_evidence()
     a2_summary = _summary(run_dir, result)
     a2_entry = {
         "attempt_id": "20260901_A2",
         "execution_record_sha256": _hash(_json_bytes(execution)),
         "execution_record": execution,
+        "runtime_helper_post_hoc_evidence": post_hoc_helpers,
         "attempt_summary": a2_summary,
     }
     history = {
@@ -1059,6 +1216,12 @@ def _history_summary(output: Path, run_dir: Path,
         "total_run_steady53_case_call_count": 1,
         "total_retry_count": 0,
         "latest_scientific_conclusion": result["conclusion"],
+        "reproducibility_limitations": [{
+            "attempt_id": "20260901_A2",
+            "evidence_class": "post_hoc_git_inference",
+            "limitation": post_hoc_helpers["limitation"],
+            "summary_location": "attempts[1].runtime_helper_post_hoc_evidence",
+        }],
         "paper_reproduced": False,
         "author_initial_state_identified": False,
         "formal_promotion": False,
@@ -1289,11 +1452,11 @@ def _task6_manifest(output: Path) -> bytes:
 
 
 def _history_predecessors(output: Path,
-                          payloads: dict[str, bytes]) -> dict[str, bytes]:
+                          payloads: dict[str, bytes]) -> dict[str, tuple[bytes, ...]]:
     planned = json.loads(payloads[SUMMARY_NAME])
     if planned.get("summary_schema") != (
             "steady53_fig519_reactor_ic_counterfactual_history_v2"):
-        return {"manifest.csv": _task6_manifest(output)}
+        return {"manifest.csv": (_task6_manifest(output),)}
     attempts = planned.get("attempts")
     if not isinstance(attempts, list) or len(attempts) != 2:
         raise RuntimeError("planned Task 7 history lacks its A1 predecessor")
@@ -1301,9 +1464,24 @@ def _history_predecessors(output: Path,
     a1_payload = _json_bytes(a1_summary)
     if _hash(a1_payload) != A1_DURABLE_SUMMARY_SHA256:
         raise RuntimeError("planned Task 7 history changed the A1 predecessor")
+    pre_fix_payload = _git_bytes(
+        "show", "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9:"
+        "data/provenance/steady53/fig5_19/reactor_ic_counterfactual.json")
+    if _hash(pre_fix_payload) != A2_HISTORY_PRE_FIX_SUMMARY_SHA256:
+        raise RuntimeError("registered A2 pre-fix summary identity changed")
+    summary_predecessors = [a1_payload]
+    manifest_predecessors = [_manifest_bytes(output, a1_payload, a1_summary)]
+    if output.resolve() == OUTPUT.resolve():
+        pre_fix_manifest = _git_bytes(
+            "show", "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9:"
+            "data/provenance/steady53/fig5_19/manifest.csv")
+        if _hash(pre_fix_manifest) != A2_HISTORY_PRE_FIX_MANIFEST_SHA256:
+            raise RuntimeError("registered A2 pre-fix manifest identity changed")
+        summary_predecessors.append(pre_fix_payload)
+        manifest_predecessors.append(pre_fix_manifest)
     return {
-        SUMMARY_NAME: a1_payload,
-        "manifest.csv": _manifest_bytes(output, a1_payload, a1_summary),
+        SUMMARY_NAME: tuple(summary_predecessors),
+        "manifest.csv": tuple(manifest_predecessors),
     }
 
 
@@ -1320,7 +1498,7 @@ def _target_state(output: Path, payloads: dict[str, bytes]) -> dict[str, str]:
             raise RuntimeError(f"unsafe Task 7 target: {name}")
         elif path.read_bytes() == payloads[name]:
             states[name] = "expected"
-        elif name in predecessors and path.read_bytes() == predecessors[name]:
+        elif name in predecessors and path.read_bytes() in predecessors[name]:
             states[name] = "predecessor"
         else:
             raise RuntimeError(f"unregistered Task 7 target predecessor: {name}")
@@ -1474,6 +1652,19 @@ def validate_durable_summary(summary: object, run_dir: Path | None = None,
                 a2.get("execution_record_sha256") != _hash(_json_bytes(execution))):
             raise RuntimeError("Task 7 A2 execution record changed")
         analysis = a2_summary["analysis"]
+        validate_analysis(
+            analysis, executed_runner_sha256=execution["attempted_runner_sha256"])
+        post_hoc_helpers = a2_runtime_helper_post_hoc_evidence()
+        if (a2.get("runtime_helper_post_hoc_evidence") != post_hoc_helpers or
+                "runtime_helper_post_hoc_evidence" in execution or
+                summary.get("reproducibility_limitations") != [{
+                    "attempt_id": "20260901_A2",
+                    "evidence_class": "post_hoc_git_inference",
+                    "limitation": post_hoc_helpers["limitation"],
+                    "summary_location":
+                        "attempts[1].runtime_helper_post_hoc_evidence",
+                }]):
+            raise RuntimeError("Task 7 A2 post-hoc helper evidence changed")
         if (summary.get("latest_scientific_conclusion") != analysis["conclusion"] or
                 analysis.get("falsification_question_answered") is not True):
             raise RuntimeError("Task 7 latest conclusion is not bound to A2")
@@ -1489,8 +1680,13 @@ def validate_durable_summary(summary: object, run_dir: Path | None = None,
            ("paper_reproduced", "author_initial_state_identified", "formal_promotion")):
         raise RuntimeError("Task 7 summary makes a forbidden promotion")
     audit = validate_patch_audit(summary.get("patch_audit"), run_dir=run_dir)
-    analysis = validate_analysis(summary.get("analysis"))
     selected = run_dir or Path(audit["candidate_absolute_path"]).parent
+    analysis = validate_analysis(
+        summary.get("analysis"),
+        executed_runner_sha256=(A2_EXECUTED_RUNNER_SHA256
+                                if Path(selected).resolve() == A2_RUN_DIR.resolve()
+                                else None),
+    )
     evidence_kind = summary.get("experiment_evidence_kind")
     if evidence_kind == "pre_simulation_failure_stub_not_raw_output":
         _validate_invocation_failure(summary.get("run_status"), selected, audit)
