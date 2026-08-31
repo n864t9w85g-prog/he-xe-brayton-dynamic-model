@@ -89,12 +89,12 @@ def verify_snapshot():
         require(constants['Constant5']['Value'] == '9.755', 'Constant5 mismatch')
         require(constants['Constant4']['Value'] == 'Cp_rad', 'Constant4 mismatch')
         require(core['T_env']['Value'] == '225', 'T_env mismatch')
-        assert core['Tho']['Expr'] == '((u(2)-0.8)*u(3)+u(1))/(u(2)+0.2)'
-        assert core['Fcn1']['Expr'] == 'u(2)*(0.8*u(3)+0.2*u(6)-u(5))-u(1)*(u(5)^4-u(4)^4)'
+        require(core['Tho']['Expr'] == '((u(2)-0.8)*u(3)+u(1))/(u(2)+0.2)', 'Tho equation mismatch')
+        require(core['Fcn1']['Expr'] == 'u(2)*(0.8*u(3)+0.2*u(6)-u(5))-u(1)*(u(5)^4-u(4)^4)', 'Fcn equation mismatch')
     param_file = RUNTIME/'sys_param_rad_fixed.m'
     params = param_file.read_text()
     for name, value in [('Cp_rad', '900'), ('epsilon', '0.9'), ('theta', '5.67e-8')]:
-        assert re.search(r'^'+name+r'\s*=\s*'+re.escape(value)+r'\s*;', params, re.M)
+        require(re.search(r'^'+name+r'\s*=\s*'+re.escape(value)+r'\s*;', params, re.M), f'{name} parameter mismatch')
     provenance_file = SCAN_PROVENANCE
     provenance = json.loads(provenance_file.read_text())
     require(provenance['source'].endswith('/paper-105.png'), 'provenance source mismatch')

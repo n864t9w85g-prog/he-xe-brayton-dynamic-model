@@ -30,6 +30,11 @@ class DurablePathTests(unittest.TestCase):
         hashes = diagnostic.verify_snapshot()
         self.assertIn('data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m', hashes)
 
+    def test_production_diagnostics_have_no_assert_statements(self):
+        root = Path(__file__).resolve().parents[1]
+        for name in ('radiator_curve_energy_check.py', 'radiator_parameter_family_check.py'):
+            self.assertNotIn('assert ', (root / 'tests' / name).read_text())
+
 
 if __name__ == '__main__':
     unittest.main()
