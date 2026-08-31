@@ -1,5 +1,13 @@
+import csv
+import hashlib
+import os
+import stat
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from tests import publish_f8bcd83_runtime as publisher
 
@@ -8,6 +16,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class PublishF8bcd83RuntimeTests(unittest.TestCase):
+    @staticmethod
+    def _hash(data):
+        return hashlib.sha256(data).hexdigest()
+
+    @staticmethod
+    def _write(path, data):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+
     def test_expected_hashes_match_literal_contract(self):
         self.assertEqual(
             publisher.EXPECTED_SHA256,
@@ -42,6 +59,279 @@ class PublishF8bcd83RuntimeTests(unittest.TestCase):
                 "formal_promotion": False,
             },
         )
+
+    def test_publish_file_rejects_source_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            baseline.mkdir()
+            real_source = temporary_root / "real-source"
+            self._write(real_source, b"trusted")
+            source_link = temporary_root / "source-link"
+            source_link.symlink_to(real_source)
+            destination = baseline / "runtime/file"
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish_file(
+                        source_link, destination, self._hash(b"trusted")
+                    )
+            self.assertFalse(os.path.lexists(destination))
+
+    def test_publish_file_rejects_matching_destination_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            destination = baseline / "runtime/file"
+            source = temporary_root / "source"
+            external = temporary_root / "external"
+            self._write(source, b"trusted")
+            self._write(external, b"trusted")
+            destination.parent.mkdir(parents=True)
+            destination.symlink_to(external)
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish_file(source, destination, self._hash(b"trusted"))
+            self.assertTrue(destination.is_symlink())
+
+    def test_publish_file_rejects_dangling_staging_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            destination = baseline / "runtime/file"
+            staging = destination.with_name(f"{destination.name}.publishing")
+            source = temporary_root / "source"
+            dangling_target = temporary_root / "outside/missing"
+            self._write(source, b"trusted")
+            staging.parent.mkdir(parents=True)
+            staging.symlink_to(dangling_target)
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish_file(source, destination, self._hash(b"trusted"))
+            self.assertTrue(staging.is_symlink())
+            self.assertFalse(os.path.lexists(dangling_target))
+
+    def test_publish_file_rejects_symlinked_destination_parent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            external = temporary_root / "outside"
+            baseline.mkdir()
+            external.mkdir()
+            (baseline / "runtime").symlink_to(external, target_is_directory=True)
+            source = temporary_root / "source"
+            self._write(source, b"trusted")
+            destination = baseline / "runtime/file"
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish_file(source, destination, self._hash(b"trusted"))
+            self.assertFalse(os.path.lexists(external / "file"))
+
+    def test_publish_file_rejects_destination_outside_baseline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            baseline.mkdir()
+            source = temporary_root / "source"
+            destination = temporary_root / "outside/file"
+            self._write(source, b"trusted")
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish_file(source, destination, self._hash(b"trusted"))
+            self.assertFalse(os.path.lexists(destination))
+
+    def test_publish_file_first_publication_creates_real_regular_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            baseline.mkdir()
+            source = temporary_root / "source"
+            destination = baseline / "runtime/nested/file"
+            self._write(source, b"trusted")
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                publisher.publish_file(source, destination, self._hash(b"trusted"))
+
+            destination_stat = destination.lstat()
+            self.assertTrue(stat.S_ISREG(destination_stat.st_mode))
+            self.assertFalse(destination.is_symlink())
+            self.assertEqual(destination.read_bytes(), b"trusted")
+
+    def test_publish_file_matching_regular_file_is_noop(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            source = temporary_root / "source"
+            destination = baseline / "runtime/file"
+            self._write(source, b"trusted")
+            self._write(destination, b"trusted")
+            original_mtime = 1_234_567_890_000_000_000
+            os.utime(destination, ns=(original_mtime, original_mtime))
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                publisher.publish_file(source, destination, self._hash(b"trusted"))
+
+            self.assertEqual(destination.stat().st_mtime_ns, original_mtime)
+            self.assertEqual(destination.read_bytes(), b"trusted")
+
+    def test_publish_file_rejects_source_hash_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            baseline.mkdir()
+            source = temporary_root / "source"
+            destination = baseline / "runtime/file"
+            self._write(source, b"untrusted")
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish_file(source, destination, self._hash(b"trusted"))
+            self.assertFalse(os.path.lexists(destination))
+
+    def test_publish_file_rejects_destination_hash_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            source = temporary_root / "source"
+            destination = baseline / "runtime/file"
+            self._write(source, b"trusted")
+            self._write(destination, b"different")
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish_file(source, destination, self._hash(b"trusted"))
+            self.assertEqual(destination.read_bytes(), b"different")
+
+    def test_publish_file_rejects_stale_regular_staging_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            source = temporary_root / "source"
+            destination = baseline / "runtime/file"
+            staging = destination.with_name(f"{destination.name}.publishing")
+            self._write(source, b"trusted")
+            self._write(staging, b"stale")
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish_file(source, destination, self._hash(b"trusted"))
+            self.assertEqual(staging.read_bytes(), b"stale")
+
+    def test_publish_file_preserves_attacker_replaced_staging_on_hash_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            baseline.mkdir()
+            source = temporary_root / "source"
+            destination = baseline / "runtime/file"
+            staging = destination.with_name(f"{destination.name}.publishing")
+            attacker_target = temporary_root / "attacker-target"
+            self._write(source, b"trusted")
+            self._write(attacker_target, b"attacker")
+            real_sha256 = publisher.sha256
+
+            def replace_staging_then_fail(path):
+                path = Path(path)
+                if path == staging:
+                    path.unlink()
+                    path.symlink_to(attacker_target)
+                    raise OSError("injected staging hash failure")
+                return real_sha256(path)
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with mock.patch.object(
+                    publisher, "sha256", side_effect=replace_staging_then_fail
+                ):
+                    with self.assertRaises(OSError):
+                        publisher.publish_file(
+                            source, destination, self._hash(b"trusted")
+                        )
+            self.assertTrue(staging.is_symlink())
+            self.assertEqual(attacker_target.read_bytes(), b"attacker")
+
+    def test_verify_tree_rejects_hash_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            verification_root = Path(directory)
+            relative = "runtime/file"
+            self._write(verification_root / relative, b"different")
+            with mock.patch.object(
+                publisher, "EXPECTED_SHA256", {relative: self._hash(b"trusted")}
+            ):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.verify_tree(verification_root)
+
+    def test_verify_tree_rejects_file_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            verification_root = Path(directory)
+            relative = "runtime/file"
+            external = verification_root / "external"
+            self._write(external, b"trusted")
+            link = verification_root / relative
+            link.parent.mkdir()
+            link.symlink_to(external)
+            with mock.patch.object(
+                publisher, "EXPECTED_SHA256", {relative: self._hash(b"trusted")}
+            ):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.verify_tree(verification_root)
+
+    def test_committed_runtime_tree_and_manifest_match_contract(self):
+        baseline = ROOT / "data/provenance/baselines/f8bcd83"
+        manifest_path = baseline / "baseline_manifest.csv"
+        with manifest_path.open(newline="", encoding="utf-8") as stream:
+            runtime_rows = [
+                row
+                for row in csv.DictReader(stream)
+                if row["git_path"].startswith("runtime/")
+            ]
+
+        expected_paths = set(publisher.EXPECTED_SHA256)
+        actual_paths = {row["git_path"] for row in runtime_rows}
+        disk_paths = {
+            path.relative_to(baseline).as_posix()
+            for path in (baseline / "runtime").rglob("*")
+            if not stat.S_ISDIR(path.lstat().st_mode)
+        }
+        self.assertEqual(len(runtime_rows), 14)
+        self.assertEqual(len(actual_paths), 14)
+        self.assertEqual(actual_paths, expected_paths)
+        self.assertEqual(disk_paths, expected_paths)
+
+        for row in runtime_rows:
+            relative = row["git_path"]
+            path = baseline / relative
+            self.assertEqual(int(row["size_bytes"]), path.stat().st_size)
+            self.assertEqual(row["sha256"], publisher.sha256(path))
+            self.assertEqual(row["sha256"], publisher.EXPECTED_SHA256[relative])
+            self.assertEqual(
+                row["source_commit"],
+                "f8bcd833e816eb681982b7dd04364e4b856948e3",
+            )
+            expected_role = (
+                "steady53_test_helper"
+                if relative.startswith("runtime/tests/steady53/")
+                else "steady53_runtime_dependency"
+            )
+            self.assertEqual(row["role"], expected_role)
+
+    def test_cli_verify_only_prints_exact_pass_line(self):
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "tests/publish_f8bcd83_runtime.py"), "--verify-only"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout,
+            "F8BCD83_RUNTIME_PASS; FILES=14; PAPER_REPRODUCED=false\n",
+        )
+        self.assertEqual(result.stderr, "")
 
 
 if __name__ == "__main__":
