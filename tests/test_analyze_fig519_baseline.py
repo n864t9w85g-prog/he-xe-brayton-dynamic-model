@@ -6,8 +6,10 @@ import math
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from tests import analyze_fig519_baseline as subject
 from tests import digitize_fig519 as digitizer
@@ -26,6 +28,147 @@ SOURCE_HASHES = {
 
 
 class Figure519BaselineTests(unittest.TestCase):
+    def _paper_only_output(self, work: str) -> Path:
+        output = Path(work) / "fig5_19"
+        digitizer.publish(output=output)
+        return output
+
+    def test_interrupted_baseline_publication_is_resumable(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._paper_only_output(work)
+            original = subject._write_exclusive
+            writes = 0
+            def fail_second_write(path, payload):
+                nonlocal writes
+                writes += 1
+                if writes == 2:
+                    raise OSError("injected stage interruption")
+                original(path, payload)
+            with mock.patch.object(subject, "_write_exclusive", fail_second_write):
+                with self.assertRaises(OSError):
+                    subject.publish(output=output)
+            with self.assertRaises(RuntimeError):
+                subject.verify_only(output=output)
+            subject.publish(output=output)
+            subject.verify_only(output=output)
+            digitizer.verify_only(output=output)
+
+    def test_normal_publish_recovers_exact_pre_transaction_partial_layer(self):
+        """An older interruption may have moved the layer before creating a record."""
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._paper_only_output(work)
+            delta = subject._planned_delta(output, SOURCE)
+            layer = output / digitizer.BASELINE_LAYER_DIR
+            layer.mkdir()
+            for name in digitizer.BASELINE_LAYER_NAMES:
+                (layer / name).write_bytes(delta[f"{digitizer.BASELINE_LAYER_DIR}/{name}"])
+            with self.assertRaises(RuntimeError):
+                subject.verify_only(output=output)
+            subject.publish(output=output)
+            subject.verify_only(output=output)
+            digitizer.verify_only(output=output)
+
+    def test_each_publication_boundary_leaves_a_resumable_partial_tree(self):
+        boundaries = (
+            "transaction-record", "staged-baseline", "baseline-layer-rename",
+            "baseline-metrics-commit", "signal-contract-commit", "manifest-commit",
+        )
+        for boundary in boundaries:
+            with self.subTest(boundary=boundary), tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+                output = self._paper_only_output(work)
+                def fail(point):
+                    if point == boundary:
+                        raise OSError(f"injected {point}")
+                # The production hook is deliberately exercised through normal
+                # publication, not by calling transaction helpers directly.
+                with mock.patch.object(subject, "_publication_boundary", fail, create=True):
+                    with self.assertRaises(OSError):
+                        subject.publish(output=output)
+                with self.assertRaises(RuntimeError):
+                    subject.verify_only(output=output)
+                subject.publish(output=output)
+                subject.verify_only(output=output)
+                digitizer.verify_only(output=output)
+
+    def test_parser_rejects_malformed_or_insufficient_csv(self):
+        for payload in (b"t,value\n", b"0,nan\n", b"0,inf\n", b"1,2\n0,3\n", b"0,1\n0,2\n", b"0,1\n"):
+            with self.assertRaises(RuntimeError):
+                subject._read_series(payload, "synthetic.csv")
+
+    def test_transaction_conflicts_are_rejected_without_target_overwrite(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._paper_only_output(work)
+            txn = subject._transaction_dir(output)
+            os.symlink(output, txn)
+            before = (output / "manifest.csv").read_bytes()
+            with self.assertRaises(RuntimeError):
+                subject.publish(output=output)
+            self.assertEqual((output / "manifest.csv").read_bytes(), before)
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._paper_only_output(work)
+            txn = subject._transaction_dir(output)
+            txn.mkdir(); (txn / "record.json").write_text("not a transaction")
+            (txn / "payload").mkdir()
+            before = (output / "manifest.csv").read_bytes()
+            with self.assertRaises(RuntimeError):
+                subject.publish(output=output)
+            self.assertEqual((output / "manifest.csv").read_bytes(), before)
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._paper_only_output(work)
+            txn = subject._transaction_dir(output)
+            txn.mkdir(); (txn / "record.json").write_text("not a transaction")
+            (txn / "payload").mkdir(); (txn / "unexpected").write_text("stale")
+            with self.assertRaises(RuntimeError):
+                subject.publish(output=output)
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._paper_only_output(work)
+            target = output / "baseline_metrics.json"
+            target.write_text("conflicting direct target")
+            before = target.read_bytes()
+            with self.assertRaises(RuntimeError):
+                subject.publish(output=output)
+            self.assertEqual(target.read_bytes(), before)
+
+    def test_completed_normal_publication_is_mtime_preserving(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._paper_only_output(work)
+            subject.publish(output=output)
+            before = {path.relative_to(output): (hashlib.sha256(path.read_bytes()).hexdigest(), path.stat().st_mtime_ns)
+                      for path in output.rglob("*") if path.is_file()}
+            subject.publish(output=output)
+            after = {path.relative_to(output): (hashlib.sha256(path.read_bytes()).hexdigest(), path.stat().st_mtime_ns)
+                     for path in output.rglob("*") if path.is_file()}
+            self.assertEqual(after, before)
+            self.assertFalse(subject._transaction_dir(output).exists())
+
+    def test_analysis_rejects_mismatched_time_vectors_and_wrong_final_time(self):
+        good = b"0,1\n14000,2\n"
+        wrong_final = b"0,1\n13999,2\n"
+        mismatched = b"0,1\n1,2\n14000,3\n"
+        with mock.patch.object(subject, "_literal_source_bytes", return_value={
+                "baseline_P_sw.csv": good, "baseline_WT_sw.csv": mismatched, "baseline_Wc_sw.csv": good}):
+            with self.assertRaises(RuntimeError):
+                subject.analyze()
+        with mock.patch.object(subject, "_literal_source_bytes", return_value={
+                "baseline_P_sw.csv": wrong_final, "baseline_WT_sw.csv": wrong_final, "baseline_Wc_sw.csv": wrong_final}):
+            with self.assertRaises(RuntimeError):
+                subject.analyze()
+
+    def test_interpolation_and_paper_parser_reject_invalid_rows(self):
+        with self.assertRaises(RuntimeError):
+            subject._interpolate([0.0, 1.0], [0.0, 1.0], -0.1)
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            paper_rows = Path(work) / "paper.csv"
+            paper_rows.write_text("panel_id,time_s,power_kW\nx,0,1\n")
+            with self.assertRaises(RuntimeError):
+                subject._paper_rows(paper_rows)
+            paper_rows.write_text("panel_id,time_s,power_kW\na,0,nope\n")
+            with self.assertRaises(RuntimeError):
+                subject._paper_rows(paper_rows)
+            paper_rows.write_text("panel_id,time_s,power_kW\n" + "\n".join(
+                ["a,0,1", "a,0,2"] + [f"{panel},{i},1" for panel in "bcd" for i in range(15)] + [f"a,{i},1" for i in range(1, 15)]) + "\n")
+            with self.assertRaises(RuntimeError):
+                subject._paper_rows(paper_rows)
     def test_contract_is_literal_and_analysis_reports_flat_nonreproduction(self):
         metrics, contract = subject.analyze()
         self.assertEqual(metrics["final_time_s"], 14000.0)

@@ -50,8 +50,12 @@ def _safe(path: Path) -> Path:
     probe = Path(path.anchor)
     for part in path.parts[1:]:
         probe /= part
-        if os.path.lexists(probe) and stat.S_ISLNK(os.lstat(probe).st_mode):
-            raise RuntimeError("refusing symlinked path")
+        if os.path.lexists(probe):
+            mode = os.lstat(probe).st_mode
+            if stat.S_ISLNK(mode):
+                raise RuntimeError("refusing symlinked path")
+            if probe != path and not stat.S_ISDIR(mode):
+                raise RuntimeError("output parent is not a directory")
     resolved = path.resolve(strict=False)
     if ROOT.resolve() not in resolved.parents and resolved != ROOT.resolve():
         raise RuntimeError("path must remain under the repository root")
@@ -83,9 +87,9 @@ def _read_series(payload: bytes, name: str) -> tuple[list[float], list[float]]:
         values = [float(row[1]) for row in rows]
     except ValueError as exc:
         raise RuntimeError(f"{name} has non-numeric values") from exc
-    if (any(not math.isfinite(v) for v in times + values) or
-            any(right < left for left, right in zip(times, times[1:]))):
-        raise RuntimeError(f"{name} must have finite nondecreasing time and finite values")
+    if (len(rows) < 2 or any(not math.isfinite(v) for v in times + values) or
+            any(right <= left for left, right in zip(times, times[1:]))):
+        raise RuntimeError(f"{name} must have at least two finite samples with strictly increasing time")
     return times, values
 
 
@@ -118,13 +122,20 @@ def _paper_rows(path: Path) -> dict[str, list[tuple[float, float]]]:
     with path.open(newline="") as handle:
         rows = list(csv.DictReader(handle))
     grouped = {panel: [] for panel in "abcd"}
+    seen: set[tuple[str, float]] = set()
     for row in rows:
         panel = row.get("panel_id")
         if panel not in grouped:
             raise RuntimeError("paper points have an unregistered panel")
-        time_s, power_kW = float(row["time_s"]), float(row["power_kW"])
+        try:
+            time_s, power_kW = float(row["time_s"]), float(row["power_kW"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RuntimeError("paper points have non-numeric required values") from exc
         if not (math.isfinite(time_s) and math.isfinite(power_kW) and 0.0 <= time_s <= 500.0):
             raise RuntimeError("paper points are invalid")
+        if (panel, time_s) in seen:
+            raise RuntimeError("paper points have duplicate panel-time rows")
+        seen.add((panel, time_s))
         grouped[panel].append((time_s, power_kW))
     if any(len(points) != 15 for points in grouped.values()):
         raise RuntimeError("each paper panel must have 15 points")
@@ -232,30 +243,225 @@ def _write_exclusive(path: Path, payload: bytes) -> None:
         os.close(fd)
 
 
-def _publish_layer_atomic(output: Path, payloads: dict[str, bytes]) -> None:
-    target = output / paper.BASELINE_LAYER_DIR
-    staging = output / (paper.BASELINE_LAYER_DIR + ".staging")
-    if os.path.lexists(staging):
-        raise RuntimeError("stale baseline staging directory requires audit")
-    os.mkdir(staging, 0o755)
-    for name, payload in payloads.items():
-        _write_exclusive(staging / name, payload)
-    if {entry.name for entry in staging.iterdir()} != set(payloads):
-        raise RuntimeError("baseline staging is incomplete")
+TRANSACTION_VERSION = 1
+_DELTA_PATHS = frozenset(
+    [f"{paper.BASELINE_LAYER_DIR}/{name}" for name in paper.BASELINE_LAYER_NAMES]
+    + ["baseline_metrics.json", "signal_contract.json", "manifest.csv"]
+)
+
+
+def _publication_boundary(point: str) -> None:
+    """Named I/O boundary retained solely for deterministic failure-injection tests."""
+    del point
+
+
+def _fsync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _transaction_dir(output: Path) -> Path:
+    return output.parent / (output.name + ".task5-transaction")
+
+
+def _transaction_record(payloads: dict[str, bytes]) -> bytes:
+    data = {"version": TRANSACTION_VERSION, "state": "prepared", "targets": [
+        {"path": path, "bytes": len(payloads[path]), "sha256": _hash(payloads[path])}
+        for path in sorted(payloads)]}
+    return _json_bytes(data)
+
+
+def _require_delta_shape(payloads: dict[str, bytes]) -> None:
+    if set(payloads) != _DELTA_PATHS or any(not isinstance(payload, bytes) for payload in payloads.values()):
+        raise RuntimeError("Task 5 transaction delta is not the registered exact set")
+
+
+def _planned_delta(output: Path, source_dir: Path) -> dict[str, bytes]:
+    """Precompute every Task 5 target before creating a transaction inode."""
+    baseline = _literal_source_bytes(source_dir)
+    metrics, contract = analyze(source_dir, output / "paper_points.csv")
+    generated = {"baseline_metrics.json": _json_bytes(metrics), "signal_contract.json": _json_bytes(contract)}
+    paper_bytes = {name: (output / name).read_bytes() for name in paper.ARTIFACT_NAMES}
+    entries = dict(paper_bytes)
+    entries.update({f"{paper.BASELINE_LAYER_DIR}/{name}": payload for name, payload in baseline.items()})
+    entries.update(generated)
+    delta = {f"{paper.BASELINE_LAYER_DIR}/{name}": payload for name, payload in baseline.items()}
+    delta.update(generated)
+    delta["manifest.csv"] = paper.manifest_bytes(entries, _roles())
+    _require_delta_shape(delta)
+    return delta
+
+
+def _check_regular_payload(path: Path, payload: bytes, label: str) -> None:
+    if path.is_symlink() or not path.is_file() or path.read_bytes() != payload:
+        raise RuntimeError(f"transaction conflict: {label}")
+
+
+def _final_has_payload(output: Path, relative: str, payload: bytes) -> bool:
+    target = output / relative
+    if not os.path.lexists(target):
+        return False
+    if target.is_symlink() or not target.is_file():
+        return False
+    return target.read_bytes() == payload
+
+
+def _final_layer_state(output: Path, payloads: dict[str, bytes]) -> bool:
+    layer = output / paper.BASELINE_LAYER_DIR
+    if not os.path.lexists(layer):
+        return False
+    if layer.is_symlink() or not layer.is_dir():
+        raise RuntimeError("transaction conflict: final baseline layer")
+    if {entry.name for entry in layer.iterdir()} != set(paper.BASELINE_LAYER_NAMES):
+        raise RuntimeError("transaction conflict: final baseline layer entries")
+    for name in paper.BASELINE_LAYER_NAMES:
+        _check_regular_payload(layer / name, payloads[f"{paper.BASELINE_LAYER_DIR}/{name}"], f"final {name}")
+    return True
+
+
+def _pending_targets(output: Path, payloads: dict[str, bytes]) -> set[str]:
+    pending: set[str] = set()
+    if not _final_layer_state(output, payloads):
+        pending.update(f"{paper.BASELINE_LAYER_DIR}/{name}" for name in paper.BASELINE_LAYER_NAMES)
+    for name in ("baseline_metrics.json", "signal_contract.json"):
+        target = output / name
+        if os.path.lexists(target):
+            _check_regular_payload(target, payloads[name], f"final {name}")
+        else:
+            pending.add(name)
+    if not _final_has_payload(output, "manifest.csv", payloads["manifest.csv"]):
+        pending.add("manifest.csv")
+    return pending
+
+
+def _validate_transaction_structure(txn: Path, record: bytes) -> Path:
+    if txn.is_symlink() or not txn.is_dir():
+        raise RuntimeError("transaction directory is unsafe")
+    txn_stat = txn.stat()
+    if txn_stat.st_uid != os.geteuid() or txn_stat.st_mode & 0o077:
+        raise RuntimeError("transaction directory ownership is unsafe")
+    if {entry.name for entry in txn.iterdir()} != {"record.json", "payload"}:
+        raise RuntimeError("transaction has unexpected entries")
+    record_path = txn / "record.json"
+    _check_regular_payload(record_path, record, "transaction record")
+    payload_root = txn / "payload"
+    if payload_root.is_symlink() or not payload_root.is_dir():
+        raise RuntimeError("transaction payload directory is unsafe")
+    allowed_dirs = {Path("payload"), Path("payload") / paper.BASELINE_LAYER_DIR}
+    allowed_files = {Path("record.json")} | {Path("payload") / relative for relative in _DELTA_PATHS}
+    for path in txn.rglob("*"):
+        relative = path.relative_to(txn)
+        if path.is_symlink() or (path.is_dir() and relative not in allowed_dirs) or (path.is_file() and relative not in allowed_files):
+            raise RuntimeError("transaction has unexpected or unsafe entries")
+        if not path.is_dir() and not path.is_file():
+            raise RuntimeError("transaction has nonregular entries")
+    return payload_root
+
+
+def _ensure_safe_transaction(txn: Path, payloads: dict[str, bytes], output: Path) -> None:
+    _require_delta_shape(payloads)
+    record = _transaction_record(payloads)
+    if not os.path.lexists(txn):
+        _publication_boundary("transaction-record")
+        os.mkdir(txn, 0o700)
+        _write_exclusive(txn / "record.json", record)
+        os.mkdir(txn / "payload", 0o700)
+        _fsync_directory(txn / "payload")
+        _fsync_directory(txn)
+        _fsync_directory(txn.parent)
+    payload_root = _validate_transaction_structure(txn, record)
+    pending = _pending_targets(output, payloads)
+    staged = {str(path.relative_to(payload_root)) for path in payload_root.rglob("*") if path.is_file()}
+    if staged - pending:
+        raise RuntimeError("transaction has stale staged payloads")
+    baseline_pending = {f"{paper.BASELINE_LAYER_DIR}/{name}" for name in paper.BASELINE_LAYER_NAMES} & pending
+    if baseline_pending and baseline_pending != {f"{paper.BASELINE_LAYER_DIR}/{name}" for name in paper.BASELINE_LAYER_NAMES}:
+        raise RuntimeError("transaction baseline layer is only partially staged")
+    if baseline_pending and not (payload_root / paper.BASELINE_LAYER_DIR).exists():
+        os.mkdir(payload_root / paper.BASELINE_LAYER_DIR, 0o700)
+        _fsync_directory(payload_root)
+    for relative in sorted(pending):
+        staged_path = payload_root / relative
+        if os.path.lexists(staged_path):
+            _check_regular_payload(staged_path, payloads[relative], f"staged {relative}")
+            continue
+        if relative.startswith(f"{paper.BASELINE_LAYER_DIR}/"):
+            _publication_boundary("staged-baseline")
+        _write_exclusive(staged_path, payloads[relative])
+    staged = {str(path.relative_to(payload_root)) for path in payload_root.rglob("*") if path.is_file()}
+    if staged != pending:
+        raise RuntimeError("transaction payload set is incomplete or unexpected")
+    if (payload_root / paper.BASELINE_LAYER_DIR).exists():
+        _fsync_directory(payload_root / paper.BASELINE_LAYER_DIR)
+    _fsync_directory(payload_root)
+
+
+def _commit_target(staged: Path, target: Path, payload: bytes, replace: bool = False) -> None:
+    """Commit one already-hashed target; manifest is the only replaceable marker."""
     if os.path.lexists(target):
-        raise RuntimeError("baseline destination appeared during publication")
-    os.rename(staging, target)
+        if not replace:
+            _check_regular_payload(target, payload, f"final {target.name}")
+            return
+        if _final_has_payload(target.parent, target.name, payload):
+            return
+    if staged.is_symlink() or not staged.is_file():
+        raise RuntimeError(f"transaction is missing staged target: {target.name}")
+    if replace:
+        os.replace(staged, target)
+    else:
+        os.rename(staged, target)
+    _check_regular_payload(target, payload, f"committed {target.name}")
+    _fsync_directory(target.parent)
 
 
-def _replace_manifest(output: Path, payload: bytes) -> None:
-    target = output / "manifest.csv"
-    if target.read_bytes() == payload:
-        return
-    staged = output / "manifest.csv.task5-staging"
-    if os.path.lexists(staged):
-        raise RuntimeError("stale manifest staging file requires audit")
-    _write_exclusive(staged, payload)
-    os.replace(staged, target)
+def _cleanup_transaction(txn: Path) -> None:
+    """Remove only the exact, verified transaction left after a full commit."""
+    payload_root = txn / "payload"
+    staged_layer = payload_root / paper.BASELINE_LAYER_DIR
+    if os.path.lexists(staged_layer):
+        if staged_layer.is_symlink() or not staged_layer.is_dir():
+            raise RuntimeError("transaction cleanup ownership cannot be guaranteed")
+        os.rmdir(staged_layer)
+    if os.path.lexists(payload_root):
+        if payload_root.is_symlink() or not payload_root.is_dir() or any(payload_root.iterdir()):
+            raise RuntimeError("transaction cleanup ownership cannot be guaranteed")
+        os.rmdir(payload_root)
+    record = txn / "record.json"
+    if not record.is_file() or record.is_symlink() or {entry.name for entry in txn.iterdir()} != {"record.json"}:
+        raise RuntimeError("transaction cleanup ownership cannot be guaranteed")
+    # At this point no payload can be discarded; the record is the only owned
+    # entry left and its parent contains no unrecognised name.
+    os.unlink(record)
+    try:
+        os.rmdir(txn)
+    except OSError as exc:
+        raise RuntimeError("transaction cleanup ownership cannot be guaranteed") from exc
+    _fsync_directory(txn.parent)
+
+
+def _recover_or_publish_delta(output: Path, payloads: dict[str, bytes]) -> None:
+    txn = _transaction_dir(output)
+    _ensure_safe_transaction(txn, payloads, output)
+    staged_root = txn / "payload"
+    layer_target = output / paper.BASELINE_LAYER_DIR
+    staged_layer = staged_root / paper.BASELINE_LAYER_DIR
+    if not _final_layer_state(output, payloads):
+        _publication_boundary("baseline-layer-rename")
+        os.rename(staged_layer, layer_target)
+        _fsync_directory(output)
+        for name in paper.BASELINE_LAYER_NAMES:
+            _check_regular_payload(layer_target / name, payloads[f"{paper.BASELINE_LAYER_DIR}/{name}"], f"committed {name}")
+    for name in ("baseline_metrics.json", "signal_contract.json"):
+        _publication_boundary("baseline-metrics-commit" if name == "baseline_metrics.json" else "signal-contract-commit")
+        _commit_target(staged_root / name, output / name, payloads[name])
+    # Manifest is deliberately last: before this replace, verify-only rejects
+    # the partial tree; after it, it is the complete publication marker.
+    _publication_boundary("manifest-commit")
+    _commit_target(staged_root / "manifest.csv", output / "manifest.csv", payloads["manifest.csv"], replace=True)
+    _cleanup_transaction(txn)
 
 
 def write_manifest(output: Path, rows: list[dict[str, str]]) -> None:
@@ -263,29 +469,30 @@ def write_manifest(output: Path, rows: list[dict[str, str]]) -> None:
     stream = io.StringIO(newline="")
     writer = csv.DictWriter(stream, fieldnames=("path", "bytes", "sha256", "role", "identity"), lineterminator="\n")
     writer.writeheader(); writer.writerows(rows)
-    _replace_manifest(Path(output), stream.getvalue().encode())
+    target = Path(output) / "manifest.csv"
+    staged = target.parent / "manifest.csv.test-staging"
+    if os.path.lexists(staged):
+        raise RuntimeError("stale test manifest staging file")
+    _write_exclusive(staged, stream.getvalue().encode())
+    os.replace(staged, target)
 
 
 def publish(output: Path = OUTPUT, source_dir: Path = SOURCE_DIR) -> None:
     output = _safe(Path(output))
-    source = _literal_source_bytes(source_dir)
     if not output.is_dir() or output.is_symlink():
         raise RuntimeError("Task 4 paper layer must be published first")
-    # First prove the existing paper evidence before adding a sibling layer.
-    if (output / paper.BASELINE_LAYER_DIR).exists():
-        paper.verify_paper_layer(output)
-        baseline, generated = _expected_durable(output)
-        paper._validate_registered_shape(output)
-        for name, payload in generated.items():
-            if (output / name).read_bytes() != payload:
-                raise RuntimeError(f"conflicting existing artifact: {name}")
-    else:
-        paper.verify_only(output)
-        _publish_layer_atomic(output, source)
-        baseline, generated = _expected_durable(output)
-        for name, payload in generated.items():
-            _write_exclusive(output / name, payload)
-    _replace_manifest(output, _unified_manifest(output, baseline, generated))
+    paper.verify_paper_layer(output)
+    delta = _planned_delta(output, Path(source_dir))
+    txn = _transaction_dir(output)
+    if not os.path.lexists(txn):
+        try:
+            verify_only(output)
+        except RuntimeError:
+            pass
+        else:
+            # A committed tree is an mtime-preserving no-op.
+            return
+    _recover_or_publish_delta(output, delta)
     verify_only(output)
 
 
