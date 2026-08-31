@@ -247,8 +247,7 @@ reasons remain in `representative_matrix.csv`. This is evidence, not a missing-f
 The `is_original_output` and `is_regenerable` columns in `manifest.csv` record
 that publication copied the completed source artifact without reconstruction
 and describe the source pipeline, respectively. These names are part of the
-manifest schema; they do not grant permission to rerun it. Evidence grades classify
-the source pipeline, not permission to rerun it. Evidence grades classify the
+manifest schema; they do not grant permission to rerun it. Evidence grades classify the
 preserved record; they do not change the negative scientific status above.
 """
 
@@ -664,6 +663,8 @@ def verify_published():
         )
 
     readme = _read_text("README.md")
+    if readme.encode("utf-8") != README.encode("utf-8"):
+        raise PublicationError("README content does not match deterministic publisher template")
     machine_lines = (
         "paper_reproduced = false",
         "author_implementation_status = not_uniquely_identified",

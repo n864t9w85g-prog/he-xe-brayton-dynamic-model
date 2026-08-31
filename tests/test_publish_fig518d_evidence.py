@@ -1,5 +1,6 @@
 import csv
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -93,6 +94,21 @@ class PublishFigure518dEvidenceTests(unittest.TestCase):
         self.assertIn("is_regenerable", readme)
         self.assertNotIn("`original_output`", readme)
         self.assertNotIn("`regenerable`", readme)
+
+    def test_readme_template_matches_durable_and_normal_publish_is_idempotent(self):
+        committed = publisher.ROOT / "data/provenance/steady53/fig5_18d/README.md"
+        self.assertEqual(committed.read_bytes(), publisher.README.encode("utf-8"))
+        with tempfile.TemporaryDirectory() as directory:
+            durable_root = self._publish_to_temporary_root(directory)
+            self.assertEqual((durable_root / "README.md").read_bytes(), committed.read_bytes())
+        before = {p: p.stat().st_mtime_ns for p in publisher.DURABLE_ROOT.rglob("*") if p.is_file()}
+        command = ["python3", str(Path(__file__).parents[0] / "publish_fig518d_evidence.py")]
+        for _ in range(2):
+            result = subprocess.run(command, cwd=publisher.ROOT, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), "FIG518D_EVIDENCE_PASS; PAPER_POINTS=12; A1_14000_PASS=3")
+        after = {p: p.stat().st_mtime_ns for p in publisher.DURABLE_ROOT.rglob("*") if p.is_file()}
+        self.assertEqual(before, after)
 
     def test_verify_is_durable_only_and_publication_is_idempotent(self):
         with tempfile.TemporaryDirectory() as directory:
