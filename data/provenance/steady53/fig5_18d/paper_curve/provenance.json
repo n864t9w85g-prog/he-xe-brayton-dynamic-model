@@ -1,0 +1,15 @@
+{
+  "source": "/Users/ikunsredemptionmac/Downloads/\u4e0d\u63a5\u5165\u8f6c\u5b50\u7a33\u6001\u6a21\u578b/tmp/steady53_recheck_20260827/paper-105.png",
+  "sha256": "da9e9a536d0dda98152fa694d942b393ca2f5f5d10b720dbd79692ac694cc95c",
+  "PDF_page": 105,
+  "printed_page": 90,
+  "figure": "5.18(d)",
+  "axis_calibration": {
+    "x0_px": 547,
+    "x300_px": 871,
+    "y400_px": 773.5,
+    "y300_px": 880.5
+  },
+  "method": "Dark-pixel trace centers at fixed columns; first two groups above legend; no model fitting",
+  "reading_uncertainty": "Conservative approximate scan-reading allowance: +/-3 K and +/-2 s; not formal acceptance tolerances"
+}

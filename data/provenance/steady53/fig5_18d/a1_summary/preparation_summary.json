@@ -1,0 +1,79 @@
+[
+  {
+    "candidate_id": "T300_fd1p45_one__conservative_source",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/T300_fd1p45_one__conservative_source/candidate.slx",
+    "candidate_sha256": "ea71e7a854dc8bd27302386ff5fddc39fd768a71f12c54c069b92c802275379e"
+  },
+  {
+    "candidate_id": "T300_fd1p45_one__optimistic_source",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/T300_fd1p45_one__optimistic_source/candidate.slx",
+    "candidate_sha256": "2cafe3b8124790b0dac37f73cec93f0865ab2d4998742e463cecc7627e829c7a"
+  },
+  {
+    "candidate_id": "T300_fd1p45_two__legacy_transfer",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/T300_fd1p45_two__legacy_transfer/candidate.slx",
+    "candidate_sha256": "9abc017f173c88f1ff77ac04af22549a6e57a476f7481e50c869a956e7f02a83"
+  },
+  {
+    "candidate_id": "T300_fd1p45_two__conservative_source",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/T300_fd1p45_two__conservative_source/candidate.slx",
+    "candidate_sha256": "3d96b32a49ab1b400bfceec3e4d9817505f3d5495a47fcbeb9b5f8f8a7911e67"
+  },
+  {
+    "candidate_id": "T300_fd1p45_two__optimistic_source",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/T300_fd1p45_two__optimistic_source/candidate.slx",
+    "candidate_sha256": "5a4b79c5c4a32fece82819fb4ff4c4cc93d000b766cefe9ad79e7e998271613a"
+  },
+  {
+    "candidate_id": "P95_WG_fd1p45_two__legacy_transfer",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/P95_WG_fd1p45_two__legacy_transfer/candidate.slx",
+    "candidate_sha256": "568b843037b01a1b3fd1e59d6095deebfe4c727e19ee70c05b425755ef64da51"
+  },
+  {
+    "candidate_id": "P95_WG_fd1p45_two__conservative_source",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/P95_WG_fd1p45_two__conservative_source/candidate.slx",
+    "candidate_sha256": "c42c302bb5459a67d866dd95aa60dfadfdbd0974998fc6f0760578cb14e06b45"
+  },
+  {
+    "candidate_id": "P95_WG_fd1p45_two__optimistic_source",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/P95_WG_fd1p45_two__optimistic_source/candidate.slx",
+    "candidate_sha256": "e9073bc460835787b14e02f7f17ff68b78aa3cacd87e3fd1b72ddf43065bc7b0"
+  },
+  {
+    "candidate_id": "APG_fd1p00_two__legacy_transfer",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/APG_fd1p00_two__legacy_transfer/candidate.slx",
+    "candidate_sha256": "f16eba85945a2643acacffe6aff30164f5470f2c679ab629749f50550825f07a"
+  },
+  {
+    "candidate_id": "APG_fd1p00_two__conservative_source",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/APG_fd1p00_two__conservative_source/candidate.slx",
+    "candidate_sha256": "bbcf3a3f2c6c7b3fc1ba086eb470c1b5ad0f50a10676ca63a2c4af2f5c536575"
+  },
+  {
+    "candidate_id": "APG_fd1p00_two__optimistic_source",
+    "prepared": true,
+    "error": "",
+    "candidate_file": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_500s/APG_fd1p00_two__optimistic_source/candidate.slx",
+    "candidate_sha256": "3f761eeaf2d8083bc57ea42802aac908c09296638c42add8812138877e3efffd"
+  }
+]

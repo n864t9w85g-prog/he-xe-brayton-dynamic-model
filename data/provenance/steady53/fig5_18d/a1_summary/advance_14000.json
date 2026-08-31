@@ -1,0 +1,10 @@
+{
+  "candidate_ids": [
+    "T300_fd1p45_two__legacy_transfer",
+    "P95_WG_fd1p45_two__legacy_transfer",
+    "APG_fd1p00_two__legacy_transfer"
+  ],
+  "expand_envelope": false,
+  "replacement_allowed": false,
+  "source_stage": 500
+}

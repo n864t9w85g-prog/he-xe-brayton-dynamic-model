@@ -1,0 +1,17 @@
+[
+  {
+    "candidate_id": "T300_fd1p45_two__legacy_transfer",
+    "success": true,
+    "output_dir": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_14000s/T300_fd1p45_two__legacy_transfer/run"
+  },
+  {
+    "candidate_id": "P95_WG_fd1p45_two__legacy_transfer",
+    "success": true,
+    "output_dir": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_14000s/P95_WG_fd1p45_two__legacy_transfer/run"
+  },
+  {
+    "candidate_id": "APG_fd1p00_two__legacy_transfer",
+    "success": true,
+    "output_dir": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/radiator_A1_20260830_A2/candidates_14000s/APG_fd1p00_two__legacy_transfer/run"
+  }
+]

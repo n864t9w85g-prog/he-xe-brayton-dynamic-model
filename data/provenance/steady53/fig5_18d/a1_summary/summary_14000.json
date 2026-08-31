@@ -1,0 +1,503 @@
+{
+  "records": [
+    {
+      "actual_final_time_s": 14000,
+      "candidate_id": "T300_fd1p45_two__legacy_transfer",
+      "curve_comparison": {
+        "comparison_identity": "comparison_only_due_to_whole_system_context_and_prior_conditioning",
+        "figure_5_18d_radiator_outlet_rmse_K": 54.14549967082845,
+        "figure_5_18d_radiator_wall_rmse_K": 66.2973138397344,
+        "figure_5_19_power_shape": {
+          "P_sw": {
+            "direction": "fall",
+            "final": 2559443.03165941,
+            "initial": 2660960.91410467,
+            "maximum": 2660960.91410467,
+            "minimum": 2559442.95433272,
+            "settling_time_1pct_s": 23.3025354222988
+          },
+          "WT_sw": {
+            "direction": "rise",
+            "final": 2260461.85059509,
+            "initial": 2257055.02201426,
+            "maximum": 2262264.44939175,
+            "minimum": 2257055.02201426,
+            "settling_time_1pct_s": 0.0
+          },
+          "Wc_sw": {
+            "direction": "rise",
+            "final": 1231682.5552587,
+            "initial": 1220910.84293255,
+            "maximum": 1231682.7880691,
+            "minimum": 1220910.84293255,
+            "settling_time_1pct_s": 0.0
+          }
+        },
+        "independent_validation": false,
+        "scan_reading_allowance_K": 3.0,
+        "scan_reading_allowance_s": 2.0
+      },
+      "energy": {
+        "enthalpy_minus_convection_W": 4.656612873077393e-10,
+        "precooler_constants_source": "read-only source snapshot inventory",
+        "precooler_minus_enthalpy_W": -653.2267404242884,
+        "q_convection_W": 1617067.7269011033,
+        "q_enthalpy_W": 1617067.7269011037,
+        "q_precooler_W": 1616414.5001606795,
+        "q_radiation_W": 1617067.724813625,
+        "signs_consistent": true
+      },
+      "energy_gate_pass": true,
+      "energy_residual": 653.2267404242884,
+      "formal_promotion": false,
+      "growth_gate_pass": true,
+      "paper_comparison": {
+        "P_sw": {
+          "independent_validation": true,
+          "paper_target": 2664000.0,
+          "relative_error": -0.03924811123896026,
+          "target_source": "thesis_table_5_2_or_section_5_3_1",
+          "value": 2559443.03165941
+        },
+        "WT_sw": {
+          "independent_validation": true,
+          "paper_target": 2252200.0,
+          "relative_error": 0.003668346769865053,
+          "target_source": "thesis_table_5_2",
+          "value": 2260461.85059509
+        },
+        "Wc_sw": {
+          "independent_validation": true,
+          "paper_target": 1231600.0,
+          "relative_error": 6.703090183495097e-05,
+          "target_source": "thesis_table_5_2",
+          "value": 1231682.5552587
+        },
+        "compressor_inlet_T": {
+          "independent_validation": true,
+          "paper_target": 405.16,
+          "relative_error": 0.002646852988629118,
+          "target_source": "thesis_table_5_2",
+          "value": 406.232398956873
+        },
+        "compressor_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 601.9,
+          "relative_error": 0.0032999199577887555,
+          "target_source": "thesis_table_5_2",
+          "value": 603.886221822593
+        },
+        "cooler_cold_inlet_T": {
+          "independent_validation": false,
+          "paper_target": 360.1,
+          "relative_error": 0.0020284609670785285,
+          "target_source": "used_in_candidate_conditioning",
+          "value": 360.830448794245
+        },
+        "cooler_cold_outlet_T": {
+          "independent_validation": false,
+          "paper_target": 609.58,
+          "relative_error": 0.011103995818391214,
+          "target_source": "used_in_candidate_conditioning",
+          "value": 616.348773770975
+        },
+        "reactor_inlet_T": {
+          "independent_validation": true,
+          "paper_target": 1443.27,
+          "relative_error": 0.004413865636658508,
+          "target_source": "thesis_table_5_2",
+          "value": 1449.64039985742
+        },
+        "reactor_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 1600.0,
+          "relative_error": -0.006515261265393804,
+          "target_source": "thesis_table_5_2",
+          "value": 1589.57558197537
+        },
+        "recuperator_cold_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 1100.91,
+          "relative_error": -0.0006643636527690803,
+          "target_source": "thesis_table_5_2",
+          "value": 1100.17859541103
+        },
+        "recuperator_hot_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 663.63,
+          "relative_error": 0.003168363081447584,
+          "target_source": "thesis_table_5_2",
+          "value": 665.732620791741
+        },
+        "turbine_inlet_T": {
+          "independent_validation": true,
+          "paper_target": 1522.96,
+          "relative_error": 0.0014547759137797025,
+          "target_source": "thesis_table_5_2",
+          "value": 1525.17556552565
+        },
+        "turbine_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 1162.0,
+          "relative_error": 0.0001193545329432147,
+          "target_source": "thesis_table_5_2",
+          "value": 1162.13868996728
+        }
+      },
+      "paper_error": 0.03924811123896026,
+      "paper_reproduced": false,
+      "persistent_growth": {
+        "cooler_cold_inlet_T": false,
+        "cooler_cold_outlet_T": false,
+        "state_012": false,
+        "state_016": false,
+        "state_017": false,
+        "state_021": false,
+        "state_040": false
+      },
+      "rejection_reasons": [],
+      "simulation_gate_pass": true,
+      "simulation_success": true,
+      "stop_time_s": 14000,
+      "technology_maturity": "tested"
+    },
+    {
+      "actual_final_time_s": 14000,
+      "candidate_id": "P95_WG_fd1p45_two__legacy_transfer",
+      "curve_comparison": {
+        "comparison_identity": "comparison_only_due_to_whole_system_context_and_prior_conditioning",
+        "figure_5_18d_radiator_outlet_rmse_K": 54.16203925333942,
+        "figure_5_18d_radiator_wall_rmse_K": 66.30939942391896,
+        "figure_5_19_power_shape": {
+          "P_sw": {
+            "direction": "fall",
+            "final": 2559443.03181807,
+            "initial": 2660960.91410467,
+            "maximum": 2660960.91410467,
+            "minimum": 2559442.95272024,
+            "settling_time_1pct_s": 23.3282838357597
+          },
+          "WT_sw": {
+            "direction": "rise",
+            "final": 2260461.85058701,
+            "initial": 2257055.02201426,
+            "maximum": 2262264.8350862,
+            "minimum": 2257055.02201426,
+            "settling_time_1pct_s": 0.0
+          },
+          "Wc_sw": {
+            "direction": "rise",
+            "final": 1231682.55505756,
+            "initial": 1220910.84293255,
+            "maximum": 1231682.79334898,
+            "minimum": 1220910.84293255,
+            "settling_time_1pct_s": 0.0
+          }
+        },
+        "independent_validation": false,
+        "scan_reading_allowance_K": 3.0,
+        "scan_reading_allowance_s": 2.0
+      },
+      "energy": {
+        "enthalpy_minus_convection_W": -9.313225746154785e-10,
+        "precooler_constants_source": "read-only source snapshot inventory",
+        "precooler_minus_enthalpy_W": -653.226735313423,
+        "q_convection_W": 1617067.7264999151,
+        "q_enthalpy_W": 1617067.7264999142,
+        "q_precooler_W": 1616414.4997646008,
+        "q_radiation_W": 1617067.7237153105,
+        "signs_consistent": true
+      },
+      "energy_gate_pass": true,
+      "energy_residual": 653.226735313423,
+      "formal_promotion": false,
+      "growth_gate_pass": true,
+      "paper_comparison": {
+        "P_sw": {
+          "independent_validation": true,
+          "paper_target": 2664000.0,
+          "relative_error": -0.03924811117940316,
+          "target_source": "thesis_table_5_2_or_section_5_3_1",
+          "value": 2559443.03181807
+        },
+        "WT_sw": {
+          "independent_validation": true,
+          "paper_target": 2252200.0,
+          "relative_error": 0.0036683467662773812,
+          "target_source": "thesis_table_5_2",
+          "value": 2260461.85058701
+        },
+        "Wc_sw": {
+          "independent_validation": true,
+          "paper_target": 1231600.0,
+          "relative_error": 6.703073851907576e-05,
+          "target_source": "thesis_table_5_2",
+          "value": 1231682.55505756
+        },
+        "compressor_inlet_T": {
+          "independent_validation": true,
+          "paper_target": 405.16,
+          "relative_error": 0.002646852824168183,
+          "target_source": "thesis_table_5_2",
+          "value": 406.23239889024
+        },
+        "compressor_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 601.9,
+          "relative_error": 0.003299919793332878,
+          "target_source": "thesis_table_5_2",
+          "value": 603.886221723607
+        },
+        "cooler_cold_inlet_T": {
+          "independent_validation": false,
+          "paper_target": 360.1,
+          "relative_error": 0.002028460836275997,
+          "target_source": "used_in_candidate_conditioning",
+          "value": 360.830448747143
+        },
+        "cooler_cold_outlet_T": {
+          "independent_validation": false,
+          "paper_target": 609.58,
+          "relative_error": 0.011103995629500566,
+          "target_source": "used_in_candidate_conditioning",
+          "value": 616.348773655831
+        },
+        "reactor_inlet_T": {
+          "independent_validation": true,
+          "paper_target": 1443.27,
+          "relative_error": 0.004413865629819827,
+          "target_source": "thesis_table_5_2",
+          "value": 1449.64039984755
+        },
+        "reactor_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 1600.0,
+          "relative_error": -0.0065152612663312934,
+          "target_source": "thesis_table_5_2",
+          "value": 1589.57558197387
+        },
+        "recuperator_cold_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 1100.91,
+          "relative_error": -0.000664363677939194,
+          "target_source": "thesis_table_5_2",
+          "value": 1100.17859538332
+        },
+        "recuperator_hot_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 663.63,
+          "relative_error": 0.0031683629153157265,
+          "target_source": "thesis_table_5_2",
+          "value": 665.732620681491
+        },
+        "turbine_inlet_T": {
+          "independent_validation": true,
+          "paper_target": 1522.96,
+          "relative_error": 0.0014547759101946286,
+          "target_source": "thesis_table_5_2",
+          "value": 1525.17556552019
+        },
+        "turbine_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 1162.0,
+          "relative_error": 0.0001193545293717652,
+          "target_source": "thesis_table_5_2",
+          "value": 1162.13868996313
+        }
+      },
+      "paper_error": 0.03924811117940316,
+      "paper_reproduced": false,
+      "persistent_growth": {
+        "cooler_cold_inlet_T": false,
+        "cooler_cold_outlet_T": false,
+        "state_012": false,
+        "state_016": false,
+        "state_017": false,
+        "state_021": false,
+        "state_040": false
+      },
+      "rejection_reasons": [],
+      "simulation_gate_pass": true,
+      "simulation_success": true,
+      "stop_time_s": 14000,
+      "technology_maturity": "built_not_tested"
+    },
+    {
+      "actual_final_time_s": 14000,
+      "candidate_id": "APG_fd1p00_two__legacy_transfer",
+      "curve_comparison": {
+        "comparison_identity": "comparison_only_due_to_whole_system_context_and_prior_conditioning",
+        "figure_5_18d_radiator_outlet_rmse_K": 54.19959164545108,
+        "figure_5_18d_radiator_wall_rmse_K": 66.33805234795541,
+        "figure_5_19_power_shape": {
+          "P_sw": {
+            "direction": "fall",
+            "final": 2559443.03200935,
+            "initial": 2660960.91410467,
+            "maximum": 2660960.91410467,
+            "minimum": 2559442.95111842,
+            "settling_time_1pct_s": 23.3982492791319
+          },
+          "WT_sw": {
+            "direction": "rise",
+            "final": 2260461.85057796,
+            "initial": 2257055.02201426,
+            "maximum": 2262265.56644664,
+            "minimum": 2257055.02201426,
+            "settling_time_1pct_s": 0.0
+          },
+          "Wc_sw": {
+            "direction": "rise",
+            "final": 1231682.55481789,
+            "initial": 1220910.84293255,
+            "maximum": 1231682.79837054,
+            "minimum": 1220910.84293255,
+            "settling_time_1pct_s": 0.0
+          }
+        },
+        "independent_validation": false,
+        "scan_reading_allowance_K": 3.0,
+        "scan_reading_allowance_s": 2.0
+      },
+      "energy": {
+        "enthalpy_minus_convection_W": 9.313225746154785e-10,
+        "precooler_constants_source": "read-only source snapshot inventory",
+        "precooler_minus_enthalpy_W": -653.2267260628287,
+        "q_convection_W": 1617067.7258578453,
+        "q_enthalpy_W": 1617067.7258578462,
+        "q_precooler_W": 1616414.4991317834,
+        "q_radiation_W": 1617067.722465201,
+        "signs_consistent": true
+      },
+      "energy_gate_pass": true,
+      "energy_residual": 653.2267260628287,
+      "formal_promotion": false,
+      "growth_gate_pass": true,
+      "paper_comparison": {
+        "P_sw": {
+          "independent_validation": true,
+          "paper_target": 2664000.0,
+          "relative_error": -0.0392481111076013,
+          "target_source": "thesis_table_5_2_or_section_5_3_1",
+          "value": 2559443.03200935
+        },
+        "WT_sw": {
+          "independent_validation": true,
+          "paper_target": 2252200.0,
+          "relative_error": 0.0036683467622590313,
+          "target_source": "thesis_table_5_2",
+          "value": 2260461.85057796
+        },
+        "Wc_sw": {
+          "independent_validation": true,
+          "paper_target": 1231600.0,
+          "relative_error": 6.703054391852053e-05,
+          "target_source": "thesis_table_5_2",
+          "value": 1231682.55481789
+        },
+        "compressor_inlet_T": {
+          "independent_validation": true,
+          "paper_target": 405.16,
+          "relative_error": 0.0026468526281986865,
+          "target_source": "thesis_table_5_2",
+          "value": 406.232398810841
+        },
+        "compressor_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 601.9,
+          "relative_error": 0.003299919597368426,
+          "target_source": "thesis_table_5_2",
+          "value": 603.886221605656
+        },
+        "cooler_cold_inlet_T": {
+          "independent_validation": false,
+          "paper_target": 360.1,
+          "relative_error": 0.002028460706567555,
+          "target_source": "used_in_candidate_conditioning",
+          "value": 360.830448700435
+        },
+        "cooler_cold_outlet_T": {
+          "independent_validation": false,
+          "paper_target": 609.58,
+          "relative_error": 0.0111039953771366,
+          "target_source": "used_in_candidate_conditioning",
+          "value": 616.348773501995
+        },
+        "reactor_inlet_T": {
+          "independent_validation": true,
+          "paper_target": 1443.27,
+          "relative_error": 0.004413865621747917,
+          "target_source": "thesis_table_5_2",
+          "value": 1449.6403998359
+        },
+        "reactor_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 1600.0,
+          "relative_error": -0.006515261267149981,
+          "target_source": "thesis_table_5_2",
+          "value": 1589.57558197256
+        },
+        "recuperator_cold_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 1100.91,
+          "relative_error": -0.000664363710821024,
+          "target_source": "thesis_table_5_2",
+          "value": 1100.17859534712
+        },
+        "recuperator_hot_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 663.63,
+          "relative_error": 0.003168362697186655,
+          "target_source": "thesis_table_5_2",
+          "value": 665.732620536734
+        },
+        "turbine_inlet_T": {
+          "independent_validation": true,
+          "paper_target": 1522.96,
+          "relative_error": 0.001454775906182714,
+          "target_source": "thesis_table_5_2",
+          "value": 1525.17556551408
+        },
+        "turbine_outlet_T": {
+          "independent_validation": true,
+          "paper_target": 1162.0,
+          "relative_error": 0.00011935452536141797,
+          "target_source": "thesis_table_5_2",
+          "value": 1162.13868995847
+        }
+      },
+      "paper_error": 0.0392481111076013,
+      "paper_reproduced": false,
+      "persistent_growth": {
+        "cooler_cold_inlet_T": false,
+        "cooler_cold_outlet_T": false,
+        "state_012": false,
+        "state_016": false,
+        "state_017": false,
+        "state_021": false,
+        "state_040": false
+      },
+      "rejection_reasons": [],
+      "simulation_gate_pass": true,
+      "simulation_success": true,
+      "stop_time_s": 14000,
+      "technology_maturity": "projected"
+    }
+  ],
+  "summary": {
+    "advance_candidate_ids": [],
+    "expand_envelope": false,
+    "formal_promotion": false,
+    "identifiability": "multiple_conditionally_feasible_packages",
+    "paper_reproduced": false,
+    "passed_count": 3,
+    "ranked_candidate_ids": [
+      "T300_fd1p45_two__legacy_transfer",
+      "P95_WG_fd1p45_two__legacy_transfer",
+      "APG_fd1p00_two__legacy_transfer"
+    ],
+    "record_count": 3,
+    "selected_best_candidate": null,
+    "stage_s": 14000
+  }
+}

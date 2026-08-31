@@ -1,0 +1,20 @@
+IC_ONLY s53_rediator_c6556ceae25/DUT/T_rad_Integrator: 416.60796744255316 -> 250
+Tho equation: ((u(2)-0.8)*u(3)+u(1))/(u(2)+0.2)
+Wall equation: u(2)*(0.8*u(3)+0.2*u(6)-u(5))-u(1)*(u(5)^4-u(4)^4)
+PARAM s53_rediator_c6556ceae25/DUT/Subsystem/Constant = epsilon
+PARAM s53_rediator_c6556ceae25/DUT/Subsystem/Constant1 = theta
+PARAM s53_rediator_c6556ceae25/DUT/Subsystem/Constant2 = 1113
+PARAM s53_rediator_c6556ceae25/DUT/Subsystem/Constant3 = 5744
+PARAM s53_rediator_c6556ceae25/DUT/Subsystem/Constant4 = Cp_rad
+PARAM s53_rediator_c6556ceae25/DUT/Subsystem/Constant5 = 9.755
+IC=250 t=14000 error=
+IC_ONLY s53_rediator_6a5aede1aa9/DUT/T_rad_Integrator: 416.60796744255316 -> 406.60796744255316
+Tho equation: ((u(2)-0.8)*u(3)+u(1))/(u(2)+0.2)
+Wall equation: u(2)*(0.8*u(3)+0.2*u(6)-u(5))-u(1)*(u(5)^4-u(4)^4)
+PARAM s53_rediator_6a5aede1aa9/DUT/Subsystem/Constant = epsilon
+PARAM s53_rediator_6a5aede1aa9/DUT/Subsystem/Constant1 = theta
+PARAM s53_rediator_6a5aede1aa9/DUT/Subsystem/Constant2 = 1113
+PARAM s53_rediator_6a5aede1aa9/DUT/Subsystem/Constant3 = 5744
+PARAM s53_rediator_6a5aede1aa9/DUT/Subsystem/Constant4 = Cp_rad
+PARAM s53_rediator_6a5aede1aa9/DUT/Subsystem/Constant5 = 9.755
+IC=406.60796744255316 t=14000 error=

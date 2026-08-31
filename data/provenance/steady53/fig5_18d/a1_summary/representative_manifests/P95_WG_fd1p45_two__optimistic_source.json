@@ -1,0 +1,66 @@
+{
+  "A_exchange_m2": 339.54122730897,
+  "A_rad_m2": 339.54122730897,
+  "C_eff_proxy_J_K": 414202.9477819394,
+  "G_effective_W_K": 215377.3902308099,
+  "M_rad_kg": 533.0797268750829,
+  "Q_NaK_W": 1580132.9924937414,
+  "T_sink_K": 200.0,
+  "Twall_condition_K": 551.9277843311054,
+  "UA_W_K": 203724.736385382,
+  "branch_id": "P95_WG_fd1p45_two",
+  "candidate_id": "P95_WG_fd1p45_two__optimistic_source",
+  "contract_module_sha256": "14b7746e88f176ecdb321932d5e0c63c7de2c635c28627e8684fd3db749df490",
+  "cp_identity": "sensitivity_proxy",
+  "cp_proxy_J_kgK": 777.0,
+  "eligible_for_slx": true,
+  "epsilon": 0.9,
+  "epsilon_case": "NASA_surface_0p90",
+  "equation_version": "radiator_a1_static_v1",
+  "evidence_status_per_input": "built_not_tested|project_boundary|other_system_anchor|other_system_anchor|other_system_anchor",
+  "flow_case": "project_flow",
+  "formal_promotion": false,
+  "generator_sha256": "a0045644d2507e8bd985896c5609c61f628322e7c207dcaacd26ffae9ab39974",
+  "h_W_m2K": 600.0,
+  "h_case": "NASA_120_high",
+  "input_provenance": {
+    "branch": {
+      "branch_id": "P95_WG_fd1p45_two",
+      "kappa_kg_m2": 1.57,
+      "technology_maturity": "built_not_tested"
+    },
+    "cp_proxy": {
+      "evidence": "approved_engineering_sensitivity_axis",
+      "identity": "sensitivity_proxy",
+      "value_J_kgK": 777.0
+    },
+    "static_inputs": {
+      "epsilon_case": "NASA_surface_0p90",
+      "evidence_status_per_input": "built_not_tested|project_boundary|other_system_anchor|other_system_anchor|other_system_anchor",
+      "flow_case": "project_flow",
+      "h_case": "NASA_120_high",
+      "sink_case": "NASA_120_example"
+    }
+  },
+  "kappa_kg_m2": 1.57,
+  "m_dot_NaK_kg_s": 6.95,
+  "mass_margin_kg": 4116.920273124917,
+  "math_module_sha256": "574136a34447bded0f96890180906b1d6e70ed8fe4566a2b5e0d811d69c24f16",
+  "paper_reproduced": false,
+  "rejection_reasons": [],
+  "role_id": "optimistic_source",
+  "run_time_record": {
+    "mode": "deferred_to_execution_stage",
+    "reason": "deterministic_offline_core",
+    "wall_clock_utc": null
+  },
+  "sink_case": "NASA_120_example",
+  "source_contract_ref": "source_contract/source_contract.json",
+  "source_row_id": "P95_WG_fd1p45_two__project_flow__NASA_surface_0p90__NASA_120_example__NASA_120_high",
+  "spec_path": "docs/superpowers/specs/2026-08-30-radiator-a1-staged-parameter-envelope-design.md",
+  "spec_sha256": "d527b075ec8634ad3b1b548da29cdad18a29f3c20f338ff3b044b34c1605f866",
+  "tau_predicted_s": 1.92314962744259,
+  "technology_maturity": "built_not_tested",
+  "timescale_relation": "below_120_s",
+  "unit_contract_ref": "source_contract/unit_contract.json"
+}
