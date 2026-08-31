@@ -42,11 +42,11 @@ SOURCE_HASHES = {
 }
 
 CURVE_EVIDENCE_HASHES = {
-    "tmp/steady53_curves_20260828/radiator_scan_points.csv": (
+    "data/provenance/steady53/fig5_18d/paper_curve/points.csv": (
         "6aed804bf1ac57832055dab34483bdcb2"
         "5567a5b902e5b3c6b85cb7129e8849b"
     ),
-    "tmp/steady53_curves_20260828/radiator_scan_provenance.json": (
+    "data/provenance/steady53/fig5_18d/paper_curve/provenance.json": (
         "fe35a863731ff5394095f5d268a988cb"
         "45120a1382db9fd53bc0599e8f98e0cd"
     ),

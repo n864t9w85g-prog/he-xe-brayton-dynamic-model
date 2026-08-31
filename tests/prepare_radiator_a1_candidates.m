@@ -16,13 +16,12 @@ summary = struct('candidate_id', {}, 'prepared', {}, 'error', {}, ...
 
 oldPath = path;
 cleanupPath = onCleanup(@() path(oldPath)); %#ok<NASGU>
-sourceDir = fullfile(repo, 'tmp', 'steady53_curves_20260828', ...
-    'source_f8bcd83');
-assert(isfolder(sourceDir));
-addpath(sourceDir, fullfile(sourceDir, 'tests', 'steady53'), ...
-    fullfile(repo, 'tests'));
+runtimeDir = fullfile(repo, 'data', 'provenance', 'baselines', 'f8bcd83', 'runtime');
+helperDir = fullfile(repo, 'tests', 'steady53');
+assert(isfolder(runtimeDir) && isfolder(helperDir));
+addpath(runtimeDir, helperDir, fullfile(repo, 'tests'));
 evalin('base', "run('" + ...
-    replace(fullfile(sourceDir, 'start.m'), "'", "''") + "')");
+    replace(fullfile(runtimeDir, 'start.m'), "'", "''") + "')");
 
 for k = 1:numel(ids)
     summary(end+1) = prepareOne( ...
