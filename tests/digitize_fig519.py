@@ -150,11 +150,11 @@ def _provenance() -> bytes:
         "artifact": "paper-only digitization of Figure 5.19", "source_page": "source_page_106.png",
         "source_page_sha256": SOURCE_SHA256, "source_pdf_sha256": PDF_SHA256,
         "pdf_page": 106, "printed_page": 91, "figure": "5.19", "panels": [panel.__dict__ for panel in PANELS],
-        "grayscale_threshold": THRESHOLD, "x_neighborhood": "x-1 through x+1",
+        "grayscale_threshold": THRESHOLD, "x_neighborhood": "x-1 through x+1 (width 3)",
         "trace_rule": "for each panel, process t=495 backward; form contiguous dark-pixel y groups; select center nearest accepted later-time center; uppermost center breaks ties",
         "rejections": "reject empty columns, axis-border groups, and groups jumping over 80 px",
         "fixed_times_s": SAMPLE_TIMES, "time_allowance_s": 3,
-        "limitations": "scan-limited early vertical trace; t=10 is a proxy, not author t0",
+        "limitations": "scan-limited early near-vertical traces; t=10 is a proxy, not author t0",
         "prohibitions": "no smoothing; no time shifting; no model-guided selection; no model file read; no fitted correction",
         "paper_reproduced": False, "formal_promotion": False,
     }
@@ -230,6 +230,7 @@ def main() -> None:
         verify_only()
     else:
         publish()
+    print("POINTS=60 PANELS=4")
 
 
 if __name__ == "__main__":

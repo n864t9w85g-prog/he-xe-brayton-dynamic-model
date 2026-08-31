@@ -20,7 +20,7 @@
   ],
   "formal_promotion": false,
   "grayscale_threshold": 120,
-  "limitations": "scan-limited early vertical trace; t=10 is a proxy, not author t0",
+  "limitations": "scan-limited early near-vertical traces; t=10 is a proxy, not author t0",
   "panels": [
     {
       "panel_id": "a",
@@ -97,5 +97,5 @@
   "source_pdf_sha256": "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a",
   "time_allowance_s": 3,
   "trace_rule": "for each panel, process t=495 backward; form contiguous dark-pixel y groups; select center nearest accepted later-time center; uppermost center breaks ties",
-  "x_neighborhood": "x-1 through x+1"
+  "x_neighborhood": "x-1 through x+1 (width 3)"
 }
