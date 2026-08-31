@@ -14,8 +14,13 @@ class DurablePathTests(unittest.TestCase):
         text = '\n'.join((root / 'tests' / name).read_text() for name in names)
         self.assertNotIn('tmp/steady53_curves_20260828/source_f8bcd83', text)
         self.assertNotIn('tmp/steady53_curves_20260828/radiator_scan', text)
+        self.assertNotIn('tmp/steady53_recheck_20260827', text)
         self.assertIn('data/provenance/baselines/f8bcd83', text)
         self.assertIn('data/provenance/steady53/fig5_18d', text)
+        for module in ('radiator_curve_energy_check.py', 'radiator_parameter_family_check.py'):
+            module_text = (root / 'tests' / module).read_text()
+            for constant in ('REPO', 'EVIDENCE', 'SOURCE', 'RUNTIME', 'SCAN_POINTS', 'SCAN_PROVENANCE'):
+                self.assertIn(constant, module_text)
 
 
 if __name__ == '__main__':

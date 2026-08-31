@@ -13,6 +13,11 @@ from pathlib import Path
 
 from radiator_curve_energy_check import EVIDENCE, REPO, fluid_power, verify_snapshot
 
+SOURCE = REPO / 'data/provenance/baselines/f8bcd83'
+RUNTIME = SOURCE / 'runtime'
+SCAN_POINTS = EVIDENCE / 'paper_curve/points.csv'
+SCAN_PROVENANCE = EVIDENCE / 'paper_curve/provenance.json'
+
 
 def endpoint_k(Ti, outlet_final, wall_final):
     if not Ti > outlet_final:
@@ -41,7 +46,7 @@ def universal_upper(outlet, wall, outlet_final, wall_final, uncertainty):
 
 
 def read_points():
-    with (EVIDENCE/'points.csv').open() as stream:
+    with SCAN_POINTS.open() as stream:
         return [{k: float(v) for k, v in r.items()} for r in csv.DictReader(stream)]
 
 

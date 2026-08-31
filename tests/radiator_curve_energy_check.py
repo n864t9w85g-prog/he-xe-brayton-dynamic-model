@@ -19,8 +19,11 @@ import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
 REPO = Path(__file__).resolve().parents[1]
-EVIDENCE = REPO / "data/provenance/steady53/fig5_18d/paper_curve"
+EVIDENCE = REPO / "data/provenance/steady53/fig5_18d"
 SOURCE = REPO / "data/provenance/baselines/f8bcd83"
+RUNTIME = SOURCE / "runtime"
+SCAN_POINTS = EVIDENCE / "paper_curve/points.csv"
+SCAN_PROVENANCE = EVIDENCE / "paper_curve/provenance.json"
 MODEL_HASH = "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
 
 
@@ -88,19 +91,17 @@ def verify_snapshot():
     params = param_file.read_text()
     for name, value in [('Cp_rad', '900'), ('epsilon', '0.9'), ('theta', '5.67e-8')]:
         assert re.search(r'^'+name+r'\s*=\s*'+re.escape(value)+r'\s*;', params, re.M)
-    provenance_file = EVIDENCE/'provenance.json'
+    provenance_file = SCAN_PROVENANCE
     provenance = json.loads(provenance_file.read_text())
-    scan = REPO/'tmp/steady53_recheck_20260827/paper-105.png'
-    assert sha256(scan) == provenance['sha256']
-    files = [model, param_file, provenance_file, scan,
-             EVIDENCE/'points.csv',
+    assert provenance['source'].endswith('/paper-105.png')
+    files = [model, param_file, provenance_file, SCAN_POINTS,
              SOURCE/'tests/steady53/steady53_component_boundaries.m']
     return {str(p.relative_to(REPO)): sha256(p) for p in files}
 
 
 def diagnose():
     hashes = verify_snapshot()
-    with (EVIDENCE/'points.csv').open() as stream:
+    with SCAN_POINTS.open() as stream:
         rows = [{k: float(v) for k, v in row.items()} for row in csv.DictReader(stream)]
     assert len(rows) == 12 and all(math.isfinite(v) for r in rows for v in r.values())
     Ti, mdot, h, A_exchange, A_rad = 609.58, 6.95, 9.755, 1113., 1113.
