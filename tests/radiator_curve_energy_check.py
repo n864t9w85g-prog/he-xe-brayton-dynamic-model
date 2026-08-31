@@ -87,7 +87,7 @@ def verify_snapshot():
         assert core['T_env']['Value'] == '225'
         assert core['Tho']['Expr'] == '((u(2)-0.8)*u(3)+u(1))/(u(2)+0.2)'
         assert core['Fcn1']['Expr'] == 'u(2)*(0.8*u(3)+0.2*u(6)-u(5))-u(1)*(u(5)^4-u(4)^4)'
-    param_file = SOURCE/'sys_param_rad_fixed.m'
+    param_file = RUNTIME/'sys_param_rad_fixed.m'
     params = param_file.read_text()
     for name, value in [('Cp_rad', '900'), ('epsilon', '0.9'), ('theta', '5.67e-8')]:
         assert re.search(r'^'+name+r'\s*=\s*'+re.escape(value)+r'\s*;', params, re.M)
@@ -95,7 +95,7 @@ def verify_snapshot():
     provenance = json.loads(provenance_file.read_text())
     assert provenance['source'].endswith('/paper-105.png')
     files = [model, param_file, provenance_file, SCAN_POINTS,
-             SOURCE/'tests/steady53/steady53_component_boundaries.m']
+             RUNTIME/'tests/steady53/steady53_component_boundaries.m']
     return {str(p.relative_to(REPO)): sha256(p) for p in files}
 
 

@@ -22,6 +22,14 @@ class DurablePathTests(unittest.TestCase):
             for constant in ('REPO', 'EVIDENCE', 'SOURCE', 'RUNTIME', 'SCAN_POINTS', 'SCAN_PROVENANCE'):
                 self.assertIn(constant, module_text)
 
+    def test_normal_snapshot_verification_uses_existing_runtime_inputs(self):
+        from tests import radiator_curve_energy_check as diagnostic
+        self.assertTrue((diagnostic.RUNTIME / 'sys_param_rad_fixed.m').is_file())
+        self.assertTrue(diagnostic.SCAN_POINTS.is_file())
+        self.assertTrue(diagnostic.SCAN_PROVENANCE.is_file())
+        hashes = diagnostic.verify_snapshot()
+        self.assertIn('data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m', hashes)
+
 
 if __name__ == '__main__':
     unittest.main()
