@@ -92,6 +92,9 @@ class Figure519DigitizationTests(unittest.TestCase):
         expected_paper = {"source_page_106.png", "paper_points.csv", "provenance.json", "digitization_overlay.png", "README.md"}
         self.assertTrue(expected_paper.issubset({r["path"] for r in manifest}))
         for row in manifest:
+            if row.get("storage") == "external_tmp_not_copied":
+                self.assertEqual(row["path"], "@external/raw_reference.mat")
+                continue
             artifact = OUT / row["path"]
             self.assertEqual(row["sha256"], hashlib.sha256(artifact.read_bytes()).hexdigest())
             self.assertEqual(int(row["bytes"]), artifact.stat().st_size)

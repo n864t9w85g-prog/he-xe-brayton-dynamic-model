@@ -12,7 +12,9 @@ end
 outputDir = string(tempname(tmpRoot));
 cleanup = onCleanup(@() cleanupOwnedOutput(outputDir));
 
-result = audit_fig519_initialization(outputDir);
+fixedRaw = fullfile(tmpRoot, "fig519_initialization_20260831_A1", ...
+    "raw_reference.mat");
+result = audit_fig519_initialization(outputDir, fixedRaw);
 
 verifyEqual(testCase, result.model_sha256, ...
     "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391");
@@ -29,6 +31,7 @@ verifyEqual(testCase, result.reference_run_reason, ...
 verifyNotEmpty(testCase, result.solver_contract.solver_name);
 verifyTrue(testCase, result.solver_contract.stop_time_dependency_checked);
 verifyTrue(testCase, result.boundary_contract.all_inputs_classified);
+verifyTrue(testCase, result.boundary_contract.load_input_classified);
 verifyTrue(testCase, result.initial_residuals.all_items_accounted_for);
 verifyTrue(testCase, result.flat_start_explanation.has_state_evidence);
 verifyTrue(testCase, result.flat_start_explanation.has_signal_path_evidence);
@@ -82,7 +85,45 @@ for index = 1:numel(records)
     end
 end
 
-verifyTrue(testCase, isfile(fullfile(outputDir, "raw_reference.mat")));
+shaft = records(string({records.name}) == "shaft_excess_power");
+verifyEqual(testCase, numel(shaft), 1);
+verifyEqual(testCase, string(shaft.status), "computed");
+verifyEqual(testCase, shaft.value, 35934.17908170889, "AbsTol", 1e-6);
+verifyEqual(testCase, string(shaft.unit), "W");
+verifyEqual(testCase, string(shaft.formula), "WT(t0)-Wc(t0)-Pload");
+verifyTrue(testCase, all(ismember([ ...
+    "final_steady_24a/TAC/Turbine", ...
+    "final_steady_24a/TAC/Compressor", ...
+    "final_steady_24a/Constant14", ...
+    "final_steady_24a/TAC/Pload"], string(shaft.source_paths))));
+
+loadPath = result.power_signal_paths.load;
+verifyEqual(testCase, string(loadPath.status), "verified_by_official_api");
+verifyEqual(testCase, string(loadPath.source_block), ...
+    "final_steady_24a/Constant14");
+verifyEqual(testCase, string(loadPath.destination_block), ...
+    "final_steady_24a/TAC");
+verifyEqual(testCase, loadPath.destination_input_port, 6);
+verifyEqual(testCase, string(loadPath.destination_inport_block), ...
+    "final_steady_24a/TAC/Pload");
+verifyEqual(testCase, loadPath.value_W, 1000.21e3, "AbsTol", 1e-9);
+
+flat = result.flat_start_explanation;
+verifyEqual(testCase, flat.near_zero_rule.metric, ...
+    "abs(first_sample_slope)/max(abs(t0_value),1)");
+verifyGreaterThan(testCase, flat.near_zero_rule.threshold_per_s, 0);
+verifyNotEmpty(testCase, flat.near_zero_state_derivatives);
+verifyEqual(testCase, numel(flat.power_state_signal_mappings), 4);
+for index = 1:numel(flat.power_state_signal_mappings)
+    mapping = flat.power_state_signal_mappings(index);
+    verifyNotEmpty(testCase, mapping.traced_state_paths);
+    verifyNotEmpty(testCase, mapping.traced_signal_paths);
+end
+verifyFalse(testCase, flat.paper_initial_state_identified);
+
+verifyFalse(testCase, isfile(fullfile(outputDir, "raw_reference.mat")));
+verifyEqual(testCase, result.raw_reference.sha256, ...
+    "185d59ca6e55647ad14fb5f23599bc85e6566f8da2ca6120f42a0ef8dedbb648");
 jsonPath = fullfile(outputDir, "initialization_audit.json");
 verifyTrue(testCase, isfile(jsonPath));
 decoded = jsondecode(fileread(jsonPath));

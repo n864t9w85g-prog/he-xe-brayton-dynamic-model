@@ -706,7 +706,8 @@
       }
     ],
     "classification_note": "No external root Inports exist; both root Constant sources are fixed and all remaining root links are internal component coupling.",
-    "all_inputs_classified": true
+    "all_inputs_classified": true,
+    "load_input_classified": true
   },
   "solver_contract": {
     "solver_name": "ode15s",
@@ -764,6 +765,17 @@
       "block": "final_steady_24a/TAC/Compressor",
       "output_port": 2,
       "manifest_name": "compressor_power"
+    },
+    "load": {
+      "status": "verified_by_official_api",
+      "source_block": "final_steady_24a/Constant14",
+      "source_output_port": 1,
+      "value_expression": "1000.21e3",
+      "value_W": 1.00021E+6,
+      "destination_block": "final_steady_24a/TAC",
+      "destination_input_port": 6,
+      "destination_inport_block": "final_steady_24a/TAC/Pload",
+      "destination_inport_name": "Pload"
     },
     "electrical": {
       "status": "no_direct_generator_signal_found",
@@ -827,15 +839,17 @@
       },
       {
         "name": "shaft_excess_power",
-        "status": "not_observable",
-        "value": null,
+        "status": "computed",
+        "value": 35934.179081708891,
         "unit": "W",
-        "formula": "P_turbine-P_compressor-P_generator_or_load",
+        "formula": "WT(t0)-Wc(t0)-Pload",
         "source_paths": [
           "final_steady_24a/TAC/Turbine",
-          "final_steady_24a/TAC/Compressor"
+          "final_steady_24a/TAC/Compressor",
+          "final_steady_24a/Constant14",
+          "final_steady_24a/TAC/Pload"
         ],
-        "missing_direct_signals": "final_steady_24a/TAC direct generator/electrical/load power signal"
+        "missing_direct_signals": []
       },
       {
         "name": "ihx_energy",
@@ -899,207 +913,629 @@
   },
   "flat_start_explanation": {
     "conclusion": "The unmodified 500 s run directly supplies state slopes and verified signal-path power traces; it does not identify the authors' initial-state vector.",
+    "near_zero_rule": {
+      "metric": "abs(first_sample_slope)/max(abs(t0_value),1)",
+      "threshold_per_s": 1E-6,
+      "classification": "numerical diagnostic only; does not alter physical equations"
+    },
+    "near_zero_state_derivatives": [
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+        "first_sample_slope": 1.5237329545229836E-5,
+        "normalized_first_sample_slope_per_s": 1.0449123284620344E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -1.0359444786445238E-6
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+        "first_sample_slope": 1.122115657252202E-5,
+        "normalized_first_sample_slope_per_s": 7.3683966751860028E-9,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -8.6353566075558774E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_h1_average_Integrator",
+        "first_sample_slope": 1.179049358020684E-7,
+        "normalized_first_sample_slope_per_s": 7.5251470083519671E-11,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -7.7769118433934636E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_h2_out_Integrator",
+        "first_sample_slope": 1.4790750523792442E-7,
+        "normalized_first_sample_slope_per_s": 9.5752942466755076E-11,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -8.2668520917650312E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_wall_Integrator",
+        "first_sample_slope": 1.6495163136678855E-7,
+        "normalized_first_sample_slope_per_s": 1.0601312667205288E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -8.0180598160950467E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
+        "first_sample_slope": 2.775361053493399E-5,
+        "normalized_first_sample_slope_per_s": 2.2277411413007657E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -1.7757035948307021E-6
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+        "first_sample_slope": 1.92509689316212E-5,
+        "normalized_first_sample_slope_per_s": 1.3813804268315825E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -1.2103155313525349E-6
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_h1_average_Integrator",
+        "first_sample_slope": 2.2472991646142214E-7,
+        "normalized_first_sample_slope_per_s": 1.5041462334158988E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -9.653354027250316E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_h2_out_Integrator",
+        "first_sample_slope": 2.7795606261707027E-7,
+        "normalized_first_sample_slope_per_s": 1.9256225617700351E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -1.1037077456421684E-6
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_wall_Integrator",
+        "first_sample_slope": 3.1207209288831832E-7,
+        "normalized_first_sample_slope_per_s": 2.12403228545399E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -1.0334590569982538E-6
+      },
+      {
+        "path": "final_steady_24a/TAC/rotor/N_rpm_Integrator",
+        "first_sample_slope": 0,
+        "normalized_first_sample_slope_per_s": 0,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 0
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_c1_average_Integrator",
+        "first_sample_slope": 7.9120983971400584E-7,
+        "normalized_first_sample_slope_per_s": 1.4498112666496584E-9,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 3.1840152132645017E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_c2_out_Integrator",
+        "first_sample_slope": 1.1058612368993617E-6,
+        "normalized_first_sample_slope_per_s": 1.8082132948027145E-9,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 3.6634371554100653E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_h1_average_Integrator",
+        "first_sample_slope": 2.3860177029797921E-5,
+        "normalized_first_sample_slope_per_s": 4.0110097376880627E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 3.4694583064265316E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_h2_out_Integrator",
+        "first_sample_slope": -2.7094413968347045E-6,
+        "normalized_first_sample_slope_per_s": 5.1226868283812824E-9,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.9240422918519471E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_wall_Integrator",
+        "first_sample_slope": 8.0966775098930533E-7,
+        "normalized_first_sample_slope_per_s": 1.4817085440607613E-9,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 3.188525624864269E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_c1_average_Integrator",
+        "first_sample_slope": 2.2820361492293602E-7,
+        "normalized_first_sample_slope_per_s": 5.4496316019180546E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.5939984880096745E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_c2_out_Integrator",
+        "first_sample_slope": 6.8467594948799507E-8,
+        "normalized_first_sample_slope_per_s": 1.4267375123463907E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.7056722728957538E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_h1_average_Integrator",
+        "first_sample_slope": 6.2118403334007025E-6,
+        "normalized_first_sample_slope_per_s": 1.3336226220831103E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.6326607667215285E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+        "first_sample_slope": 1.5089752771965382E-5,
+        "normalized_first_sample_slope_per_s": 3.7474826415023996E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.3395545554194541E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_wall_Integrator",
+        "first_sample_slope": 2.3140300550094176E-7,
+        "normalized_first_sample_slope_per_s": 5.5170926370818282E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.5953024191949225E-6
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator",
+        "first_sample_slope": -0.0074292968275541547,
+        "normalized_first_sample_slope_per_s": 1.4579726115325266E-11,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -1.4374715089797974
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator1",
+        "first_sample_slope": -0.058868818413353237,
+        "normalized_first_sample_slope_per_s": 5.1445395288130225E-11,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 0.16137599945068359
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator2",
+        "first_sample_slope": -0.060719619305621482,
+        "normalized_first_sample_slope_per_s": 2.1809743690997366E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 0.56127846240997314
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator3",
+        "first_sample_slope": -0.13322322721031846,
+        "normalized_first_sample_slope_per_s": 5.9776083968156062E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 0.55797156691551208
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator4",
+        "first_sample_slope": -0.036547742463872435,
+        "normalized_first_sample_slope_per_s": 2.3472543501876446E-9,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 0.042438779026269913
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator5",
+        "first_sample_slope": -0.0055947864439079772,
+        "normalized_first_sample_slope_per_s": 4.88993021841885E-9,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 0.0031633619219064713
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator6",
+        "first_sample_slope": -0.033371521138051377,
+        "normalized_first_sample_slope_per_s": 1.2541154197779656E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 0.0074147782288491726
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator7",
+        "first_sample_slope": -1.1096158983934561E-7,
+        "normalized_first_sample_slope_per_s": 6.4442681071499052E-11,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -3.8580378713959362E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_c1_average_Integrator",
+        "first_sample_slope": -1.3566287585918557E-5,
+        "normalized_first_sample_slope_per_s": 1.3941306640088995E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 3.3623962281126296E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_c2_out_Integrator",
+        "first_sample_slope": 3.6291007062828989E-5,
+        "normalized_first_sample_slope_per_s": 3.3050919043357168E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -2.33858872888959E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_h1_average_Integrator",
+        "first_sample_slope": 2.689188215693964E-5,
+        "normalized_first_sample_slope_per_s": 2.5971614559548379E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -7.46803834772436E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_h2_out_Integrator",
+        "first_sample_slope": -8.9451065273353191E-5,
+        "normalized_first_sample_slope_per_s": 9.8245993237053254E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 6.8604060743382433E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_wall_Integrator",
+        "first_sample_slope": 2.27693483278817E-7,
+        "normalized_first_sample_slope_per_s": 2.2671275019740041E-10,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": -3.9412429941876326E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_c1_average_Integrator",
+        "first_sample_slope": 1.6310286567697751E-5,
+        "normalized_first_sample_slope_per_s": 2.2547455285243572E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.9066454771964345E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_c2_out_Integrator",
+        "first_sample_slope": -6.57723544826682E-5,
+        "normalized_first_sample_slope_per_s": 7.7546459891421784E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 3.01049294648692E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_h1_average_Integrator",
+        "first_sample_slope": -1.8807578594652432E-5,
+        "normalized_first_sample_slope_per_s": 2.3938808087837649E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.3497860865973053E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_h2_out_Integrator",
+        "first_sample_slope": 5.0518252225649925E-5,
+        "normalized_first_sample_slope_per_s": 7.64473664780954E-8,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 4.01315014642023E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_wall_Integrator",
+        "first_sample_slope": -4.8772404654638411E-8,
+        "normalized_first_sample_slope_per_s": 6.4635762373717569E-11,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.8211908329467406E-6
+      },
+      {
+        "path": "final_steady_24a/rediator/T_rad_Integrator",
+        "first_sample_slope": -1.4273847988877957E-9,
+        "normalized_first_sample_slope_per_s": 3.4262061948794111E-12,
+        "near_zero_by_rule": true,
+        "absolute_change_500s": 2.724563103129185E-6
+      }
+    ],
+    "power_state_signal_mappings": [
+      {
+        "power_definition": "reactor",
+        "traced_state_paths": [
+          "final_steady_24a/reactor/Integrator6",
+          "final_steady_24a/reactor/Integrator7"
+        ],
+        "traced_signal_paths": [
+          "final_steady_24a/reactor/Integrator6",
+          "final_steady_24a/reactor/P_sw"
+        ],
+        "mapping_explanation": "Recorded reactor power and temperature states feed the direct P_sw definition."
+      },
+      {
+        "power_definition": "turbine",
+        "traced_state_paths": [
+          "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
+          "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+          "final_steady_24a/TAC/rotor/N_rpm_Integrator"
+        ],
+        "traced_signal_paths": [
+          "final_steady_24a/TAC/Turbine output 4",
+          "final_steady_24a/TAC/WT_sw"
+        ],
+        "mapping_explanation": "Recorded turbine-inlet thermal states and rotor speed map to the traced WT_sw component output."
+      },
+      {
+        "power_definition": "compressor",
+        "traced_state_paths": [
+          "final_steady_24a/precooler/precooler_2/T_h1_average_Integrator",
+          "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+          "final_steady_24a/TAC/rotor/N_rpm_Integrator"
+        ],
+        "traced_signal_paths": [
+          "final_steady_24a/TAC/Compressor output 2",
+          "final_steady_24a/TAC/Wc_sw"
+        ],
+        "mapping_explanation": "Recorded compressor-inlet thermal states and rotor speed map to the traced Wc_sw component output."
+      },
+      {
+        "power_definition": "electrical_paper_eta",
+        "traced_state_paths": [
+          "final_steady_24a/TAC/rotor/N_rpm_Integrator",
+          "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+          "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator"
+        ],
+        "traced_signal_paths": [
+          "final_steady_24a/TAC/Turbine output 4",
+          "final_steady_24a/TAC/WT_sw",
+          "final_steady_24a/TAC/Compressor output 2",
+          "final_steady_24a/TAC/Wc_sw"
+        ],
+        "mapping_explanation": "The paper-efficiency electrical definition is an offline function of the two traced shaft powers; no direct generator signal was found."
+      }
+    ],
     "has_state_evidence": true,
     "has_signal_path_evidence": true,
     "state_derivative_evidence": [
       {
         "path": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
         "first_sample_slope": 1.5237329545229836E-5,
+        "normalized_first_sample_slope_per_s": 1.0449123284620344E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -1.0359444786445238E-6
       },
       {
         "path": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
         "first_sample_slope": 1.122115657252202E-5,
+        "normalized_first_sample_slope_per_s": 7.3683966751860028E-9,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -8.6353566075558774E-7
       },
       {
         "path": "final_steady_24a/IHX/IHX_region_1/T_h1_average_Integrator",
         "first_sample_slope": 1.179049358020684E-7,
+        "normalized_first_sample_slope_per_s": 7.5251470083519671E-11,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -7.7769118433934636E-7
       },
       {
         "path": "final_steady_24a/IHX/IHX_region_1/T_h2_out_Integrator",
         "first_sample_slope": 1.4790750523792442E-7,
+        "normalized_first_sample_slope_per_s": 9.5752942466755076E-11,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -8.2668520917650312E-7
       },
       {
         "path": "final_steady_24a/IHX/IHX_region_1/T_wall_Integrator",
         "first_sample_slope": 1.6495163136678855E-7,
+        "normalized_first_sample_slope_per_s": 1.0601312667205288E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -8.0180598160950467E-7
       },
       {
         "path": "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
         "first_sample_slope": 2.775361053493399E-5,
+        "normalized_first_sample_slope_per_s": 2.2277411413007657E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -1.7757035948307021E-6
       },
       {
         "path": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
         "first_sample_slope": 1.92509689316212E-5,
+        "normalized_first_sample_slope_per_s": 1.3813804268315825E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -1.2103155313525349E-6
       },
       {
         "path": "final_steady_24a/IHX/IHX_region_2/T_h1_average_Integrator",
         "first_sample_slope": 2.2472991646142214E-7,
+        "normalized_first_sample_slope_per_s": 1.5041462334158988E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -9.653354027250316E-7
       },
       {
         "path": "final_steady_24a/IHX/IHX_region_2/T_h2_out_Integrator",
         "first_sample_slope": 2.7795606261707027E-7,
+        "normalized_first_sample_slope_per_s": 1.9256225617700351E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -1.1037077456421684E-6
       },
       {
         "path": "final_steady_24a/IHX/IHX_region_2/T_wall_Integrator",
         "first_sample_slope": 3.1207209288831832E-7,
+        "normalized_first_sample_slope_per_s": 2.12403228545399E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -1.0334590569982538E-6
       },
       {
         "path": "final_steady_24a/TAC/rotor/N_rpm_Integrator",
         "first_sample_slope": 0,
+        "normalized_first_sample_slope_per_s": 0,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 0
       },
       {
         "path": "final_steady_24a/precooler/precooler_1/T_c1_average_Integrator",
         "first_sample_slope": 7.9120983971400584E-7,
+        "normalized_first_sample_slope_per_s": 1.4498112666496584E-9,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 3.1840152132645017E-6
       },
       {
         "path": "final_steady_24a/precooler/precooler_1/T_c2_out_Integrator",
         "first_sample_slope": 1.1058612368993617E-6,
+        "normalized_first_sample_slope_per_s": 1.8082132948027145E-9,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 3.6634371554100653E-6
       },
       {
         "path": "final_steady_24a/precooler/precooler_1/T_h1_average_Integrator",
         "first_sample_slope": 2.3860177029797921E-5,
+        "normalized_first_sample_slope_per_s": 4.0110097376880627E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 3.4694583064265316E-6
       },
       {
         "path": "final_steady_24a/precooler/precooler_1/T_h2_out_Integrator",
         "first_sample_slope": -2.7094413968347045E-6,
+        "normalized_first_sample_slope_per_s": 5.1226868283812824E-9,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.9240422918519471E-6
       },
       {
         "path": "final_steady_24a/precooler/precooler_1/T_wall_Integrator",
         "first_sample_slope": 8.0966775098930533E-7,
+        "normalized_first_sample_slope_per_s": 1.4817085440607613E-9,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 3.188525624864269E-6
       },
       {
         "path": "final_steady_24a/precooler/precooler_2/T_c1_average_Integrator",
         "first_sample_slope": 2.2820361492293602E-7,
+        "normalized_first_sample_slope_per_s": 5.4496316019180546E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.5939984880096745E-6
       },
       {
         "path": "final_steady_24a/precooler/precooler_2/T_c2_out_Integrator",
         "first_sample_slope": 6.8467594948799507E-8,
+        "normalized_first_sample_slope_per_s": 1.4267375123463907E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.7056722728957538E-6
       },
       {
         "path": "final_steady_24a/precooler/precooler_2/T_h1_average_Integrator",
         "first_sample_slope": 6.2118403334007025E-6,
+        "normalized_first_sample_slope_per_s": 1.3336226220831103E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.6326607667215285E-6
       },
       {
         "path": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
         "first_sample_slope": 1.5089752771965382E-5,
+        "normalized_first_sample_slope_per_s": 3.7474826415023996E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.3395545554194541E-6
       },
       {
         "path": "final_steady_24a/precooler/precooler_2/T_wall_Integrator",
         "first_sample_slope": 2.3140300550094176E-7,
+        "normalized_first_sample_slope_per_s": 5.5170926370818282E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.5953024191949225E-6
       },
       {
         "path": "final_steady_24a/reactor/Integrator",
         "first_sample_slope": -0.0074292968275541547,
+        "normalized_first_sample_slope_per_s": 1.4579726115325266E-11,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -1.4374715089797974
       },
       {
         "path": "final_steady_24a/reactor/Integrator1",
         "first_sample_slope": -0.058868818413353237,
+        "normalized_first_sample_slope_per_s": 5.1445395288130225E-11,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 0.16137599945068359
       },
       {
         "path": "final_steady_24a/reactor/Integrator2",
         "first_sample_slope": -0.060719619305621482,
+        "normalized_first_sample_slope_per_s": 2.1809743690997366E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 0.56127846240997314
       },
       {
         "path": "final_steady_24a/reactor/Integrator3",
         "first_sample_slope": -0.13322322721031846,
+        "normalized_first_sample_slope_per_s": 5.9776083968156062E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 0.55797156691551208
       },
       {
         "path": "final_steady_24a/reactor/Integrator4",
         "first_sample_slope": -0.036547742463872435,
+        "normalized_first_sample_slope_per_s": 2.3472543501876446E-9,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 0.042438779026269913
       },
       {
         "path": "final_steady_24a/reactor/Integrator5",
         "first_sample_slope": -0.0055947864439079772,
+        "normalized_first_sample_slope_per_s": 4.88993021841885E-9,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 0.0031633619219064713
       },
       {
         "path": "final_steady_24a/reactor/Integrator6",
         "first_sample_slope": -0.033371521138051377,
+        "normalized_first_sample_slope_per_s": 1.2541154197779656E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 0.0074147782288491726
       },
       {
         "path": "final_steady_24a/reactor/Integrator7",
         "first_sample_slope": -1.1096158983934561E-7,
+        "normalized_first_sample_slope_per_s": 6.4442681071499052E-11,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -3.8580378713959362E-7
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_1/T_c1_average_Integrator",
         "first_sample_slope": -1.3566287585918557E-5,
+        "normalized_first_sample_slope_per_s": 1.3941306640088995E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 3.3623962281126296E-7
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_1/T_c2_out_Integrator",
         "first_sample_slope": 3.6291007062828989E-5,
+        "normalized_first_sample_slope_per_s": 3.3050919043357168E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -2.33858872888959E-6
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_1/T_h1_average_Integrator",
         "first_sample_slope": 2.689188215693964E-5,
+        "normalized_first_sample_slope_per_s": 2.5971614559548379E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -7.46803834772436E-7
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_1/T_h2_out_Integrator",
         "first_sample_slope": -8.9451065273353191E-5,
+        "normalized_first_sample_slope_per_s": 9.8245993237053254E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 6.8604060743382433E-7
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_1/T_wall_Integrator",
         "first_sample_slope": 2.27693483278817E-7,
+        "normalized_first_sample_slope_per_s": 2.2671275019740041E-10,
+        "near_zero_by_rule": true,
         "absolute_change_500s": -3.9412429941876326E-7
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_2/T_c1_average_Integrator",
         "first_sample_slope": 1.6310286567697751E-5,
+        "normalized_first_sample_slope_per_s": 2.2547455285243572E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.9066454771964345E-6
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_2/T_c2_out_Integrator",
         "first_sample_slope": -6.57723544826682E-5,
+        "normalized_first_sample_slope_per_s": 7.7546459891421784E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 3.01049294648692E-6
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_2/T_h1_average_Integrator",
         "first_sample_slope": -1.8807578594652432E-5,
+        "normalized_first_sample_slope_per_s": 2.3938808087837649E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.3497860865973053E-6
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_2/T_h2_out_Integrator",
         "first_sample_slope": 5.0518252225649925E-5,
+        "normalized_first_sample_slope_per_s": 7.64473664780954E-8,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 4.01315014642023E-6
       },
       {
         "path": "final_steady_24a/recuperator/MannRegion_2/T_wall_Integrator",
         "first_sample_slope": -4.8772404654638411E-8,
+        "normalized_first_sample_slope_per_s": 6.4635762373717569E-11,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.8211908329467406E-6
       },
       {
         "path": "final_steady_24a/rediator/T_rad_Integrator",
         "first_sample_slope": -1.4273847988877957E-9,
+        "normalized_first_sample_slope_per_s": 3.4262061948794111E-12,
+        "near_zero_by_rule": true,
         "absolute_change_500s": 2.724563103129185E-6
       }
     ],

@@ -41,6 +41,9 @@ PAPER_PDF_SHA256 = "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e
 PAPER_ETA = 0.98
 HISTORICAL_METRIC_ETA = 0.96527
 INITIALIZATION_AUDIT_NAME = "initialization_audit.json"
+RAW_REFERENCE_RELATIVE = Path("tmp/fig519_initialization_20260831_A1/raw_reference.mat")
+RAW_REFERENCE_SHA256 = "185d59ca6e55647ad14fb5f23599bc85e6566f8da2ca6120f42a0ef8dedbb648"
+RAW_REFERENCE_BYTES = 299032
 
 
 def _hash(data: bytes) -> str:
@@ -219,7 +222,8 @@ def _validate_initialization_audit(audit: dict[str, object]) -> None:
     paths = audit.get("power_signal_paths")
     expected_status = {
         "reactor": "verified_by_official_api", "turbine": "verified_by_official_api",
-        "compressor": "verified_by_official_api", "electrical": "no_direct_generator_signal_found",
+        "compressor": "verified_by_official_api", "load": "verified_by_official_api",
+        "electrical": "no_direct_generator_signal_found",
     }
     if not isinstance(paths, dict) or paths.get("direct_generator_signal_found") is not False:
         raise RuntimeError("initialization audit power paths are incomplete")
@@ -230,6 +234,73 @@ def _validate_initialization_audit(audit: dict[str, object]) -> None:
         raise RuntimeError("initialization audit turbine path mismatch")
     if paths["compressor"].get("block") != "final_steady_24a/TAC/Compressor" or paths["compressor"].get("output_port") != 2:
         raise RuntimeError("initialization audit compressor path mismatch")
+    load = paths["load"]
+    if any(load.get(key) != value for key, value in {
+            "source_block": "final_steady_24a/Constant14",
+            "destination_block": "final_steady_24a/TAC",
+            "destination_input_port": 6,
+            "destination_inport_block": "final_steady_24a/TAC/Pload",
+            "value_W": 1000210.0,
+    }.items()):
+        raise RuntimeError("initialization audit load path mismatch")
+    boundary = audit["boundary_contract"]
+    if boundary.get("load_input_classified") is not True:
+        raise RuntimeError("initialization audit load boundary is not classified")
+    residuals = audit["initial_residuals"].get("items")
+    if not isinstance(residuals, list):
+        raise RuntimeError("initialization audit residual records are missing")
+    shaft = [item for item in residuals if item.get("name") == "shaft_excess_power"]
+    required_paths = {"final_steady_24a/TAC/Turbine", "final_steady_24a/TAC/Compressor",
+                      "final_steady_24a/Constant14", "final_steady_24a/TAC/Pload"}
+    shaft_value = shaft[0].get("value") if len(shaft) == 1 else None
+    if (len(shaft) != 1 or shaft[0].get("status") != "computed" or
+            shaft[0].get("unit") != "W" or
+            shaft[0].get("formula") != "WT(t0)-Wc(t0)-Pload" or
+            not isinstance(shaft_value, (int, float)) or
+            not math.isclose(shaft_value, 35934.17908170889,
+                             rel_tol=0.0, abs_tol=1e-6) or
+            not required_paths.issubset(set(shaft[0].get("source_paths", [])))):
+        raise RuntimeError("initialization audit shaft residual mismatch")
+    flat = audit["flat_start_explanation"]
+    rule = flat.get("near_zero_rule")
+    near_zero = flat.get("near_zero_state_derivatives")
+    mappings = flat.get("power_state_signal_mappings")
+    if (not isinstance(rule, dict) or
+            rule.get("metric") != "abs(first_sample_slope)/max(abs(t0_value),1)" or
+            not isinstance(rule.get("threshold_per_s"), (int, float)) or
+            rule["threshold_per_s"] <= 0 or not isinstance(near_zero, list) or not near_zero or
+            not isinstance(mappings, list) or len(mappings) != 4 or
+            flat.get("paper_initial_state_identified") is not False):
+        raise RuntimeError("initialization audit flat-start rule is incomplete")
+    expected_definitions = {"reactor", "turbine", "compressor", "electrical_paper_eta"}
+    if {item.get("power_definition") for item in mappings} != expected_definitions:
+        raise RuntimeError("initialization audit power-state mapping definitions mismatch")
+    inventory_paths = {item.get("path") for item in audit["state_inventory"]}
+    for mapping in mappings:
+        states = mapping.get("traced_state_paths")
+        signals = mapping.get("traced_signal_paths")
+        if (not isinstance(states, list) or not states or not set(states).issubset(inventory_paths) or
+                not isinstance(signals, list) or not signals or
+                any(not isinstance(path, str) or not path for path in signals)):
+            raise RuntimeError("initialization audit power-state mapping is incomplete")
+
+
+def _validate_raw_reference(audit: dict[str, object]) -> dict[str, object]:
+    raw = audit.get("raw_reference")
+    expected = ROOT / RAW_REFERENCE_RELATIVE
+    if (not isinstance(raw, dict) or
+            raw.get("repository_relative_path") != RAW_REFERENCE_RELATIVE.as_posix() or
+            raw.get("absolute_path") != str(expected) or
+            raw.get("sha256") != RAW_REFERENCE_SHA256 or
+            raw.get("bytes") != RAW_REFERENCE_BYTES):
+        raise RuntimeError("initialization audit raw reference identity mismatch")
+    checked = _safe(expected)
+    if checked != expected or checked.is_symlink() or not checked.is_file():
+        raise RuntimeError("initialization audit raw reference is missing or unsafe")
+    payload = checked.read_bytes()
+    if len(payload) != RAW_REFERENCE_BYTES or _hash(payload) != RAW_REFERENCE_SHA256:
+        raise RuntimeError("initialization audit raw reference hash or byte count mismatch")
+    return raw
 
 
 def contract_from_initialization(audit: dict[str, object]) -> dict[str, object]:
@@ -255,6 +326,15 @@ def contract_from_initialization(audit: dict[str, object]) -> dict[str, object]:
                 "status": "verified_by_official_api", "api_block_path": paths["compressor"]["block"],
                 "api_output_port": paths["compressor"]["output_port"],
             },
+            "load": {
+                "model_signal": "Pload", "kind": "fixed_boundary_power",
+                "status": "verified_by_official_api",
+                "api_source_block": paths["load"]["source_block"],
+                "api_destination_block": paths["load"]["destination_block"],
+                "api_destination_input_port": paths["load"]["destination_input_port"],
+                "api_destination_inport_block": paths["load"]["destination_inport_block"],
+                "value_W": paths["load"]["value_W"],
+            },
             "electrical_paper_eta": {
                 "formula": "0.98*(WT_sw-Wc_sw)", "kind": "offline_derived",
                 "direct_generator_signal": None, "status": "no_direct_generator_signal_found",
@@ -279,6 +359,7 @@ def _audit_from_output(output: Path) -> tuple[dict[str, object] | None, bytes | 
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError("initialization audit is not valid JSON") from exc
     _validate_initialization_audit(audit)
+    _validate_raw_reference(audit)
     return audit, payload
 
 
@@ -342,14 +423,43 @@ def _roles() -> dict[str, tuple[str, str]]:
     return roles
 
 
+def manifest_bytes_with_external(output: Path, entries: dict[str, bytes],
+                                 roles: dict[str, tuple[str, str]],
+                                 audit: dict[str, object]) -> bytes:
+    """Build the compatible durable manifest plus one external raw locator.
+
+    The external row records identity and location only.  It deliberately does
+    not imply that the raw MAT file was copied into the durable publication.
+    """
+    raw = _validate_raw_reference(audit)
+    output = _safe(output)
+    stream = io.StringIO(newline="")
+    writer = csv.writer(stream, lineterminator="\n")
+    writer.writerow(("path", "bytes", "sha256", "role", "identity", "storage",
+                     "repository_relative_path", "absolute_path"))
+    for name in sorted(entries):
+        payload = entries[name]
+        role, identity = roles[name]
+        target = output / name
+        writer.writerow((name, len(payload), _hash(payload), role, identity, "durable",
+                         target.relative_to(ROOT).as_posix(), str(target)))
+    writer.writerow(("@external/raw_reference.mat", raw["bytes"], raw["sha256"],
+                     "external raw evidence locator",
+                     "unmodified-500s-reference;not-copied-to-durable-publication",
+                     "external_tmp_not_copied", raw["repository_relative_path"],
+                     raw["absolute_path"]))
+    return stream.getvalue().encode()
+
+
 def _unified_manifest(output: Path, baseline: dict[str, bytes], generated: dict[str, bytes]) -> bytes:
     paper_bytes = {name: (output / name).read_bytes() for name in paper.ARTIFACT_NAMES}
     entries = dict(paper_bytes)
     entries.update({f"{paper.BASELINE_LAYER_DIR}/{name}": payload for name, payload in baseline.items()})
     entries.update(generated)
-    _, audit_payload = _audit_from_output(output)
+    audit, audit_payload = _audit_from_output(output)
     if audit_payload is not None:
         entries[INITIALIZATION_AUDIT_NAME] = audit_payload
+        return manifest_bytes_with_external(output, entries, _roles(), audit)
     return paper.manifest_bytes(entries, _roles())
 
 
@@ -428,7 +538,11 @@ def _planned_delta(output: Path, source_dir: Path) -> dict[str, bytes]:
         entries[INITIALIZATION_AUDIT_NAME] = audit_payload
     delta = {f"{paper.BASELINE_LAYER_DIR}/{name}": payload for name, payload in baseline.items()}
     delta.update(generated)
-    delta["manifest.csv"] = paper.manifest_bytes(entries, _roles())
+    if audit is not None:
+        delta["manifest.csv"] = manifest_bytes_with_external(
+            output, entries, _roles(), audit)
+    else:
+        delta["manifest.csv"] = paper.manifest_bytes(entries, _roles())
     _require_delta_shape(delta)
     return delta
 
@@ -670,7 +784,10 @@ def _recover_or_publish_delta(output: Path, payloads: dict[str, bytes]) -> None:
 def write_manifest(output: Path, rows: list[dict[str, str]]) -> None:
     """Test helper: atomically write caller-provided manifest rows."""
     stream = io.StringIO(newline="")
-    writer = csv.DictWriter(stream, fieldnames=("path", "bytes", "sha256", "role", "identity"), lineterminator="\n")
+    base = ("path", "bytes", "sha256", "role", "identity")
+    extended = base + ("storage", "repository_relative_path", "absolute_path")
+    fieldnames = extended if rows and set(rows[0]) == set(extended) else base
+    writer = csv.DictWriter(stream, fieldnames=fieldnames, lineterminator="\n")
     writer.writeheader(); writer.writerows(rows)
     target = Path(output) / "manifest.csv"
     staged = target.parent / "manifest.csv.test-staging"

@@ -43,8 +43,8 @@ class Figure519InitializationPublicationTests(unittest.TestCase):
     def _source(self, parent: Path) -> Path:
         run = parent / "run"
         run.mkdir()
-        raw = run / "raw_reference.mat"
-        raw.write_bytes(b"synthetic-read-only-reference")
+        raw = ROOT / "tmp/fig519_initialization_20260831_A1/raw_reference.mat"
+        self.assertTrue(raw.is_file())
         audit = {
             "audit_schema": "steady53_fig519_initialization_v1",
             "model_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
@@ -69,18 +69,37 @@ class Figure519InitializationPublicationTests(unittest.TestCase):
                 "dependency_count": 9, "all_paths_durable": True,
                 "dependencies": [{"is_durable": True} for _ in range(9)],
             },
-            "state_inventory": [{"path": f"final_steady_24a/state/{i}"} for i in range(40)],
-            "boundary_contract": {"all_inputs_classified": True},
+            "state_inventory": ([
+                {"path": "final_steady_24a/reactor/Integrator6"},
+                {"path": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator"},
+                {"path": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator"},
+                {"path": "final_steady_24a/TAC/rotor/N_rpm_Integrator"},
+            ] + [{"path": f"final_steady_24a/state/{i}"} for i in range(36)]),
+            "boundary_contract": {"all_inputs_classified": True, "load_input_classified": True},
             "solver_contract": {"solver_name": "ode15s", "stop_time_dependency_checked": True},
             "power_signal_paths": {
                 "reactor": {"status": "verified_by_official_api", "workspace_block": "final_steady_24a/reactor/P_sw", "upstream_block": "final_steady_24a/reactor/Integrator6", "upstream_output_port": 1},
                 "turbine": {"status": "verified_by_official_api", "block": "final_steady_24a/TAC/Turbine", "output_port": 4},
                 "compressor": {"status": "verified_by_official_api", "block": "final_steady_24a/TAC/Compressor", "output_port": 2},
+                "load": {"status": "verified_by_official_api", "source_block": "final_steady_24a/Constant14", "destination_block": "final_steady_24a/TAC", "destination_input_port": 6, "destination_inport_block": "final_steady_24a/TAC/Pload", "value_W": 1000210.0},
                 "electrical": {"status": "no_direct_generator_signal_found"},
                 "direct_generator_signal_found": False,
             },
-            "initial_residuals": {"all_items_accounted_for": True, "items": []},
-            "flat_start_explanation": {"has_state_evidence": True, "has_signal_path_evidence": True},
+            "initial_residuals": {"all_items_accounted_for": True, "items": [
+                {"name": "shaft_excess_power", "status": "computed", "value": 35934.17908170889,
+                 "unit": "W", "formula": "WT(t0)-Wc(t0)-Pload",
+                 "source_paths": ["final_steady_24a/TAC/Turbine", "final_steady_24a/TAC/Compressor", "final_steady_24a/Constant14", "final_steady_24a/TAC/Pload"]}
+            ]},
+            "flat_start_explanation": {
+                "has_state_evidence": True, "has_signal_path_evidence": True,
+                "near_zero_rule": {"metric": "abs(first_sample_slope)/max(abs(t0_value),1)", "threshold_per_s": 1e-6},
+                "near_zero_state_derivatives": [{"path": "final_steady_24a/reactor/Integrator6"}],
+                "power_state_signal_mappings": [
+                    {"power_definition": name, "traced_state_paths": ["final_steady_24a/reactor/Integrator6"], "traced_signal_paths": ["verified/path"]}
+                    for name in ("reactor", "turbine", "compressor", "electrical_paper_eta")
+                ],
+                "paper_initial_state_identified": False,
+            },
         }
         source = run / "initialization_audit.json"
         source.write_text(json.dumps(audit, indent=2, sort_keys=True) + "\n")
@@ -108,7 +127,16 @@ class Figure519InitializationPublicationTests(unittest.TestCase):
                 rows = list(csv.DictReader(handle))
             indexed = {row["path"]: row for row in rows}
             self.assertIn("initialization_audit.json", indexed)
+            self.assertIn("@external/raw_reference.mat", indexed)
+            raw_row = indexed["@external/raw_reference.mat"]
+            self.assertEqual(raw_row["storage"], "external_tmp_not_copied")
+            self.assertEqual(raw_row["repository_relative_path"], "tmp/fig519_initialization_20260831_A1/raw_reference.mat")
+            self.assertEqual(raw_row["absolute_path"], str(ROOT / raw_row["repository_relative_path"]))
+            self.assertEqual(raw_row["sha256"], hashlib.sha256((ROOT / raw_row["repository_relative_path"]).read_bytes()).hexdigest())
+            self.assertEqual(int(raw_row["bytes"]), (ROOT / raw_row["repository_relative_path"]).stat().st_size)
             for relative, row in indexed.items():
+                if row.get("storage") == "external_tmp_not_copied":
+                    continue
                 target = output / relative
                 self.assertFalse(target.is_symlink())
                 self.assertEqual(row["sha256"], hashlib.sha256(target.read_bytes()).hexdigest())
@@ -173,6 +201,27 @@ class Figure519InitializationPublicationTests(unittest.TestCase):
                 subject.verify_only(output)
             self.assertEqual(before, {str(p.relative_to(output)): p.read_bytes()
                                       for p in output.rglob("*") if p.is_file()})
+
+    def test_verify_only_rejects_missing_or_tampered_raw_locator(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            parent = Path(work)
+            output = self._task5_copy(parent)
+            source = self._source(parent)
+            subject.publish(source, output)
+            audit_path = output / "initialization_audit.json"
+            original = audit_path.read_bytes()
+            audit = json.loads(original)
+            audit["raw_reference"]["sha256"] = "0" * 64
+            audit_path.write_text(json.dumps(audit))
+            with self.assertRaises(RuntimeError):
+                subject.verify_only(output)
+            audit_path.write_bytes(original)
+            audit = json.loads(original)
+            audit["raw_reference"]["repository_relative_path"] = "tmp/fig519_initialization_20260831_A1/missing.mat"
+            audit["raw_reference"]["absolute_path"] = str(ROOT / audit["raw_reference"]["repository_relative_path"])
+            audit_path.write_text(json.dumps(audit))
+            with self.assertRaises(RuntimeError):
+                subject.verify_only(output)
 
 
 if __name__ == "__main__":

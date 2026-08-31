@@ -257,7 +257,9 @@ def _manifest_rows(output: Path) -> dict[str, dict[str, str]]:
         raise RuntimeError("manifest is missing or unsafe")
     with manifest.open(newline="") as handle:
         rows = list(csv.DictReader(handle))
-    if not rows or set(rows[0]) != {"path", "bytes", "sha256", "role", "identity"}:
+    base_schema = {"path", "bytes", "sha256", "role", "identity"}
+    extended_schema = base_schema | {"storage", "repository_relative_path", "absolute_path"}
+    if not rows or set(rows[0]) not in (base_schema, extended_schema):
         raise RuntimeError("manifest schema is invalid")
     indexed = {row["path"]: row for row in rows}
     if len(indexed) != len(rows):

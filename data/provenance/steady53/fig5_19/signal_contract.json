@@ -21,6 +21,16 @@
       "kind": "offline_derived",
       "status": "no_direct_generator_signal_found"
     },
+    "load": {
+      "api_destination_block": "final_steady_24a/TAC",
+      "api_destination_inport_block": "final_steady_24a/TAC/Pload",
+      "api_destination_input_port": 6,
+      "api_source_block": "final_steady_24a/Constant14",
+      "kind": "fixed_boundary_power",
+      "model_signal": "Pload",
+      "status": "verified_by_official_api",
+      "value_W": 1000210.0
+    },
     "reactor": {
       "api_output_port": 1,
       "api_upstream_block": "final_steady_24a/reactor/Integrator6",

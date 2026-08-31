@@ -304,6 +304,7 @@ class Figure519BaselineTests(unittest.TestCase):
             "baseline_metrics.json", "signal_contract.json"}
         if (OUT / "initialization_audit.json").is_file():
             expected_paths.add("initialization_audit.json")
+            expected_paths.add("@external/raw_reference.mat")
         self.assertEqual({row["path"] for row in rows}, expected_paths)
         self.assertEqual(len(rows), len(expected_paths))
 

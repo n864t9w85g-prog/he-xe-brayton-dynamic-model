@@ -26,6 +26,11 @@ SOURCE = ROOT / "tmp/fig519_initialization_20260831_A1/initialization_audit.json
 AUDIT_NAME = baseline.INITIALIZATION_AUDIT_NAME
 TARGETS = (AUDIT_NAME, "signal_contract.json", "manifest.csv")
 TRANSACTION_VERSION = 1
+LEGACY_TASK6_SHA256 = {
+    AUDIT_NAME: "d5b000c3ac9c1c05437aeae2652712e5d69e51de40eb49b43537b76274159818",
+    "signal_contract.json": "515c58ce7fc1cc349054bcf0e0f06760ff995ceef928f4056004394bed50e9f6",
+    "manifest.csv": "dae38c7d79eb409981624001158f5b54075f3f500b4eaa390045aa5853dc9458",
+}
 
 
 def _hash(payload: bytes) -> str:
@@ -58,22 +63,7 @@ def _load_source(source: Path) -> tuple[bytes, dict[str, object]]:
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError("source initialization audit is not valid JSON") from exc
     baseline._validate_initialization_audit(audit)
-    raw = audit.get("raw_reference")
-    if not isinstance(raw, dict):
-        raise RuntimeError("initialization audit raw reference is missing")
-    relative = raw.get("repository_relative_path")
-    absolute = raw.get("absolute_path")
-    if not isinstance(relative, str) or not isinstance(absolute, str):
-        raise RuntimeError("initialization audit raw reference paths are missing")
-    if Path(relative).is_absolute() or ".." in Path(relative).parts:
-        raise RuntimeError("raw reference relative path escapes the repository")
-    relative_path = _safe_existing_file(ROOT / relative)
-    absolute_path = _safe_existing_file(Path(absolute))
-    if relative_path != absolute_path or absolute_path.parent != source.parent:
-        raise RuntimeError("raw reference paths do not identify the source audit directory")
-    raw_payload = absolute_path.read_bytes()
-    if raw.get("bytes") != len(raw_payload) or raw.get("sha256") != _hash(raw_payload):
-        raise RuntimeError("raw reference hash or byte count mismatch")
+    baseline._validate_raw_reference(audit)
     return payload, audit
 
 
@@ -96,7 +86,8 @@ def _planned(source: Path, output: Path) -> dict[str, bytes]:
     entries["baseline_metrics.json"] = _json_bytes(metrics)
     entries["signal_contract.json"] = contract_payload
     entries[AUDIT_NAME] = audit_payload
-    manifest_payload = paper.manifest_bytes(entries, baseline._roles())
+    manifest_payload = baseline.manifest_bytes_with_external(
+        output, entries, baseline._roles(), audit)
     return {AUDIT_NAME: audit_payload, "signal_contract.json": contract_payload,
             "manifest.csv": manifest_payload}
 
@@ -167,6 +158,8 @@ def _target_state(output: Path, payloads: dict[str, bytes]) -> dict[str, str]:
         current = target.read_bytes()
         if current == payloads[name]:
             states[name] = "expected"
+        elif _hash(current) == LEGACY_TASK6_SHA256[name]:
+            states[name] = "predecessor"
         elif name == "signal_contract.json" and current == old_contract:
             states[name] = "predecessor"
         elif name == "manifest.csv" and current == old_manifest:
@@ -241,7 +234,7 @@ def _commit(output: Path, txn: Path, payloads: dict[str, bytes]) -> None:
         _publication_boundary(f"{boundary}-commit-before")
         if states[name] != "expected":
             staged = root / name
-            if name == AUDIT_NAME:
+            if name == AUDIT_NAME and states[name] == "missing":
                 try:
                     os.link(staged, output / name, follow_symlinks=False)
                 except FileExistsError:
