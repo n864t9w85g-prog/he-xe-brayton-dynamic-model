@@ -253,6 +253,86 @@ class PublishF8bcd83RuntimeTests(unittest.TestCase):
             self.assertTrue(staging.is_symlink())
             self.assertEqual(attacker_target.read_bytes(), b"attacker")
 
+    def test_publish_file_preserves_untouched_failed_staging_inode_and_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            baseline.mkdir()
+            source = temporary_root / "source"
+            destination = baseline / "runtime/file"
+            staging = destination.with_name(f"{destination.name}.publishing")
+            self._write(source, b"trusted")
+            recorded_identity = []
+
+            def write_partial_then_fail(source_path, destination_descriptor):
+                del source_path
+                os.write(destination_descriptor, b"partial-publication")
+                staging_stat = os.fstat(destination_descriptor)
+                recorded_identity.append((staging_stat.st_dev, staging_stat.st_ino))
+                raise OSError("injected copy failure")
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with mock.patch.object(
+                    publisher,
+                    "_copy_file_contents",
+                    side_effect=write_partial_then_fail,
+                ):
+                    with self.assertRaises(OSError):
+                        publisher.publish_file(
+                            source, destination, self._hash(b"trusted")
+                        )
+
+            staging_stat = staging.lstat()
+            self.assertEqual(
+                (staging_stat.st_dev, staging_stat.st_ino), recorded_identity[0]
+            )
+            self.assertEqual(staging.read_bytes(), b"partial-publication")
+
+    def test_failed_publication_never_unlinks_late_concurrent_replacement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            baseline = temporary_root / "baseline"
+            baseline.mkdir()
+            source = temporary_root / "source"
+            destination = baseline / "runtime/file"
+            staging = destination.with_name(f"{destination.name}.publishing")
+            self._write(source, b"trusted")
+            real_unlink = os.unlink
+            replacement_injected = []
+
+            def write_partial_then_fail(source_path, destination_descriptor):
+                del source_path
+                os.write(destination_descriptor, b"partial-publication")
+                raise OSError("injected copy failure")
+
+            def replace_at_attempted_cleanup(path):
+                self.assertEqual(Path(path), staging)
+                real_unlink(path)
+                Path(path).write_bytes(b"late-concurrent-replacement")
+                replacement_injected.append(True)
+                real_unlink(path)
+
+            with mock.patch.object(publisher, "BASELINE", baseline):
+                with mock.patch.object(
+                    publisher,
+                    "_copy_file_contents",
+                    side_effect=write_partial_then_fail,
+                ):
+                    with mock.patch.object(
+                        publisher.os,
+                        "unlink",
+                        side_effect=replace_at_attempted_cleanup,
+                    ) as unlink_mock:
+                        with self.assertRaises(OSError):
+                            publisher.publish_file(
+                                source, destination, self._hash(b"trusted")
+                            )
+
+            unlink_mock.assert_not_called()
+            self.assertEqual(replacement_injected, [])
+            self.assertTrue(os.path.lexists(staging))
+            self.assertEqual(staging.read_bytes(), b"partial-publication")
+
     def test_verify_tree_rejects_hash_mismatch(self):
         with tempfile.TemporaryDirectory() as directory:
             verification_root = Path(directory)

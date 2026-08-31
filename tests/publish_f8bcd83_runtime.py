@@ -178,16 +178,6 @@ def _same_file_identity(path_stat, identity):
     ) == identity
 
 
-def _cleanup_owned_temporary(path, identity):
-    path_stat = _lstat(path)
-    if not _same_file_identity(path_stat, identity):
-        return
-    try:
-        os.unlink(path)
-    except OSError:
-        pass
-
-
 def publish_file(src, dst, expected):
     src = Path(src)
     baseline, dst = _assert_within(BASELINE, dst)
@@ -246,7 +236,8 @@ def publish_file(src, dst, expected):
     except Exception:
         if temporary_descriptor is not None:
             os.close(temporary_descriptor)
-        _cleanup_owned_temporary(temporary, temporary_identity)
+        # Success is atomic. Failed staging is preserved for manual audit and
+        # deliberately blocks retry instead of risking a path-based race delete.
         raise
 
 
