@@ -127,6 +127,16 @@ class Figure519EndToEndContractTests(unittest.TestCase):
         report = REPORT.read_text(encoding="utf-8")
         for marker in ("✅", "⚠️", "❓", "❌"):
             self.assertIn(marker, report)
+        self.assertIn("⚠️ 高置信·本轮未复验", report)
+        self.assertNotIn("⚠️ 已有证据但存在明确限制", report)
+        for verified_limitation in (
+            "✅ 早期曲线接近竖直，分辨率受扫描限制",
+            "✅ 初始残差中可直接计算",
+            "✅ A1 在仿真调用前",
+            "✅ A2 执行前固化了 runner 与候选生成器字节",
+            "✅ A1/A2 候选、原始 MAT、CSV、stdout/stderr",
+        ):
+            self.assertIn(verified_limitation, report)
         for required in (
             "multiple_conditionally_feasible_packages",
             "figure_5_19_digitized_t10_proxy_not_author_t0",
