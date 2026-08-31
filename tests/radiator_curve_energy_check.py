@@ -30,6 +30,10 @@ MODEL_HASH = "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
 def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+def require(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
 
 def cp_nak(T):
     """Existing inlet-evaluated polynomial, J/(kg K); no property correction."""
@@ -80,11 +84,11 @@ def verify_snapshot():
                     for p in b.findall('P')} for b in root.findall('Block')}
         constants = block_props('simulink/systems/system_3154.xml')
         core = block_props('simulink/systems/system_3143.xml')
-        assert constants['Constant2']['Value'] == '1113'
-        assert constants['Constant3']['Value'] == '5744'
-        assert constants['Constant5']['Value'] == '9.755'
-        assert constants['Constant4']['Value'] == 'Cp_rad'
-        assert core['T_env']['Value'] == '225'
+        require(constants['Constant2']['Value'] == '1113', 'Constant2 mismatch')
+        require(constants['Constant3']['Value'] == '5744', 'Constant3 mismatch')
+        require(constants['Constant5']['Value'] == '9.755', 'Constant5 mismatch')
+        require(constants['Constant4']['Value'] == 'Cp_rad', 'Constant4 mismatch')
+        require(core['T_env']['Value'] == '225', 'T_env mismatch')
         assert core['Tho']['Expr'] == '((u(2)-0.8)*u(3)+u(1))/(u(2)+0.2)'
         assert core['Fcn1']['Expr'] == 'u(2)*(0.8*u(3)+0.2*u(6)-u(5))-u(1)*(u(5)^4-u(4)^4)'
     param_file = RUNTIME/'sys_param_rad_fixed.m'
@@ -93,7 +97,7 @@ def verify_snapshot():
         assert re.search(r'^'+name+r'\s*=\s*'+re.escape(value)+r'\s*;', params, re.M)
     provenance_file = SCAN_PROVENANCE
     provenance = json.loads(provenance_file.read_text())
-    assert provenance['source'].endswith('/paper-105.png')
+    require(provenance['source'].endswith('/paper-105.png'), 'provenance source mismatch')
     files = [model, param_file, provenance_file, SCAN_POINTS,
              RUNTIME/'tests/steady53/steady53_component_boundaries.m']
     return {str(p.relative_to(REPO)): sha256(p) for p in files}
@@ -103,7 +107,7 @@ def diagnose():
     hashes = verify_snapshot()
     with SCAN_POINTS.open() as stream:
         rows = [{k: float(v) for k, v in row.items()} for row in csv.DictReader(stream)]
-    assert len(rows) == 12 and all(math.isfinite(v) for r in rows for v in r.values())
+    require(len(rows) == 12 and all(math.isfinite(v) for r in rows for v in r.values()), 'invalid scan rows')
     Ti, mdot, h, A_exchange, A_rad = 609.58, 6.95, 9.755, 1113., 1113.
     cp, H = cp_nak(Ti), h*A_exchange
     C, Crad = mdot*cp, 5744.*900
@@ -136,9 +140,9 @@ def diagnose():
             implied_wall_capacity_J_K=Ew/dTw,
             warning='Inverse inconsistency diagnostic only; NEVER use as model parameters.'))
     # Regression checks on this bound dataset, not a claim of paper/model acceptance.
-    assert all(r['fluid_high_W'] < 0 for r in derived[:6])
-    assert all(r['implied_fluid_mass_kg'] < 0 for r in intervals)
-    assert all(r['outlet_rise_lower_with_3K_reading_K'] > 0 for r in intervals)
+    require(all(r['fluid_high_W'] < 0 for r in derived[:6]), 'fluid bound failed')
+    require(all(r['implied_fluid_mass_kg'] < 0 for r in intervals), 'mass bound failed')
+    require(all(r['outlet_rise_lower_with_3K_reading_K'] > 0 for r in intervals), 'rise bound failed')
     result = dict(baseline_commit='f8bcd833e816eb681982b7dd04364e4b856948e3',
         source_hashes=hashes,
         parameters=dict(Ti_K=Ti, mdot_kg_s=mdot, cp_J_kg_K=cp, C_W_K=C,
@@ -159,7 +163,7 @@ def diagnose():
     with (out/'sample_power_bounds.csv').open('w', newline='') as stream:
         writer = csv.DictWriter(stream, fieldnames=derived[0].keys())
         writer.writeheader(); writer.writerows(derived)
-    assert verify_snapshot() == hashes, 'Inputs changed during diagnostic.'
+    require(verify_snapshot() == hashes, 'Inputs changed during diagnostic.')
     print(json.dumps(dict(output=str(out), parameters=result['parameters'],
         robust_negative_samples=sum(r['fluid_high_W'] < 0 for r in derived),
         intervals=intervals), indent=2))

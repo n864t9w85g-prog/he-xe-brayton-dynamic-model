@@ -9,11 +9,13 @@ arguments
     component {mustBeTextScalar}
 end
 component = string(component);
+oldPath = path;
+cleanupPath = onCleanup(@() path(oldPath)); %#ok<NASGU>
 root = string(fileparts(fileparts(fileparts(mfilename("fullpath")))));
 sourceModel = "final_steady_24a";
 sourcePath = fullfile(root, "data", "provenance", "baselines", "f8bcd83", sourceModel + ".slx");
 runtimeDir = fullfile(root, "data", "provenance", "baselines", "f8bcd83", "runtime");
-addpath(runtimeDir, fileparts(mfilename("fullpath")));
+addpath(runtimeDir, fileparts(mfilename("fullpath")), root + filesep + "tests");
 if ~isfile(sourcePath)
     error("steady53:MissingSourceModel", ...
         "Source model does not exist: %s", sourcePath);

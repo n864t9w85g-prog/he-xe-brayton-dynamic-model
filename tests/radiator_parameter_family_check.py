@@ -66,7 +66,8 @@ def run(make_plot):
             universal_F_over_H_upper_K=upper,
             nominal_F_over_H_at_Ti60958_K=normalized_power(609.58, O, W, Oe, We),
             violates_algebraic_and_monotonic_positive_storage=(upper is not None and upper < 0)))
-    assert sum(r['violates_algebraic_and_monotonic_positive_storage'] for r in records) == 5
+    if sum(r['violates_algebraic_and_monotonic_positive_storage'] for r in records) != 5:
+        raise RuntimeError('unexpected violation count')
     result = dict(
         source_hashes=before,
         plateau_proxy=dict(time_s=end['time_s'], outlet_K=Oe, wall_K=We, gap_K=We-Oe),
@@ -119,7 +120,8 @@ def run(make_plot):
         ax.grid(alpha=.2); ax.legend(loc='lower right', fontsize=8)
         fig.savefig(out/'gap_compatibility.png', dpi=160)
         plt.close(fig)
-    assert verify_snapshot() == before
+    if verify_snapshot() != before:
+        raise RuntimeError('Inputs changed during diagnostic.')
     print(json.dumps(dict(output=str(out), plateau=result['plateau_proxy'],
         nominal_k=result['nominal_endpoint_k'], samples=records[:6],
         erasure_allowance_K=result['per_reading_allowance_to_erase_first_universal_gap_K']), indent=2))
