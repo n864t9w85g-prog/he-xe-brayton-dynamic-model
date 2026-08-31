@@ -520,8 +520,24 @@ Expected: 1 MATLAB test passes. This creates and compiles two disposable candida
 - [ ] **Step 6: Verify protected files and commit**
 
 ```bash
-python3 tests/audit_cleanup_protected_manifest.py --verify-only \
-  data/provenance/baselines/f8bcd83/protected_manifest_recovery.csv
+python3 - <<'PY'
+from pathlib import Path
+from tests.audit_cleanup_protected_manifest import resolve_manifest
+root = Path.cwd()
+runtime = root / "data/provenance/baselines/f8bcd83/runtime"
+durable = [
+    root / "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+    root / "data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+] + sorted(path for path in runtime.rglob("*") if path.is_file())
+_, summary = resolve_manifest(
+    root / "tmp/tp7d213f64_7fad_4bfa_b722_0771b21d9640/protected_after.csv",
+    durable,
+)
+assert summary["row_count"] == 34
+assert summary["resolved_count"] == 34
+assert summary["unresolved_count"] == 0
+print("PROTECTED_MANIFEST_VERIFY_PASS; ROWS=34; RESOLVED=34")
+PY
 git diff --check
 git add tests/radiator_a1_contract.py tests/test_radiator_a1_contract.py \
   tests/prepare_radiator_a1_candidates.m tests/run_radiator_a1_candidate.m \
@@ -857,8 +873,24 @@ Replace the three `api_trace_status` fields in `signal_contract.json` with the a
 
 ```bash
 python3 tests/analyze_fig519_baseline.py --verify-only
-python3 tests/audit_cleanup_protected_manifest.py --verify-only \
-  data/provenance/baselines/f8bcd83/protected_manifest_recovery.csv
+python3 - <<'PY'
+from pathlib import Path
+from tests.audit_cleanup_protected_manifest import resolve_manifest
+root = Path.cwd()
+runtime = root / "data/provenance/baselines/f8bcd83/runtime"
+durable = [
+    root / "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+    root / "data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+] + sorted(path for path in runtime.rglob("*") if path.is_file())
+_, summary = resolve_manifest(
+    root / "tmp/tp7d213f64_7fad_4bfa_b722_0771b21d9640/protected_after.csv",
+    durable,
+)
+assert summary["row_count"] == 34
+assert summary["resolved_count"] == 34
+assert summary["unresolved_count"] == 0
+print("PROTECTED_MANIFEST_VERIFY_PASS; ROWS=34; RESOLVED=34")
+PY
 git diff --check
 git add tests/steady53/run_steady53_case.m tests/audit_fig519_initialization.m \
   tests/test_audit_fig519_initialization.m \
@@ -1029,8 +1061,24 @@ python3 tests/publish_f8bcd83_runtime.py --verify-only
 python3 tests/publish_fig518d_evidence.py --verify-only
 python3 tests/digitize_fig519.py --verify-only
 python3 tests/analyze_fig519_baseline.py --verify-only
-python3 tests/audit_cleanup_protected_manifest.py --verify-only \
-  data/provenance/baselines/f8bcd83/protected_manifest_recovery.csv
+python3 - <<'PY'
+from pathlib import Path
+from tests.audit_cleanup_protected_manifest import resolve_manifest
+root = Path.cwd()
+runtime = root / "data/provenance/baselines/f8bcd83/runtime"
+durable = [
+    root / "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+    root / "data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+] + sorted(path for path in runtime.rglob("*") if path.is_file())
+_, summary = resolve_manifest(
+    root / "tmp/tp7d213f64_7fad_4bfa_b722_0771b21d9640/protected_after.csv",
+    durable,
+)
+assert summary["row_count"] == 34
+assert summary["resolved_count"] == 34
+assert summary["unresolved_count"] == 0
+print("PROTECTED_MANIFEST_VERIFY_PASS; ROWS=34; RESOLVED=34")
+PY
 matlab -batch "addpath('tests','tests/steady53'); r=runtests({'tests/test_prepare_radiator_a1_candidates.m','tests/test_audit_fig519_initialization.m'}); assertSuccess(r)"
 git diff --check
 git diff --name-only -- final_steady_24a.slx final_dynamic_24a.slx '*.mat' \
