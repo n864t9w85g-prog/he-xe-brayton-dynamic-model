@@ -40,6 +40,7 @@ PAPER_SOURCE_SHA256 = "770d193eaca80742ef5ece0ef5ba6d0bc20ad7aaa8ca2ac9b60a4799d
 PAPER_PDF_SHA256 = "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a"
 PAPER_ETA = 0.98
 HISTORICAL_METRIC_ETA = 0.96527
+INITIALIZATION_AUDIT_NAME = "initialization_audit.json"
 
 
 def _hash(data: bytes) -> str:
@@ -171,6 +172,116 @@ def _contract() -> dict[str, object]:
     }
 
 
+def _validate_initialization_audit(audit: dict[str, object]) -> None:
+    """Validate only fixed Task 6 facts needed by the durable publication."""
+    if not isinstance(audit, dict):
+        raise RuntimeError("initialization audit must be a JSON object")
+    fixed = {
+        "audit_schema": "steady53_fig519_initialization_v1",
+        "model_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+        "source_hash_after": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+        "source_hash_unchanged": True,
+        "state_count": 40,
+        "reference_final_time_s": 500,
+        "reference_success": True,
+        "reference_run_reason": "missing direct state and derivative evidence in prior saved baseline",
+        "repeated_prior_experiment": False,
+        "direct_generator_signal_found": False,
+        "paper_reproduced": False,
+        "formal_promotion": False,
+    }
+    for key, expected in fixed.items():
+        if audit.get(key) != expected:
+            raise RuntimeError(f"initialization audit fixed field mismatch: {key}")
+    protected = audit.get("protected_manifest")
+    if not isinstance(protected, dict) or any(protected.get(key) != value for key, value in
+            {"row_count": 34, "resolved_count": 34, "unresolved_count": 0}.items()):
+        raise RuntimeError("initialization audit protected manifest is incomplete")
+    runtime = audit.get("runtime_dependency_contract")
+    if (not isinstance(runtime, dict) or runtime.get("dependency_count") != 9 or
+            runtime.get("all_paths_durable") is not True or
+            not isinstance(runtime.get("dependencies"), list) or
+            len(runtime["dependencies"]) != 9 or
+            any(item.get("is_durable") is not True for item in runtime["dependencies"])):
+        raise RuntimeError("initialization audit durable runtime contract is incomplete")
+    if not isinstance(audit.get("state_inventory"), list) or len(audit["state_inventory"]) != 40:
+        raise RuntimeError("initialization audit state inventory is incomplete")
+    for section, flag in (("boundary_contract", "all_inputs_classified"),
+                          ("initial_residuals", "all_items_accounted_for"),
+                          ("flat_start_explanation", "has_state_evidence"),
+                          ("flat_start_explanation", "has_signal_path_evidence")):
+        value = audit.get(section)
+        if not isinstance(value, dict) or value.get(flag) is not True:
+            raise RuntimeError(f"initialization audit section is incomplete: {section}.{flag}")
+    solver = audit.get("solver_contract")
+    if not isinstance(solver, dict) or not solver.get("solver_name") or solver.get("stop_time_dependency_checked") is not True:
+        raise RuntimeError("initialization audit solver contract is incomplete")
+    paths = audit.get("power_signal_paths")
+    expected_status = {
+        "reactor": "verified_by_official_api", "turbine": "verified_by_official_api",
+        "compressor": "verified_by_official_api", "electrical": "no_direct_generator_signal_found",
+    }
+    if not isinstance(paths, dict) or paths.get("direct_generator_signal_found") is not False:
+        raise RuntimeError("initialization audit power paths are incomplete")
+    for name, status in expected_status.items():
+        if not isinstance(paths.get(name), dict) or paths[name].get("status") != status:
+            raise RuntimeError(f"initialization audit power path mismatch: {name}")
+    if paths["turbine"].get("block") != "final_steady_24a/TAC/Turbine" or paths["turbine"].get("output_port") != 4:
+        raise RuntimeError("initialization audit turbine path mismatch")
+    if paths["compressor"].get("block") != "final_steady_24a/TAC/Compressor" or paths["compressor"].get("output_port") != 2:
+        raise RuntimeError("initialization audit compressor path mismatch")
+
+
+def contract_from_initialization(audit: dict[str, object]) -> dict[str, object]:
+    _validate_initialization_audit(audit)
+    paths = audit["power_signal_paths"]
+    return {
+        "figure": "5.19", "paper_reproduced": False, "formal_promotion": False,
+        "signals": {
+            "reactor": {
+                "model_signal": "P_sw", "kind": "direct_workspace_signal",
+                "status": "verified_by_official_api",
+                "api_workspace_block": paths["reactor"]["workspace_block"],
+                "api_upstream_block": paths["reactor"]["upstream_block"],
+                "api_output_port": paths["reactor"]["upstream_output_port"],
+            },
+            "turbine": {
+                "model_signal": "WT_sw", "kind": "direct_component_power",
+                "status": "verified_by_official_api", "api_block_path": paths["turbine"]["block"],
+                "api_output_port": paths["turbine"]["output_port"],
+            },
+            "compressor": {
+                "model_signal": "Wc_sw", "kind": "direct_component_power",
+                "status": "verified_by_official_api", "api_block_path": paths["compressor"]["block"],
+                "api_output_port": paths["compressor"]["output_port"],
+            },
+            "electrical_paper_eta": {
+                "formula": "0.98*(WT_sw-Wc_sw)", "kind": "offline_derived",
+                "direct_generator_signal": None, "status": "no_direct_generator_signal_found",
+            },
+            "electrical_historical_metric": {
+                "formula": "0.96527*(WT_sw-Wc_sw)", "kind": "historical_offline_derived",
+                "accepted_for_fig519": False,
+            },
+        },
+    }
+
+
+def _audit_from_output(output: Path) -> tuple[dict[str, object] | None, bytes | None]:
+    path = output / INITIALIZATION_AUDIT_NAME
+    if not os.path.lexists(path):
+        return None, None
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError("initialization audit path is unsafe")
+    payload = path.read_bytes()
+    try:
+        audit = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("initialization audit is not valid JSON") from exc
+    _validate_initialization_audit(audit)
+    return audit, payload
+
+
 def analyze(data_dir: Path | None = None, paper_points: Path | None = None) -> tuple[dict[str, object], dict[str, object]]:
     """Compute only descriptive evidence from hash-contracted CSV series."""
     payloads = _literal_source_bytes(data_dir or SOURCE_DIR)
@@ -209,6 +320,9 @@ def _expected_durable(output: Path) -> tuple[dict[str, bytes], dict[str, bytes]]
     if {name: _hash(payload) for name, payload in baseline.items()} != SOURCE_HASHES:
         raise RuntimeError("durable baseline hash does not match contract")
     metrics, contract = analyze(output / paper.BASELINE_LAYER_DIR, output / "paper_points.csv")
+    audit, _ = _audit_from_output(output)
+    if audit is not None:
+        contract = contract_from_initialization(audit)
     return baseline, {"baseline_metrics.json": _json_bytes(metrics), "signal_contract.json": _json_bytes(contract)}
 
 
@@ -221,6 +335,7 @@ def _roles() -> dict[str, tuple[str, str]]:
         "README.md": ("generated documentation", "paper-106-only"),
         "baseline_metrics.json": ("generated baseline analysis", "flat-model-baseline"),
         "signal_contract.json": ("generated signal contract", "flat-model-baseline"),
+        "initialization_audit.json": ("generated API initialization audit", "unmodified-500s-reference"),
     }
     roles.update({f"{paper.BASELINE_LAYER_DIR}/{name}": ("contracted baseline source", "flat-model-baseline")
                   for name in paper.BASELINE_LAYER_NAMES})
@@ -232,6 +347,9 @@ def _unified_manifest(output: Path, baseline: dict[str, bytes], generated: dict[
     entries = dict(paper_bytes)
     entries.update({f"{paper.BASELINE_LAYER_DIR}/{name}": payload for name, payload in baseline.items()})
     entries.update(generated)
+    _, audit_payload = _audit_from_output(output)
+    if audit_payload is not None:
+        entries[INITIALIZATION_AUDIT_NAME] = audit_payload
     return paper.manifest_bytes(entries, _roles())
 
 
@@ -298,11 +416,16 @@ def _planned_delta(output: Path, source_dir: Path) -> dict[str, bytes]:
     """Precompute every Task 5 target before creating a transaction inode."""
     baseline = _literal_source_bytes(source_dir)
     metrics, contract = analyze(source_dir, output / "paper_points.csv")
+    audit, audit_payload = _audit_from_output(output)
+    if audit is not None:
+        contract = contract_from_initialization(audit)
     generated = {"baseline_metrics.json": _json_bytes(metrics), "signal_contract.json": _json_bytes(contract)}
     paper_bytes = {name: (output / name).read_bytes() for name in paper.ARTIFACT_NAMES}
     entries = dict(paper_bytes)
     entries.update({f"{paper.BASELINE_LAYER_DIR}/{name}": payload for name, payload in baseline.items()})
     entries.update(generated)
+    if audit_payload is not None:
+        entries[INITIALIZATION_AUDIT_NAME] = audit_payload
     delta = {f"{paper.BASELINE_LAYER_DIR}/{name}": payload for name, payload in baseline.items()}
     delta.update(generated)
     delta["manifest.csv"] = paper.manifest_bytes(entries, _roles())

@@ -21,7 +21,7 @@ if ~startsWith(modelPath, filesep) || ~isfile(modelPath)
     error("steady53:ModelPathMustBeAbsolute", ...
         "modelPath must name an existing absolute .slx file.");
 end
-[modelDir, model, extension] = fileparts(modelPath);
+[~, model, extension] = fileparts(modelPath);
 if extension ~= ".slx"
     error("steady53:UnsupportedModelFile", ...
         "Expected an .slx model, got '%s'.", extension);
@@ -36,13 +36,18 @@ if bdIsLoaded(model)
         model);
 end
 
-root = fileparts(fileparts(fileparts(mfilename("fullpath"))));
+repo = string(fileparts(fileparts(fileparts(mfilename("fullpath")))));
+runtimeDir = fullfile(repo, "data", "provenance", "baselines", ...
+    "f8bcd83", "runtime");
+startPath = fullfile(runtimeDir, "start.m");
 before = sha256File(modelPath);
 result = emptyResult(before);
 propertyIds = propertyWarningIdentifiers();
 
 pathNeedsRestore = false;
 oldPath = "";
+folderNeedsRestore = false;
+oldFolder = "";
 fileGenerationNeedsRestore = false;
 fileGenerationConfig = struct();
 fileGenerationRoot = "";
@@ -58,7 +63,13 @@ primaryException = [];
 try
     oldPath = path;
     pathNeedsRestore = true;
-    addpath(modelDir);
+    oldFolder = string(pwd);
+    folderNeedsRestore = true;
+    % MATLAB always gives the current folder precedence over added paths.
+    % Running from the immutable runtime directory prevents same-named root
+    % files from shadowing the f8bcd83 dependency bundle.
+    cd(runtimeDir);
+    addpath(runtimeDir, fullfile(repo, "tests", "steady53"));
 
     fileGenerationConfig = Simulink.fileGenControl("getConfig");
     fileGenerationNeedsRestore = true;
@@ -70,7 +81,6 @@ try
         "CodeGenFolder", fullfile(fileGenerationRoot, "codegen"), ...
         "createDir", true);
 
-    startPath = fullfile(root, "start.m");
     startVariables = startWorkspaceVariables(startPath);
     baseSnapshot = captureBaseWorkspace(startVariables);
     baseNeedsRestore = true;
@@ -137,10 +147,10 @@ try
         % Read-only arithmetic diagnostic. eta is derived from thesis Table
         % 5.2 values (evidence grade ❓), is not a model parameter, and is
         % never written back into final_steady_24a.slx.
-        % etaGenerator: metric-synthesis caliber, tuned to the final converged
-% steady point (Pt-Pc=1036.2 kW) so that the synthesized TAC electric power
-% reproduces Table 5.2's 1000.21 kWe: 1000.21/1036.2 = 0.96527.
-etaGenerator = 0.96527;
+        % etaGenerator is preserved only as a named historical offline
+        % metric.  It is not the accepted Figure 5.19 electrical definition
+        % and it is never applied to the model itself.
+        etaGenerator = 0.96527;
         result.signals.tac_electric_power = etaGenerator .* ...
             (result.signals.turbine_power - ...
              result.signals.compressor_power);
@@ -237,6 +247,14 @@ end
             pathNeedsRestore = false;
             try
                 path(oldPath);
+            catch exception
+                cleanupExceptions{end + 1, 1} = exception;
+            end
+        end
+        if folderNeedsRestore
+            folderNeedsRestore = false;
+            try
+                cd(oldFolder);
             catch exception
                 cleanupExceptions{end + 1, 1} = exception;
             end

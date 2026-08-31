@@ -1,0 +1,1147 @@
+{
+  "audit_schema": "steady53_fig519_initialization_v1",
+  "model_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+  "model_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+  "source_hash_after": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+  "source_hash_unchanged": true,
+  "state_count": 40,
+  "reference_final_time_s": 500,
+  "reference_success": true,
+  "reference_run_reason": "missing direct state and derivative evidence in prior saved baseline",
+  "repeated_prior_experiment": false,
+  "direct_generator_signal_found": false,
+  "paper_reproduced": false,
+  "formal_promotion": false,
+  "raw_reference": {
+    "repository_relative_path": "tmp/fig519_initialization_20260831_A1/raw_reference.mat",
+    "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_initialization_20260831_A1/raw_reference.mat",
+    "sha256": "185d59ca6e55647ad14fb5f23599bc85e6566f8da2ca6120f42a0ef8dedbb648",
+    "bytes": 299032
+  },
+  "protected_manifest": {
+    "row_count": 34,
+    "resolved_count": 34,
+    "unresolved_count": 0,
+    "manifest_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/protected_manifest_recovery.csv",
+    "manifest_sha256": "33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64"
+  },
+  "runtime_dependency_contract": {
+    "dependency_count": 9,
+    "all_paths_durable": true,
+    "runtime_directory": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime",
+    "dependencies": [
+      {
+        "name": "HeXe_property_simulink.m",
+        "resolved_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+        "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+        "is_durable": true
+      },
+      {
+        "name": "Lithium_property_simulink.m",
+        "resolved_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+        "sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+        "is_durable": true
+      },
+      {
+        "name": "hexe_compressor_lookup.mat",
+        "resolved_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+        "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+        "is_durable": true
+      },
+      {
+        "name": "radiator_table.mat",
+        "resolved_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+        "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+        "is_durable": true
+      },
+      {
+        "name": "turbine_table1.mat",
+        "resolved_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+        "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+        "is_durable": true
+      },
+      {
+        "name": "turbine_table2.mat",
+        "resolved_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+        "sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+        "is_durable": true
+      },
+      {
+        "name": "paper54_constants.m",
+        "resolved_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/paper54_constants.m",
+        "sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+        "is_durable": true
+      },
+      {
+        "name": "sys_param_rad_fixed.m",
+        "resolved_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m",
+        "sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+        "is_durable": true
+      },
+      {
+        "name": "start.m",
+        "resolved_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/start.m",
+        "sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+        "is_durable": true
+      }
+    ]
+  },
+  "state_inventory": [
+    {
+      "path": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1458.2400006378589",
+      "initial_condition": 1458.2400006378589,
+      "t0_value": 1458.2400006378589,
+      "t500_value": 1458.2399996019144,
+      "absolute_change": -1.0359444786445238E-6,
+      "relative_change": -7.1040739397587782E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 1.5237329545229836E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1522.8762873625776",
+      "initial_condition": 1522.8762873625776,
+      "t0_value": 1522.8762873625776,
+      "t500_value": 1522.876286499042,
+      "absolute_change": -8.6353566075558774E-7,
+      "relative_change": -5.67042554882195E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 1.122115657252202E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/IHX/IHX_region_1/T_h1_average_Integrator",
+      "fluid": "Lithium",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1566.8123914550606",
+      "initial_condition": 1566.8123914550606,
+      "t0_value": 1566.8123914550606,
+      "t500_value": 1566.8123906773694,
+      "absolute_change": -7.7769118433934636E-7,
+      "relative_change": -4.9635245966948442E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 1.179049358020684E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/IHX/IHX_region_1/T_h2_out_Integrator",
+      "fluid": "Lithium",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1544.6784341826062",
+      "initial_condition": 1544.6784341826062,
+      "t0_value": 1544.6784341826062,
+      "t500_value": 1544.678433355921,
+      "absolute_change": -8.2668520917650312E-7,
+      "relative_change": -5.3518272210096475E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 1.4790750523792442E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/IHX/IHX_region_1/T_wall_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1555.9547816852855",
+      "initial_condition": 1555.9547816852855,
+      "t0_value": 1555.9547816852855,
+      "t500_value": 1555.9547808834795,
+      "absolute_change": -8.0180598160950467E-7,
+      "relative_change": -5.15314449396179E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 1.6495163136678855E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1245.8184669844006",
+      "initial_condition": 1245.8184669844006,
+      "t0_value": 1245.8184669844006,
+      "t500_value": 1245.818465208697,
+      "absolute_change": -1.7757035948307021E-6,
+      "relative_change": -1.4253309305399278E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 2.775361053493399E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1393.6037139151003",
+      "initial_condition": 1393.6037139151003,
+      "t0_value": 1393.6037139151003,
+      "t500_value": 1393.6037127047848,
+      "absolute_change": -1.2103155313525349E-6,
+      "relative_change": -8.6847897954602352E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 1.92509689316212E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/IHX/IHX_region_2/T_h1_average_Integrator",
+      "fluid": "Lithium",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1494.0696022025936",
+      "initial_condition": 1494.0696022025936,
+      "t0_value": 1494.0696022025936,
+      "t500_value": 1494.0696012372582,
+      "absolute_change": -9.653354027250316E-7,
+      "relative_change": -6.46111400233236E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 2.2472991646142214E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/IHX/IHX_region_2/T_h2_out_Integrator",
+      "fluid": "Lithium",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1443.4607702226581",
+      "initial_condition": 1443.4607702226581,
+      "t0_value": 1443.4607702226581,
+      "t500_value": 1443.4607691189503,
+      "absolute_change": -1.1037077456421684E-6,
+      "relative_change": -7.6462607672525677E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 2.7795606261707027E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/IHX/IHX_region_2/T_wall_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1469.2436410947309",
+      "initial_condition": 1469.2436410947309,
+      "t0_value": 1469.2436410947309,
+      "t500_value": 1469.2436400612719,
+      "absolute_change": -1.0334590569982538E-6,
+      "relative_change": -7.03395289993037E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 3.1207209288831832E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/TAC/rotor/N_rpm_Integrator",
+      "fluid": "none",
+      "kind": "speed",
+      "sign_policy": "nonnegative",
+      "initial_condition_expression": "55090",
+      "initial_condition": 55090,
+      "t0_value": 55090,
+      "t500_value": 55090,
+      "absolute_change": 0,
+      "relative_change": 0,
+      "relative_change_defined": true,
+      "first_sample_slope": 0,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_1/T_c1_average_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "545.7329915378557",
+      "initial_condition": 545.7329915378557,
+      "t0_value": 545.7329915378557,
+      "t500_value": 545.73299472187091,
+      "absolute_change": 3.1840152132645017E-6,
+      "relative_change": 5.834382862381222E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 7.9120983971400584E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_1/T_c2_out_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "611.57676479754946",
+      "initial_condition": 611.57676479754946,
+      "t0_value": 611.57676479754946,
+      "t500_value": 611.57676846098661,
+      "absolute_change": 3.6634371554100653E-6,
+      "relative_change": 5.9901509774047331E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 1.1058612368993617E-6,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_1/T_h1_average_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "594.86709308142633",
+      "initial_condition": 594.86709308142633,
+      "t0_value": 594.86709308142633,
+      "t500_value": 594.86709655088464,
+      "absolute_change": 3.4694583064265316E-6,
+      "relative_change": 5.8323251475462382E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 2.3860177029797921E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_1/T_h2_out_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "528.91021598735142",
+      "initial_condition": 528.91021598735142,
+      "t0_value": 528.91021598735142,
+      "t500_value": 528.91021891139371,
+      "absolute_change": 2.9240422918519471E-6,
+      "relative_change": 5.528428461895835E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -2.7094413968347045E-6,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_1/T_wall_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "546.44198026309198",
+      "initial_condition": 546.441980263092,
+      "t0_value": 546.441980263092,
+      "t500_value": 546.4419834516176,
+      "absolute_change": 3.188525624864269E-6,
+      "relative_change": 5.8350671069032975E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 8.0966775098930533E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_2/T_c1_average_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "418.75053506849412",
+      "initial_condition": 418.75053506849412,
+      "t0_value": 418.75053506849412,
+      "t500_value": 418.7505376624926,
+      "absolute_change": 2.5939984880096745E-6,
+      "relative_change": 6.1946153396207114E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 2.2820361492293602E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_2/T_c2_out_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "479.88921827813124",
+      "initial_condition": 479.88921827813124,
+      "t0_value": 479.88921827813124,
+      "t500_value": 479.88922098380351,
+      "absolute_change": 2.7056722728957538E-6,
+      "relative_change": 5.6381184861869874E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 6.8467594948799507E-8,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_2/T_h1_average_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "465.7869648085188",
+      "initial_condition": 465.7869648085188,
+      "t0_value": 465.7869648085188,
+      "t500_value": 465.78696744117957,
+      "absolute_change": 2.6326607667215285E-6,
+      "relative_change": 5.6520705078206594E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 6.2118403334007025E-6,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "402.66371363139297",
+      "initial_condition": 402.66371363139297,
+      "t0_value": 402.66371363139297,
+      "t500_value": 402.66371597094752,
+      "absolute_change": 2.3395545554194541E-6,
+      "relative_change": 5.8101946518109469E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 1.5089752771965382E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/precooler/precooler_2/T_wall_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "419.42925508558875",
+      "initial_condition": 419.42925508558875,
+      "t0_value": 419.42925508558875,
+      "t500_value": 419.42925768089117,
+      "absolute_change": 2.5953024191949225E-6,
+      "relative_change": 6.1877000417277167E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 2.3140300550094176E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/reactor/Integrator",
+      "fluid": "none",
+      "kind": "other",
+      "sign_policy": "nonnegative",
+      "initial_condition_expression": "509563538.35378009",
+      "initial_condition": 5.0956353835378009E+8,
+      "t0_value": 5.0956353835378009E+8,
+      "t500_value": 5.0956353691630858E+8,
+      "absolute_change": -1.4374715089797974,
+      "relative_change": -2.8209858060562191E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -0.0074292968275541547,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/reactor/Integrator1",
+      "fluid": "none",
+      "kind": "other",
+      "sign_policy": "nonnegative",
+      "initial_condition_expression": "1144297134.5374382",
+      "initial_condition": 1.1442971345374382E+9,
+      "t0_value": 1.1442971345374382E+9,
+      "t500_value": 1.1442971346988142E+9,
+      "absolute_change": 0.16137599945068359,
+      "relative_change": 1.4102630739866091E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": -0.058868818413353237,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/reactor/Integrator2",
+      "fluid": "none",
+      "kind": "other",
+      "sign_policy": "nonnegative",
+      "initial_condition_expression": "278405927.94625711",
+      "initial_condition": 2.7840592794625711E+8,
+      "t0_value": 2.7840592794625711E+8,
+      "t500_value": 2.7840592850753558E+8,
+      "absolute_change": 0.56127846240997314,
+      "relative_change": 2.0160435036366076E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -0.060719619305621482,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/reactor/Integrator3",
+      "fluid": "none",
+      "kind": "other",
+      "sign_policy": "nonnegative",
+      "initial_condition_expression": "222870449.79609099",
+      "initial_condition": 2.22870449796091E+8,
+      "t0_value": 2.22870449796091E+8,
+      "t500_value": 2.2287045035406256E+8,
+      "absolute_change": 0.55797156691551208,
+      "relative_change": 2.5035690798219882E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -0.13322322721031846,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/reactor/Integrator4",
+      "fluid": "none",
+      "kind": "other",
+      "sign_policy": "nonnegative",
+      "initial_condition_expression": "15570422.720039152",
+      "initial_condition": 1.5570422720039152E+7,
+      "t0_value": 1.5570422720039152E+7,
+      "t500_value": 1.5570422762477931E+7,
+      "absolute_change": 0.042438779026269913,
+      "relative_change": 2.7256022388943336E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -0.036547742463872435,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/reactor/Integrator5",
+      "fluid": "none",
+      "kind": "other",
+      "sign_policy": "nonnegative",
+      "initial_condition_expression": "1144144.4343794831",
+      "initial_condition": 1.1441444343794831E+6,
+      "t0_value": 1.1441444343794831E+6,
+      "t500_value": 1.144144437542845E+6,
+      "absolute_change": 0.0031633619219064713,
+      "relative_change": 2.7648274351149497E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -0.0055947864439079772,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/reactor/Integrator6",
+      "fluid": "none",
+      "kind": "power",
+      "sign_policy": "nonnegative",
+      "initial_condition_expression": "2660960.9141046703",
+      "initial_condition": 2.6609609141046703E+6,
+      "t0_value": 2.6609609141046703E+6,
+      "t500_value": 2.6609609215194485E+6,
+      "absolute_change": 0.0074147782288491726,
+      "relative_change": 2.786503999193093E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -0.033371521138051377,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/reactor/Integrator7",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1721.8648882133552",
+      "initial_condition": 1721.8648882133552,
+      "t0_value": 1721.8648882133552,
+      "t500_value": 1721.8648878275515,
+      "absolute_change": -3.8580378713959362E-7,
+      "relative_change": -2.2406159146430593E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": -1.1096158983934561E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_1/T_c1_average_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "973.10015023326082",
+      "initial_condition": 973.10015023326082,
+      "t0_value": 973.10015023326082,
+      "t500_value": 973.10015056950044,
+      "absolute_change": 3.3623962281126296E-7,
+      "relative_change": 3.4553444753930344E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": -1.3566287585918557E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_1/T_c2_out_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1098.0332200511998",
+      "initial_condition": 1098.0332200511998,
+      "t0_value": 1098.0332200511998,
+      "t500_value": 1098.0332177126111,
+      "absolute_change": -2.33858872888959E-6,
+      "relative_change": -2.1297977931674463E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 3.6291007062828989E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_1/T_h1_average_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1035.4335921350307",
+      "initial_condition": 1035.4335921350307,
+      "t0_value": 1035.4335921350307,
+      "t500_value": 1035.4335913882269,
+      "absolute_change": -7.46803834772436E-7,
+      "relative_change": -7.2124744691018809E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 2.689188215693964E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_1/T_h2_out_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "910.48054303365655",
+      "initial_condition": 910.48054303365655,
+      "t0_value": 910.48054303365655,
+      "t500_value": 910.48054371969715,
+      "absolute_change": 6.8604060743382433E-7,
+      "relative_change": 7.534928809658971E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": -8.9451065273353191E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_1/T_wall_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "1004.3258841003104",
+      "initial_condition": 1004.3258841003104,
+      "t0_value": 1004.3258841003104,
+      "t500_value": 1004.3258837061861,
+      "absolute_change": -3.9412429941876326E-7,
+      "relative_change": -3.9242670696655947E-10,
+      "relative_change_defined": true,
+      "first_sample_slope": 2.27693483278817E-7,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_2/T_c1_average_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "723.37593583663499",
+      "initial_condition": 723.375935836635,
+      "t0_value": 723.375935836635,
+      "t500_value": 723.37593874328047,
+      "absolute_change": 2.9066454771964345E-6,
+      "relative_change": 4.0181672256413883E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 1.6310286567697751E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_2/T_c2_out_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "848.16708041554273",
+      "initial_condition": 848.16708041554273,
+      "t0_value": 848.16708041554273,
+      "t500_value": 848.16708342603567,
+      "absolute_change": 3.01049294648692E-6,
+      "relative_change": 3.5494102706886343E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -6.57723544826682E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_2/T_h1_average_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "785.65225660536589",
+      "initial_condition": 785.65225660536589,
+      "t0_value": 785.65225660536589,
+      "t500_value": 785.652258955152,
+      "absolute_change": 2.3497860865973053E-6,
+      "relative_change": 2.9908729553584236E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -1.8807578594652432E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_2/T_h2_out_Integrator",
+      "fluid": "HeXe",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "660.82397017724622",
+      "initial_condition": 660.82397017724622,
+      "t0_value": 660.82397017724622,
+      "t500_value": 660.82397419039637,
+      "absolute_change": 4.01315014642023E-6,
+      "relative_change": 6.0729488147105546E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": 5.0518252225649925E-5,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/recuperator/MannRegion_2/T_wall_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "754.57305466037838",
+      "initial_condition": 754.57305466037838,
+      "t0_value": 754.57305466037838,
+      "t500_value": 754.57305748156921,
+      "absolute_change": 2.8211908329467406E-6,
+      "relative_change": 3.73879085069704E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -4.8772404654638411E-8,
+      "first_sample_slope_unit": "state_unit/s"
+    },
+    {
+      "path": "final_steady_24a/rediator/T_rad_Integrator",
+      "fluid": "none",
+      "kind": "temperature",
+      "sign_policy": "positive",
+      "initial_condition_expression": "416.60796744255316",
+      "initial_condition": 416.60796744255316,
+      "t0_value": 416.60796744255316,
+      "t500_value": 416.60797016711626,
+      "absolute_change": 2.724563103129185E-6,
+      "relative_change": 6.5398727726081714E-9,
+      "relative_change_defined": true,
+      "first_sample_slope": -1.4273847988877957E-9,
+      "first_sample_slope_unit": "state_unit/s"
+    }
+  ],
+  "boundary_contract": {
+    "root_inport_count": 0,
+    "root_inports": [],
+    "root_source_blocks": [
+      {
+        "path": "final_steady_24a/Constant",
+        "block_type": "Constant",
+        "classification": "fixed_internal_boundary_source",
+        "value_expression": "6.95"
+      },
+      {
+        "path": "final_steady_24a/Constant14",
+        "block_type": "Constant",
+        "classification": "fixed_internal_boundary_source",
+        "value_expression": "1000.21e3"
+      }
+    ],
+    "classification_note": "No external root Inports exist; both root Constant sources are fixed and all remaining root links are internal component coupling.",
+    "all_inputs_classified": true
+  },
+  "solver_contract": {
+    "solver_name": "ode15s",
+    "solver_type": "Variable-step",
+    "fixed_step": "auto",
+    "max_step": "auto",
+    "model_stop_time_expression": "14000",
+    "reference_stop_time_s": 500,
+    "stop_time_application": "Simulink.SimulationInput.setModelParameter (in-memory only)",
+    "stop_time_dependency_checked": true,
+    "compiled_sample_times": [
+      {
+        "description": "Continuous",
+        "value": [
+          0,
+          0
+        ]
+      },
+      {
+        "description": "Discrete 1",
+        "value": [
+          280,
+          0
+        ]
+      },
+      {
+        "description": "Constant",
+        "value": [
+          null,
+          0
+        ]
+      },
+      {
+        "description": "Multirate",
+        "value": []
+      }
+    ]
+  },
+  "power_signal_paths": {
+    "reactor": {
+      "status": "verified_by_official_api",
+      "workspace_block": "final_steady_24a/reactor/P_sw",
+      "workspace_variable": "P_sw",
+      "upstream_block": "final_steady_24a/reactor/Integrator6",
+      "upstream_output_port": 1
+    },
+    "turbine": {
+      "status": "verified_by_official_api",
+      "block": "final_steady_24a/TAC/Turbine",
+      "output_port": 4,
+      "manifest_name": "turbine_power"
+    },
+    "compressor": {
+      "status": "verified_by_official_api",
+      "block": "final_steady_24a/TAC/Compressor",
+      "output_port": 2,
+      "manifest_name": "compressor_power"
+    },
+    "electrical": {
+      "status": "no_direct_generator_signal_found",
+      "search_terms": [
+        "generator",
+        "electrical",
+        "electric"
+      ],
+      "searched_to_workspace_and_tac_outports": [
+        "final_steady_24a/IHX/IHX_region_1/V_T_tin [VariableName=V_T_tin]",
+        "final_steady_24a/IHX/IHX_region_2/V_T_coreIn [VariableName=V_T_coreIn]",
+        "final_steady_24a/TAC/WT_sw [VariableName=WT_sw]",
+        "final_steady_24a/TAC/Wc_sw [VariableName=Wc_sw]",
+        "final_steady_24a/reactor/P_sw [VariableName=P_sw]",
+        "final_steady_24a/TAC/Compressor/HeXe_Properties (point 1)/gamma [Name=gamma]",
+        "final_steady_24a/TAC/Compressor/HeXe_Properties(point 1)1/cp1 [Name=cp1]",
+        "final_steady_24a/TAC/Compressor/HeXe_Properties(point 2s)/cp2 [Name=cp2]",
+        "final_steady_24a/TAC/Compressor/MATLAB Function/T5s [Name=T5s]",
+        "final_steady_24a/TAC/Compressor/MATLAB Function1/T_out [Name=T_out]",
+        "final_steady_24a/TAC/Compressor/r [Name=r]",
+        "final_steady_24a/TAC/Compressor/W_c [Name=W_c]",
+        "final_steady_24a/TAC/Compressor/T_out [Name=T_out]",
+        "final_steady_24a/TAC/Compressor/m_out [Name=m_out]",
+        "final_steady_24a/TAC/Compressor/p_out [Name=p_out]",
+        "final_steady_24a/TAC/Turbine/HeXe_Properties (point 1)/gamma [Name=gamma]",
+        "final_steady_24a/TAC/Turbine/HeXe_Properties(point 1)/cp1 [Name=cp1]",
+        "final_steady_24a/TAC/Turbine/HeXe_Properties(point 2s)/cp2 [Name=cp2]",
+        "final_steady_24a/TAC/Turbine/MATLAB Function/T2s [Name=T2s]",
+        "final_steady_24a/TAC/Turbine/MATLAB Function1/T2 [Name=T2]",
+        "final_steady_24a/TAC/Turbine/Pressure Drop/1 [Name=1]",
+        "final_steady_24a/TAC/Turbine/Pressure Drop/p5-6 [Name=p5-6]",
+        "final_steady_24a/TAC/Turbine/Pressure Drop/p6-1 [Name=p6-1]",
+        "final_steady_24a/TAC/Turbine/Pressure Drop/p2-3 [Name=p2-3]",
+        "final_steady_24a/TAC/Turbine/Pressure Drop/p3-4 [Name=p3-4]",
+        "final_steady_24a/TAC/Turbine/mdot [Name=mdot]",
+        "final_steady_24a/TAC/Turbine/P_out [Name=P_out]",
+        "final_steady_24a/TAC/Turbine/T_out [Name=T_out]",
+        "final_steady_24a/TAC/Turbine/WT [Name=WT]",
+        "final_steady_24a/TAC/rotor/Rotor n [Name=Rotor n]",
+        "final_steady_24a/TAC/P_out_Turbine [Name=P_out_Turbine]",
+        "final_steady_24a/TAC/mdot_Turbine [Name=mdot_Turbine]",
+        "final_steady_24a/TAC/T_out_Turbine [Name=T_out_Turbine]",
+        "final_steady_24a/TAC/T_out_Compressor [Name=T_out_Compressor]",
+        "final_steady_24a/TAC/m_out_Compressor [Name=m_out_Compressor]",
+        "final_steady_24a/TAC/p_out_Compressor [Name=p_out_Compressor]"
+      ],
+      "matching_direct_signals": []
+    },
+    "direct_generator_signal_found": false
+  },
+  "initial_residuals": {
+    "items": [
+      {
+        "name": "reactor_power_derivative",
+        "status": "computed",
+        "value": -0.033371521138051377,
+        "unit": "W/s",
+        "formula": "(P_state(t1)-P_state(t0))/(t1-t0)",
+        "source_paths": "final_steady_24a/reactor/Integrator6",
+        "missing_direct_signals": []
+      },
+      {
+        "name": "shaft_excess_power",
+        "status": "not_observable",
+        "value": null,
+        "unit": "W",
+        "formula": "P_turbine-P_compressor-P_generator_or_load",
+        "source_paths": [
+          "final_steady_24a/TAC/Turbine",
+          "final_steady_24a/TAC/Compressor"
+        ],
+        "missing_direct_signals": "final_steady_24a/TAC direct generator/electrical/load power signal"
+      },
+      {
+        "name": "ihx_energy",
+        "status": "not_observable",
+        "value": null,
+        "unit": "W",
+        "formula": "Q_hot_in-Q_hot_out-(Q_cold_out-Q_cold_in)-dU_wall/dt",
+        "source_paths": "final_steady_24a/IHX",
+        "missing_direct_signals": [
+          "IHX direct hot-side enthalpy-flow inlet/outlet",
+          "IHX direct cold-side enthalpy-flow inlet/outlet",
+          "IHX wall-energy derivative"
+        ]
+      },
+      {
+        "name": "recuperator_energy",
+        "status": "not_observable",
+        "value": null,
+        "unit": "W",
+        "formula": "Q_hot_in-Q_hot_out-(Q_cold_out-Q_cold_in)-dU_wall/dt",
+        "source_paths": "final_steady_24a/recuperator",
+        "missing_direct_signals": [
+          "recuperator direct hot-side enthalpy-flow inlet/outlet",
+          "recuperator direct cold-side enthalpy-flow inlet/outlet",
+          "recuperator wall-energy derivative"
+        ]
+      },
+      {
+        "name": "precooler_energy",
+        "status": "not_observable",
+        "value": null,
+        "unit": "W",
+        "formula": "Q_hot_in-Q_hot_out-Q_coolant-dU_wall/dt",
+        "source_paths": "final_steady_24a/precooler",
+        "missing_direct_signals": [
+          "precooler direct He-Xe enthalpy-flow inlet/outlet",
+          "precooler direct coolant heat-flow inlet/outlet",
+          "precooler wall-energy derivative"
+        ]
+      },
+      {
+        "name": "radiator_energy",
+        "status": "not_observable",
+        "value": null,
+        "unit": "W",
+        "formula": "Q_coolant_in-Q_coolant_out-Q_radiated-dU_radiator/dt",
+        "source_paths": "final_steady_24a/rediator",
+        "missing_direct_signals": [
+          "rediator direct coolant enthalpy-flow inlet/outlet",
+          "rediator direct radiative heat rejection",
+          "rediator stored-energy derivative"
+        ]
+      }
+    ],
+    "all_items_accounted_for": true,
+    "reference_first_interval_s": [
+      0,
+      0.19644918837503214
+    ],
+    "fitted_values_used": false
+  },
+  "flat_start_explanation": {
+    "conclusion": "The unmodified 500 s run directly supplies state slopes and verified signal-path power traces; it does not identify the authors' initial-state vector.",
+    "has_state_evidence": true,
+    "has_signal_path_evidence": true,
+    "state_derivative_evidence": [
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+        "first_sample_slope": 1.5237329545229836E-5,
+        "absolute_change_500s": -1.0359444786445238E-6
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+        "first_sample_slope": 1.122115657252202E-5,
+        "absolute_change_500s": -8.6353566075558774E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_h1_average_Integrator",
+        "first_sample_slope": 1.179049358020684E-7,
+        "absolute_change_500s": -7.7769118433934636E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_h2_out_Integrator",
+        "first_sample_slope": 1.4790750523792442E-7,
+        "absolute_change_500s": -8.2668520917650312E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_1/T_wall_Integrator",
+        "first_sample_slope": 1.6495163136678855E-7,
+        "absolute_change_500s": -8.0180598160950467E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
+        "first_sample_slope": 2.775361053493399E-5,
+        "absolute_change_500s": -1.7757035948307021E-6
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+        "first_sample_slope": 1.92509689316212E-5,
+        "absolute_change_500s": -1.2103155313525349E-6
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_h1_average_Integrator",
+        "first_sample_slope": 2.2472991646142214E-7,
+        "absolute_change_500s": -9.653354027250316E-7
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_h2_out_Integrator",
+        "first_sample_slope": 2.7795606261707027E-7,
+        "absolute_change_500s": -1.1037077456421684E-6
+      },
+      {
+        "path": "final_steady_24a/IHX/IHX_region_2/T_wall_Integrator",
+        "first_sample_slope": 3.1207209288831832E-7,
+        "absolute_change_500s": -1.0334590569982538E-6
+      },
+      {
+        "path": "final_steady_24a/TAC/rotor/N_rpm_Integrator",
+        "first_sample_slope": 0,
+        "absolute_change_500s": 0
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_c1_average_Integrator",
+        "first_sample_slope": 7.9120983971400584E-7,
+        "absolute_change_500s": 3.1840152132645017E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_c2_out_Integrator",
+        "first_sample_slope": 1.1058612368993617E-6,
+        "absolute_change_500s": 3.6634371554100653E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_h1_average_Integrator",
+        "first_sample_slope": 2.3860177029797921E-5,
+        "absolute_change_500s": 3.4694583064265316E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_h2_out_Integrator",
+        "first_sample_slope": -2.7094413968347045E-6,
+        "absolute_change_500s": 2.9240422918519471E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_1/T_wall_Integrator",
+        "first_sample_slope": 8.0966775098930533E-7,
+        "absolute_change_500s": 3.188525624864269E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_c1_average_Integrator",
+        "first_sample_slope": 2.2820361492293602E-7,
+        "absolute_change_500s": 2.5939984880096745E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_c2_out_Integrator",
+        "first_sample_slope": 6.8467594948799507E-8,
+        "absolute_change_500s": 2.7056722728957538E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_h1_average_Integrator",
+        "first_sample_slope": 6.2118403334007025E-6,
+        "absolute_change_500s": 2.6326607667215285E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+        "first_sample_slope": 1.5089752771965382E-5,
+        "absolute_change_500s": 2.3395545554194541E-6
+      },
+      {
+        "path": "final_steady_24a/precooler/precooler_2/T_wall_Integrator",
+        "first_sample_slope": 2.3140300550094176E-7,
+        "absolute_change_500s": 2.5953024191949225E-6
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator",
+        "first_sample_slope": -0.0074292968275541547,
+        "absolute_change_500s": -1.4374715089797974
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator1",
+        "first_sample_slope": -0.058868818413353237,
+        "absolute_change_500s": 0.16137599945068359
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator2",
+        "first_sample_slope": -0.060719619305621482,
+        "absolute_change_500s": 0.56127846240997314
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator3",
+        "first_sample_slope": -0.13322322721031846,
+        "absolute_change_500s": 0.55797156691551208
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator4",
+        "first_sample_slope": -0.036547742463872435,
+        "absolute_change_500s": 0.042438779026269913
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator5",
+        "first_sample_slope": -0.0055947864439079772,
+        "absolute_change_500s": 0.0031633619219064713
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator6",
+        "first_sample_slope": -0.033371521138051377,
+        "absolute_change_500s": 0.0074147782288491726
+      },
+      {
+        "path": "final_steady_24a/reactor/Integrator7",
+        "first_sample_slope": -1.1096158983934561E-7,
+        "absolute_change_500s": -3.8580378713959362E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_c1_average_Integrator",
+        "first_sample_slope": -1.3566287585918557E-5,
+        "absolute_change_500s": 3.3623962281126296E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_c2_out_Integrator",
+        "first_sample_slope": 3.6291007062828989E-5,
+        "absolute_change_500s": -2.33858872888959E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_h1_average_Integrator",
+        "first_sample_slope": 2.689188215693964E-5,
+        "absolute_change_500s": -7.46803834772436E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_h2_out_Integrator",
+        "first_sample_slope": -8.9451065273353191E-5,
+        "absolute_change_500s": 6.8604060743382433E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_1/T_wall_Integrator",
+        "first_sample_slope": 2.27693483278817E-7,
+        "absolute_change_500s": -3.9412429941876326E-7
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_c1_average_Integrator",
+        "first_sample_slope": 1.6310286567697751E-5,
+        "absolute_change_500s": 2.9066454771964345E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_c2_out_Integrator",
+        "first_sample_slope": -6.57723544826682E-5,
+        "absolute_change_500s": 3.01049294648692E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_h1_average_Integrator",
+        "first_sample_slope": -1.8807578594652432E-5,
+        "absolute_change_500s": 2.3497860865973053E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_h2_out_Integrator",
+        "first_sample_slope": 5.0518252225649925E-5,
+        "absolute_change_500s": 4.01315014642023E-6
+      },
+      {
+        "path": "final_steady_24a/recuperator/MannRegion_2/T_wall_Integrator",
+        "first_sample_slope": -4.8772404654638411E-8,
+        "absolute_change_500s": 2.8211908329467406E-6
+      },
+      {
+        "path": "final_steady_24a/rediator/T_rad_Integrator",
+        "first_sample_slope": -1.4273847988877957E-9,
+        "absolute_change_500s": 2.724563103129185E-6
+      }
+    ],
+    "power_definitions": [
+      {
+        "name": "reactor",
+        "definition": "P_sw",
+        "source_path": "final_steady_24a/reactor/Integrator6",
+        "first_sample_slope_W_per_s": -0.033371521138051377,
+        "peak_to_peak_0_to_500_W": 0.051411585416644812,
+        "start_W": 2.6609609141046703E+6,
+        "end_W": 2.6609609215194485E+6
+      },
+      {
+        "name": "turbine",
+        "definition": "WT_sw",
+        "source_path": "final_steady_24a/TAC/Turbine",
+        "first_sample_slope_W_per_s": 0.016625679466546337,
+        "peak_to_peak_0_to_500_W": 0.16093195369467139,
+        "start_W": 2.2570550220142561E+6,
+        "end_W": 2.2570551520212134E+6
+      },
+      {
+        "name": "compressor",
+        "definition": "Wc_sw",
+        "source_path": "final_steady_24a/TAC/Compressor",
+        "first_sample_slope_W_per_s": 0.045546267423717493,
+        "peak_to_peak_0_to_500_W": 0.22659989586099982,
+        "start_W": 1.2209108429325472E+6,
+        "end_W": 1.2209106525023237E+6
+      },
+      {
+        "name": "electrical_paper_eta",
+        "definition": "0.98*(WT_sw-Wc_sw)",
+        "source_path": "offline derivation from verified turbine/compressor paths",
+        "first_sample_slope_W_per_s": -0.028342176529882402,
+        "peak_to_peak_0_to_500_W": 0.37926344096194953,
+        "start_W": 1.0154212955000747E+6,
+        "end_W": 1.0154216095285119E+6
+      }
+    ],
+    "paper_initial_state_identified": false,
+    "fitted_values_used": false
+  }
+}

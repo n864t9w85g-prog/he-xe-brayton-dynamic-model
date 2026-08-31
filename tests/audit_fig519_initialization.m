@@ -1,0 +1,590 @@
+function result = audit_fig519_initialization(outputDir)
+%AUDIT_FIG519_INITIALIZATION Read-only API audit of the frozen Figure 5.19 baseline.
+%   The function creates one new exploration directory below repository tmp/,
+%   inspects the immutable f8bcd83 steady model without saving, and performs
+%   exactly one unmodified 500 s instrumented reference simulation.
+
+arguments
+    outputDir {mustBeTextScalar}
+end
+
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+outputDir = validateNewOutputDirectory(outputDir, tmpRoot);
+runtimeDir = fullfile(repo, "data", "provenance", "baselines", ...
+    "f8bcd83", "runtime");
+modelPath = fullfile(repo, "data", "provenance", "baselines", ...
+    "f8bcd83", "final_steady_24a.slx");
+expectedModelHash = ...
+    "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391";
+protectedPath = fullfile(repo, "data", "provenance", "baselines", ...
+    "f8bcd83", "protected_manifest_recovery.csv");
+
+modelHashBefore = sha256File(modelPath);
+if modelHashBefore ~= expectedModelHash
+    error("fig519:BaselineHashMismatch", ...
+        "Frozen steady baseline hash does not match the Task 6 contract.");
+end
+protectedBefore = verifyProtectedManifest(protectedPath);
+
+mkdir(outputDir);
+oldFolder = string(pwd);
+folderCleanup = onCleanup(@() cd(oldFolder));
+% The current folder outranks addpath in MATLAB.  Move into the private
+% output directory so root files with identical names cannot shadow the
+% immutable f8bcd83 runtime.
+cd(outputDir);
+oldPath = path;
+pathCleanup = onCleanup(@() path(oldPath));
+addpath(runtimeDir, fullfile(repo, "tests", "steady53"));
+runtimeDependencyContract = verifyRuntimeDependencies(runtimeDir);
+
+startPath = fullfile(runtimeDir, "start.m");
+startVariables = startWorkspaceVariables(startPath);
+baseSnapshot = captureBaseWorkspace(startVariables);
+baseCleanup = onCleanup(@() restoreBaseWorkspace(baseSnapshot));
+evalin("base", "run(" + matlabString(startPath) + ")");
+
+[~, model] = fileparts(modelPath);
+model = string(model);
+if bdIsLoaded(model)
+    error("fig519:ModelAlreadyLoaded", ...
+        "The audit refuses a preloaded model because it may contain unsaved work.");
+end
+modelCleanup = onCleanup(@() closeWithoutSaving(model));
+load_system(modelPath);
+loadedFile = string(get_param(model, "FileName"));
+if string(java.io.File(loadedFile).getCanonicalPath()) ~= ...
+        string(java.io.File(modelPath).getCanonicalPath())
+    error("fig519:WrongModelLoaded", ...
+        "load_system did not load the hash-contracted baseline path.");
+end
+
+[manifest, stateMeta] = steady53_signal_manifest(model);
+if numel(stateMeta) ~= 40
+    error("fig519:StateCountMismatch", ...
+        "Expected 40 manifest states, found %d.", numel(stateMeta));
+end
+stateInitialConditions = readInitialConditions(stateMeta);
+solverContract = auditSolverContract(model);
+boundaryContract = auditBoundaryContract(model);
+powerPaths = auditPowerPaths(model, manifest);
+residualTemplates = residualContracts(model, powerPaths);
+closeWithoutSaving(model);
+
+% This is the only run_steady53_case call in this function.  It is justified
+% by the absence of state and derivative evidence in the prior saved baseline.
+runResult = run_steady53_case(modelPath, 500, true);
+if ~runResult.success
+    error("fig519:ReferenceRunFailed", ...
+        "The unmodified reference run failed: %s\n%s", ...
+        runResult.errorId, runResult.errorReport);
+end
+if runResult.tFinal_s ~= 500 || numel(runResult.states) ~= 40
+    error("fig519:ReferenceRunIncomplete", ...
+        "Reference run did not return 40 states through 500 s.");
+end
+
+inventory = buildStateInventory( ...
+    stateMeta, stateInitialConditions, runResult);
+initialResiduals = calculateResiduals(residualTemplates, inventory, runResult);
+flatExplanation = explainFlatStart(inventory, runResult, powerPaths);
+
+modelHashAfter = sha256File(modelPath);
+protectedAfter = verifyProtectedManifest(protectedPath);
+sourceHashUnchanged = modelHashAfter == modelHashBefore;
+if ~sourceHashUnchanged || ~isequal(protectedBefore, protectedAfter)
+    error("fig519:ProtectedSourceChanged", ...
+        "The model or protected recovery manifest changed during the audit.");
+end
+
+rawPath = fullfile(outputDir, "raw_reference.mat");
+save(rawPath, "runResult", "-v7.3");
+
+result = struct( ...
+    "audit_schema", "steady53_fig519_initialization_v1", ...
+    "model_path", relativeToRepo(modelPath, repo), ...
+    "model_sha256", modelHashBefore, ...
+    "source_hash_after", modelHashAfter, ...
+    "source_hash_unchanged", sourceHashUnchanged, ...
+    "state_count", numel(inventory), ...
+    "reference_final_time_s", runResult.tFinal_s, ...
+    "reference_success", runResult.success, ...
+    "reference_run_reason", ...
+        "missing direct state and derivative evidence in prior saved baseline", ...
+    "repeated_prior_experiment", false, ...
+    "direct_generator_signal_found", powerPaths.direct_generator_signal_found, ...
+    "paper_reproduced", false, ...
+    "formal_promotion", false, ...
+    "raw_reference", struct( ...
+        "repository_relative_path", relativeToRepo(rawPath, repo), ...
+        "absolute_path", string(rawPath), ...
+        "sha256", sha256File(rawPath), ...
+        "bytes", fileBytes(rawPath)), ...
+    "protected_manifest", protectedAfter, ...
+    "runtime_dependency_contract", runtimeDependencyContract, ...
+    "state_inventory", inventory, ...
+    "boundary_contract", boundaryContract, ...
+    "solver_contract", solverContract, ...
+    "power_signal_paths", powerPaths, ...
+    "initial_residuals", initialResiduals, ...
+    "flat_start_explanation", flatExplanation);
+
+jsonPath = fullfile(outputDir, "initialization_audit.json");
+writeExclusiveText(jsonPath, ...
+    string(jsonencode(result, PrettyPrint=true)) + newline);
+end
+
+function contract = verifyRuntimeDependencies(runtimeDir)
+names = ["HeXe_property_simulink.m"; "Lithium_property_simulink.m"; ...
+    "hexe_compressor_lookup.mat"; "radiator_table.mat"; ...
+    "turbine_table1.mat"; "turbine_table2.mat"; "paper54_constants.m"; ...
+    "sys_param_rad_fixed.m"; "start.m"];
+records = repmat(struct("name", "", "resolved_path", "", ...
+    "sha256", "", "is_durable", false), numel(names), 1);
+canonicalRuntime = string(java.io.File(runtimeDir).getCanonicalPath());
+for index = 1:numel(names)
+    resolved = string(which(names(index)));
+    if resolved == ""
+        candidate = fullfile(runtimeDir, names(index));
+        if isfile(candidate)
+            resolved = candidate;
+        end
+    end
+    canonical = string(java.io.File(resolved).getCanonicalPath());
+    records(index).name = names(index);
+    records(index).resolved_path = canonical;
+    records(index).sha256 = sha256File(canonical);
+    records(index).is_durable = startsWith(canonical, canonicalRuntime + filesep);
+end
+contract = struct("dependency_count", numel(records), ...
+    "all_paths_durable", all([records.is_durable]), ...
+    "runtime_directory", canonicalRuntime, "dependencies", records);
+if ~contract.all_paths_durable
+    error("fig519:RuntimeDependencyShadowed", ...
+        "A same-named file shadows the immutable f8bcd83 runtime.");
+end
+end
+
+function outputDir = validateNewOutputDirectory(outputDir, tmpRoot)
+outputDir = string(outputDir);
+if ~startsWith(outputDir, filesep)
+    error("fig519:OutputMustBeAbsolute", "outputDir must be absolute.");
+end
+canonicalTmp = string(java.io.File(tmpRoot).getCanonicalPath());
+canonicalOutput = string(java.io.File(outputDir).getCanonicalPath());
+if ~startsWith(canonicalOutput, canonicalTmp + filesep) || ...
+        canonicalOutput == canonicalTmp
+    error("fig519:OutputOutsideTmp", ...
+        "outputDir must be a new child below repository tmp/.");
+end
+if isfolder(outputDir) || isfile(outputDir)
+    error("fig519:OutputAlreadyExists", "outputDir must not already exist.");
+end
+assertNoSymlinkAncestors(outputDir, canonicalTmp);
+outputDir = canonicalOutput;
+end
+
+function assertNoSymlinkAncestors(pathValue, stopAt)
+probe = string(pathValue);
+while strlength(probe) >= strlength(stopAt)
+    javaPath = java.nio.file.Paths.get(char(probe), javaArray("java.lang.String", 0));
+    if java.nio.file.Files.isSymbolicLink(javaPath)
+        error("fig519:SymlinkPathForbidden", ...
+            "Symlinked audit paths are forbidden: %s", probe);
+    end
+    if probe == stopAt
+        return
+    end
+    parent = string(fileparts(probe));
+    if parent == probe
+        break
+    end
+    probe = parent;
+end
+error("fig519:OutputOutsideTmp", "Could not anchor outputDir below tmp/.");
+end
+
+function inventory = readInitialConditions(stateMeta)
+inventory = repmat(struct("path", "", "value", NaN, ...
+    "expression", ""), numel(stateMeta), 1);
+for index = 1:numel(stateMeta)
+    expression = string(get_param(stateMeta(index).path, "InitialCondition"));
+    value = str2double(expression);
+    if isnan(value)
+        value = double(evalin("base", expression));
+    end
+    if ~isscalar(value) || ~isfinite(value) || ~isreal(value)
+        error("fig519:InvalidInitialCondition", ...
+            "State '%s' has a nonfinite or nonscalar initial condition.", ...
+            stateMeta(index).path);
+    end
+    inventory(index).path = stateMeta(index).path;
+    inventory(index).value = value;
+    inventory(index).expression = expression;
+end
+end
+
+function contract = auditSolverContract(model)
+sampleTimes = Simulink.BlockDiagram.getSampleTimes(model);
+records = repmat(struct("description", "", "value", []), ...
+    numel(sampleTimes), 1);
+for index = 1:numel(sampleTimes)
+    records(index).description = string(sampleTimes(index).Description);
+    records(index).value = double(sampleTimes(index).Value);
+end
+modelStopTime = string(get_param(model, "StopTime"));
+contract = struct( ...
+    "solver_name", string(get_param(model, "Solver")), ...
+    "solver_type", string(get_param(model, "SolverType")), ...
+    "fixed_step", string(get_param(model, "FixedStep")), ...
+    "max_step", string(get_param(model, "MaxStep")), ...
+    "model_stop_time_expression", modelStopTime, ...
+    "reference_stop_time_s", 500, ...
+    "stop_time_application", ...
+        "Simulink.SimulationInput.setModelParameter (in-memory only)", ...
+    "stop_time_dependency_checked", ...
+        isfinite(str2double(modelStopTime)) && str2double(modelStopTime) == 14000, ...
+    "compiled_sample_times", records);
+end
+
+function contract = auditBoundaryContract(model)
+rootInports = find_system(model, "SearchDepth", 1, "BlockType", "Inport");
+rootSources = find_system(model, "SearchDepth", 1, "BlockType", "Constant");
+sources = repmat(struct("path", "", "block_type", "", ...
+    "classification", "", "value_expression", ""), numel(rootSources), 1);
+for index = 1:numel(rootSources)
+    sources(index).path = string(rootSources{index});
+    sources(index).block_type = string(get_param(rootSources{index}, "BlockType"));
+    sources(index).classification = "fixed_internal_boundary_source";
+    sources(index).value_expression = string(get_param(rootSources{index}, "Value"));
+end
+contract = struct( ...
+    "root_inport_count", numel(rootInports), ...
+    "root_inports", string(rootInports(:)), ...
+    "root_source_blocks", sources, ...
+    "classification_note", ...
+        "No external root Inports exist; both root Constant sources are fixed and all remaining root links are internal component coupling.", ...
+    "all_inputs_classified", isempty(rootInports) && numel(rootSources) == 2);
+end
+
+function paths = auditPowerPaths(model, manifest)
+blocks = find_system(model, "FollowLinks", "on", ...
+    "LookUnderMasks", "all", "BlockType", "ToWorkspace");
+variables = strings(numel(blocks), 1);
+for index = 1:numel(blocks)
+    variables(index) = string(get_param(blocks{index}, "VariableName"));
+end
+pBlock = blocks(variables == "P_sw");
+if numel(pBlock) ~= 1
+    error("fig519:PswTraceMismatch", ...
+        "Expected exactly one P_sw To Workspace block, found %d.", numel(pBlock));
+end
+[pSource, pPort] = upstreamSource(pBlock{1});
+
+turbine = manifest(string({manifest.name}) == "turbine_power");
+compressor = manifest(string({manifest.name}) == "compressor_power");
+if numel(turbine) ~= 1 || numel(compressor) ~= 1 || ...
+        turbine.port ~= 4 || compressor.port ~= 2
+    error("fig519:PowerManifestMismatch", ...
+        "Turbine output 4 or compressor output 2 is missing from the manifest.");
+end
+
+outports = find_system(model + "/TAC", "FollowLinks", "on", ...
+    "LookUnderMasks", "all", "BlockType", "Outport");
+searched = strings(0, 1);
+matches = strings(0, 1);
+for index = 1:numel(blocks)
+    searched(end + 1, 1) = string(blocks{index}) + ...
+        " [VariableName=" + variables(index) + "]"; %#ok<AGROW>
+    if isGeneratorIdentity(string(blocks{index}) + " " + variables(index))
+        matches(end + 1, 1) = searched(end); %#ok<AGROW>
+    end
+end
+for index = 1:numel(outports)
+    identity = string(outports{index}) + " [Name=" + ...
+        string(get_param(outports{index}, "Name")) + "]";
+    searched(end + 1, 1) = identity; %#ok<AGROW>
+    if isGeneratorIdentity(identity)
+        matches(end + 1, 1) = identity; %#ok<AGROW>
+    end
+end
+
+paths = struct( ...
+    "reactor", struct( ...
+        "status", "verified_by_official_api", ...
+        "workspace_block", string(pBlock{1}), ...
+        "workspace_variable", "P_sw", ...
+        "upstream_block", pSource, ...
+        "upstream_output_port", pPort), ...
+    "turbine", struct( ...
+        "status", "verified_by_official_api", ...
+        "block", turbine.block, "output_port", turbine.port, ...
+        "manifest_name", turbine.name), ...
+    "compressor", struct( ...
+        "status", "verified_by_official_api", ...
+        "block", compressor.block, "output_port", compressor.port, ...
+        "manifest_name", compressor.name), ...
+    "electrical", struct( ...
+        "status", "no_direct_generator_signal_found", ...
+        "search_terms", ["generator", "electrical", "electric"], ...
+        "searched_to_workspace_and_tac_outports", searched, ...
+        "matching_direct_signals", matches), ...
+    "direct_generator_signal_found", ~isempty(matches));
+end
+
+function yes = isGeneratorIdentity(identity)
+identity = lower(string(identity));
+yes = contains(identity, "generator") || contains(identity, "electrical") || ...
+    contains(identity, "electric");
+end
+
+function [source, sourcePort] = upstreamSource(block)
+connectivity = get_param(block, "PortConnectivity");
+source = "";
+sourcePort = NaN;
+for index = 1:numel(connectivity)
+    if ~isempty(connectivity(index).SrcBlock)
+        source = string(getfullname(connectivity(index).SrcBlock));
+        sourcePort = double(connectivity(index).SrcPort) + 1;
+        break
+    end
+end
+if source == "" || ~isfinite(sourcePort)
+    error("fig519:MissingUpstreamSource", ...
+        "Could not trace an upstream source for '%s'.", block);
+end
+end
+
+function records = residualContracts(model, powerPaths)
+blankPaths = strings(0, 1);
+records = repmat(struct("name", "", "status", "not_observable", ...
+    "value", NaN, "unit", "", "formula", "", ...
+    "source_paths", blankPaths, "missing_direct_signals", blankPaths), 6, 1);
+records(1) = residual("reactor_power_derivative", "computed", "W/s", ...
+    "(P_state(t1)-P_state(t0))/(t1-t0)", ...
+    string(powerPaths.reactor.upstream_block), strings(0, 1));
+records(2) = residual("shaft_excess_power", "not_observable", "W", ...
+    "P_turbine-P_compressor-P_generator_or_load", ...
+    [string(powerPaths.turbine.block); string(powerPaths.compressor.block)], ...
+    model + "/TAC direct generator/electrical/load power signal");
+records(3) = residual("ihx_energy", "not_observable", "W", ...
+    "Q_hot_in-Q_hot_out-(Q_cold_out-Q_cold_in)-dU_wall/dt", ...
+    model + "/IHX", ["IHX direct hot-side enthalpy-flow inlet/outlet"; ...
+    "IHX direct cold-side enthalpy-flow inlet/outlet"; "IHX wall-energy derivative"]);
+records(4) = residual("recuperator_energy", "not_observable", "W", ...
+    "Q_hot_in-Q_hot_out-(Q_cold_out-Q_cold_in)-dU_wall/dt", ...
+    model + "/recuperator", ["recuperator direct hot-side enthalpy-flow inlet/outlet"; ...
+    "recuperator direct cold-side enthalpy-flow inlet/outlet"; "recuperator wall-energy derivative"]);
+records(5) = residual("precooler_energy", "not_observable", "W", ...
+    "Q_hot_in-Q_hot_out-Q_coolant-dU_wall/dt", ...
+    model + "/precooler", ["precooler direct He-Xe enthalpy-flow inlet/outlet"; ...
+    "precooler direct coolant heat-flow inlet/outlet"; "precooler wall-energy derivative"]);
+records(6) = residual("radiator_energy", "not_observable", "W", ...
+    "Q_coolant_in-Q_coolant_out-Q_radiated-dU_radiator/dt", ...
+    model + "/rediator", ["rediator direct coolant enthalpy-flow inlet/outlet"; ...
+    "rediator direct radiative heat rejection"; "rediator stored-energy derivative"]);
+end
+
+function item = residual(name, status, unit, formula, sourcePaths, missing)
+item = struct("name", string(name), "status", string(status), ...
+    "value", NaN, "unit", string(unit), "formula", string(formula), ...
+    "source_paths", string(sourcePaths(:)), ...
+    "missing_direct_signals", string(missing(:)));
+end
+
+function inventory = buildStateInventory(stateMeta, initial, runResult)
+inventory = repmat(struct( ...
+    "path", "", "fluid", "", "kind", "", "sign_policy", "", ...
+    "initial_condition_expression", "", "initial_condition", NaN, ...
+    "t0_value", NaN, "t500_value", NaN, "absolute_change", NaN, ...
+    "relative_change", NaN, "relative_change_defined", false, ...
+    "first_sample_slope", NaN, "first_sample_slope_unit", "state_unit/s"), ...
+    numel(stateMeta), 1);
+for index = 1:numel(stateMeta)
+    data = double(runResult.states(index).data(:));
+    delta = data(end) - data(1);
+    relativeDefined = data(1) ~= 0;
+    relative = NaN;
+    if relativeDefined
+        relative = delta / data(1);
+    end
+    inventory(index).path = stateMeta(index).path;
+    inventory(index).fluid = stateMeta(index).fluid;
+    inventory(index).kind = stateMeta(index).kind;
+    inventory(index).sign_policy = stateMeta(index).signPolicy;
+    inventory(index).initial_condition_expression = initial(index).expression;
+    inventory(index).initial_condition = initial(index).value;
+    inventory(index).t0_value = data(1);
+    inventory(index).t500_value = data(end);
+    inventory(index).absolute_change = delta;
+    inventory(index).relative_change = relative;
+    inventory(index).relative_change_defined = relativeDefined;
+    inventory(index).first_sample_slope = ...
+        (data(2) - data(1)) / (runResult.t(2) - runResult.t(1));
+end
+end
+
+function result = calculateResiduals(templates, inventory, runResult)
+items = templates;
+powerIndex = find(string({inventory.path}) == ...
+    "final_steady_24a/reactor/Integrator6", 1);
+items(1).value = inventory(powerIndex).first_sample_slope;
+result = struct("items", items, ...
+    "all_items_accounted_for", all(arrayfun(@(item) ...
+        string(item.status) == "computed" || ...
+        (string(item.status) == "not_observable" && ...
+         ~isempty(item.missing_direct_signals)), items)), ...
+    "reference_first_interval_s", [runResult.t(1), runResult.t(2)], ...
+    "fitted_values_used", false);
+end
+
+function explanation = explainFlatStart(inventory, runResult, powerPaths)
+t = double(runResult.t(:));
+signals = runResult.signals;
+reactor = double(signals.reactor_power(:));
+turbine = double(signals.turbine_power(:));
+compressor = double(signals.compressor_power(:));
+electrical = 0.98 .* (turbine - compressor);
+definitions = [ ...
+    powerEvidence("reactor", "P_sw", powerPaths.reactor.upstream_block, t, reactor); ...
+    powerEvidence("turbine", "WT_sw", powerPaths.turbine.block, t, turbine); ...
+    powerEvidence("compressor", "Wc_sw", powerPaths.compressor.block, t, compressor); ...
+    powerEvidence("electrical_paper_eta", "0.98*(WT_sw-Wc_sw)", ...
+        "offline derivation from verified turbine/compressor paths", t, electrical)];
+stateEvidence = repmat(struct("path", "", "first_sample_slope", NaN, ...
+    "absolute_change_500s", NaN), numel(inventory), 1);
+for index = 1:numel(inventory)
+    stateEvidence(index).path = inventory(index).path;
+    stateEvidence(index).first_sample_slope = inventory(index).first_sample_slope;
+    stateEvidence(index).absolute_change_500s = inventory(index).absolute_change;
+end
+explanation = struct( ...
+    "conclusion", ...
+        "The unmodified 500 s run directly supplies state slopes and verified signal-path power traces; it does not identify the authors' initial-state vector.", ...
+    "has_state_evidence", numel(stateEvidence) == 40, ...
+    "has_signal_path_evidence", numel(definitions) == 4, ...
+    "state_derivative_evidence", stateEvidence, ...
+    "power_definitions", definitions, ...
+    "paper_initial_state_identified", false, ...
+    "fitted_values_used", false);
+end
+
+function item = powerEvidence(name, definition, pathValue, t, values)
+item = struct( ...
+    "name", string(name), ...
+    "definition", string(definition), ...
+    "source_path", string(pathValue), ...
+    "first_sample_slope_W_per_s", (values(2)-values(1))/(t(2)-t(1)), ...
+    "peak_to_peak_0_to_500_W", max(values)-min(values), ...
+    "start_W", values(1), "end_W", values(end));
+end
+
+function summary = verifyProtectedManifest(manifestPath)
+tableData = readtable(manifestPath, TextType="string");
+required = ["resolved_path", "resolved_sha256"];
+if height(tableData) ~= 34 || ~all(ismember(required, string(tableData.Properties.VariableNames)))
+    error("fig519:ProtectedManifestInvalid", ...
+        "Protected recovery manifest must contain 34 resolved rows.");
+end
+for index = 1:height(tableData)
+    pathValue = tableData.resolved_path(index);
+    if ~isfile(pathValue) || sha256File(pathValue) ~= tableData.resolved_sha256(index)
+        error("fig519:ProtectedManifestMismatch", ...
+            "Protected entry failed resolution: %s", pathValue);
+    end
+end
+summary = struct("row_count", height(tableData), ...
+    "resolved_count", height(tableData), "unresolved_count", 0, ...
+    "manifest_path", string(manifestPath), ...
+    "manifest_sha256", sha256File(manifestPath));
+end
+
+function count = fileBytes(pathValue)
+info = dir(pathValue);
+count = info.bytes;
+end
+
+function relative = relativeToRepo(pathValue, repo)
+prefix = repo + filesep;
+pathValue = string(pathValue);
+if ~startsWith(pathValue, prefix)
+    error("fig519:PathOutsideRepository", ...
+        "Expected an audit artifact below the repository root.");
+end
+relative = extractAfter(pathValue, strlength(prefix));
+end
+
+function writeExclusiveText(pathValue, payload)
+if isfile(pathValue) || isfolder(pathValue)
+    error("fig519:OutputConflict", "Refusing to replace an audit artifact.");
+end
+% outputDir was created as a new, private audit directory by this function;
+% MATLAB fopen has no POSIX O_EXCL mode, so the explicit nonexistence check
+% above is the ownership gate for this exploration artifact.
+file = fopen(pathValue, "w");
+if file < 0
+    error("fig519:OutputWriteFailed", "Could not create '%s'.", pathValue);
+end
+cleanup = onCleanup(@() fclose(file));
+count = fwrite(file, char(payload), "char");
+if count ~= strlength(payload)
+    error("fig519:OutputWriteFailed", "Short write for '%s'.", pathValue);
+end
+end
+
+function closeWithoutSaving(model)
+if bdIsLoaded(model)
+    close_system(model, 0);
+end
+end
+
+function names = startWorkspaceVariables(startPath)
+variablesBefore = string(who);
+run(startPath);
+variablesAfter = string(who);
+helperVariables = [variablesBefore; "variablesBefore"; ...
+    "variablesAfter"; "helperVariables"; "names"];
+names = setdiff(variablesAfter, helperVariables, "stable");
+end
+
+function snapshot = captureBaseWorkspace(names)
+names = string(names(:));
+snapshot = struct("names", names, "existed", false(size(names)), ...
+    "values", {cell(size(names))});
+for index = 1:numel(names)
+    snapshot.existed(index) = evalin("base", ...
+        "exist(" + matlabString(names(index)) + ", 'var') == 1");
+    if snapshot.existed(index)
+        snapshot.values{index} = evalin("base", names(index));
+    end
+end
+end
+
+function restoreBaseWorkspace(snapshot)
+for index = 1:numel(snapshot.names)
+    name = snapshot.names(index);
+    if snapshot.existed(index)
+        assignin("base", name, snapshot.values{index});
+    else
+        evalin("base", "clear " + name);
+    end
+end
+end
+
+function hash = sha256File(filePath)
+[status, output] = system("shasum -a 256 " + shellQuote(filePath));
+if status ~= 0
+    error("fig519:HashFailed", "Could not hash '%s': %s", filePath, output);
+end
+parts = split(strtrim(output));
+hash = string(parts(1));
+end
+
+function quoted = shellQuote(value)
+quoted = "'" + replace(string(value), "'", "'\\''") + "'";
+end
+
+function quoted = matlabString(value)
+quoted = "'" + replace(string(value), "'", "''") + "'";
+end

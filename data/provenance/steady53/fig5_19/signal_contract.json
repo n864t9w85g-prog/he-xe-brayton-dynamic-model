@@ -4,9 +4,11 @@
   "paper_reproduced": false,
   "signals": {
     "compressor": {
-      "api_trace_status": "required_in_task_6",
+      "api_block_path": "final_steady_24a/TAC/Compressor",
+      "api_output_port": 2,
       "kind": "direct_component_power",
-      "model_signal": "Wc_sw"
+      "model_signal": "Wc_sw",
+      "status": "verified_by_official_api"
     },
     "electrical_historical_metric": {
       "accepted_for_fig519": false,
@@ -16,17 +18,23 @@
     "electrical_paper_eta": {
       "direct_generator_signal": null,
       "formula": "0.98*(WT_sw-Wc_sw)",
-      "kind": "offline_derived"
+      "kind": "offline_derived",
+      "status": "no_direct_generator_signal_found"
     },
     "reactor": {
-      "api_trace_status": "required_in_task_6",
+      "api_output_port": 1,
+      "api_upstream_block": "final_steady_24a/reactor/Integrator6",
+      "api_workspace_block": "final_steady_24a/reactor/P_sw",
       "kind": "direct_workspace_signal",
-      "model_signal": "P_sw"
+      "model_signal": "P_sw",
+      "status": "verified_by_official_api"
     },
     "turbine": {
-      "api_trace_status": "required_in_task_6",
+      "api_block_path": "final_steady_24a/TAC/Turbine",
+      "api_output_port": 4,
       "kind": "direct_component_power",
-      "model_signal": "WT_sw"
+      "model_signal": "WT_sw",
+      "status": "verified_by_official_api"
     }
   }
 }

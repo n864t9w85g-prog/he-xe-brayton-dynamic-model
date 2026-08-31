@@ -30,12 +30,14 @@ SAMPLE_TIMES = (10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 230, 300, 400, 450, 4
 ARTIFACT_NAMES = ("source_page_106.png", "paper_points.csv", "provenance.json", "digitization_overlay.png", "README.md")
 BASELINE_LAYER_NAMES = ("baseline.mat", "baseline_P_sw.csv", "baseline_WT_sw.csv", "baseline_Wc_sw.csv")
 BASELINE_TOP_LEVEL_NAMES = ("baseline_metrics.json", "signal_contract.json")
+INITIALIZATION_TOP_LEVEL_NAMES = ("initialization_audit.json",)
 BASELINE_LAYER_DIR = "model_baseline"
 
 
-def registered_paths() -> tuple[str, ...]:
-    """The closed, two-layer Figure 5.19 publication registry."""
-    return ARTIFACT_NAMES + tuple(f"{BASELINE_LAYER_DIR}/{name}" for name in BASELINE_LAYER_NAMES) + BASELINE_TOP_LEVEL_NAMES
+def registered_paths(include_initialization: bool = False) -> tuple[str, ...]:
+    """The closed Figure 5.19 registry at the Task 5 or Task 6 layer."""
+    paths = ARTIFACT_NAMES + tuple(f"{BASELINE_LAYER_DIR}/{name}" for name in BASELINE_LAYER_NAMES) + BASELINE_TOP_LEVEL_NAMES
+    return paths + (INITIALIZATION_TOP_LEVEL_NAMES if include_initialization else ())
 
 
 @dataclass(frozen=True)
@@ -264,7 +266,8 @@ def _manifest_rows(output: Path) -> dict[str, dict[str, str]]:
 
 
 def _validate_registered_shape(output: Path) -> None:
-    expected = set(registered_paths()) | {"manifest.csv"}
+    include_initialization = os.path.lexists(output / "initialization_audit.json")
+    expected = set(registered_paths(include_initialization)) | {"manifest.csv"}
     actual = {str(path.relative_to(output)) for path in output.rglob("*") if path.is_file() or path.is_symlink()}
     if actual != expected:
         raise RuntimeError("artifact set is incomplete or unexpected")
@@ -369,7 +372,8 @@ def verify_only(output: Path = OUTPUT) -> None:
         _validate_registered_shape(output)
         verify_paper_layer(output)
         rows = _manifest_rows(output)
-        for relative in registered_paths():
+        include_initialization = os.path.lexists(output / "initialization_audit.json")
+        for relative in registered_paths(include_initialization):
             payload = (output / relative).read_bytes()
             row = rows.get(relative)
             if row is None or row["bytes"] != str(len(payload)) or row["sha256"] != _hash(payload):

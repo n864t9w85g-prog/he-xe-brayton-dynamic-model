@@ -291,14 +291,21 @@ class Figure519BaselineTests(unittest.TestCase):
         metrics = json.loads((OUT / "baseline_metrics.json").read_text())
         contract = json.loads((OUT / "signal_contract.json").read_text())
         self.assertEqual(metrics, subject.analyze()[0])
-        self.assertEqual(contract, subject.analyze()[1])
+        expected_contract = subject.analyze()[1]
+        if (OUT / "initialization_audit.json").is_file():
+            expected_contract = subject.contract_from_initialization(
+                json.loads((OUT / "initialization_audit.json").read_text()))
+        self.assertEqual(contract, expected_contract)
         with (OUT / "manifest.csv").open(newline="") as handle:
             rows = list(csv.DictReader(handle))
-        self.assertEqual({row["path"] for row in rows}, set(digitizer.ARTIFACT_NAMES) | {
+        expected_paths = set(digitizer.ARTIFACT_NAMES) | {
             "model_baseline/baseline.mat", "model_baseline/baseline_P_sw.csv",
             "model_baseline/baseline_WT_sw.csv", "model_baseline/baseline_Wc_sw.csv",
-            "baseline_metrics.json", "signal_contract.json"})
-        self.assertEqual(len(rows), 11)
+            "baseline_metrics.json", "signal_contract.json"}
+        if (OUT / "initialization_audit.json").is_file():
+            expected_paths.add("initialization_audit.json")
+        self.assertEqual({row["path"] for row in rows}, expected_paths)
+        self.assertEqual(len(rows), len(expected_paths))
 
     def test_four_comparisons_have_finite_interpolated_metrics_and_locked_csv_schema(self):
         metrics, _ = subject.analyze()
