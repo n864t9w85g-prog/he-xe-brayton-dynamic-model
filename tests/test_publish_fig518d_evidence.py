@@ -87,6 +87,13 @@ class PublishFigure518dEvidenceTests(unittest.TestCase):
                 with self.assertRaises(publisher.PublicationError):
                     publisher.verify_published()
 
+    def test_readme_documents_exact_manifest_schema(self):
+        readme = (publisher.DURABLE_ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("is_original_output", readme)
+        self.assertIn("is_regenerable", readme)
+        self.assertNotIn("`original_output`", readme)
+        self.assertNotIn("`regenerable`", readme)
+
     def test_verify_is_durable_only_and_publication_is_idempotent(self):
         with tempfile.TemporaryDirectory() as directory:
             durable_root = self._publish_to_temporary_root(directory)

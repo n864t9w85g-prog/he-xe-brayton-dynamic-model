@@ -244,8 +244,10 @@ exactly 11 per-candidate manifests exist. The sole ineligible role
 therefore has no per-candidate manifest. Its full parameters and rejection
 reasons remain in `representative_matrix.csv`. This is evidence, not a missing-file error.
 
-The `original_output` column in `manifest.csv` records that publication copied
-the completed source artifact without reconstruction. `regenerable` describes
+The `is_original_output` and `is_regenerable` columns in `manifest.csv` record
+that publication copied the completed source artifact without reconstruction
+and describe the source pipeline, respectively. These names are part of the
+manifest schema; they do not grant permission to rerun it. Evidence grades classify
 the source pipeline, not permission to rerun it. Evidence grades classify the
 preserved record; they do not change the negative scientific status above.
 """
@@ -672,6 +674,11 @@ def verify_published():
     readme_lines = readme.splitlines()
     if any(readme_lines.count(line) != 1 for line in machine_lines):
         raise PublicationError("README machine-readable status lines are missing or duplicated")
+    schema_statement = (
+        "The `is_original_output` and `is_regenerable` columns in `manifest.csv`"
+    )
+    if schema_statement not in readme or "`original_output`" in readme or "`regenerable`" in readme:
+        raise PublicationError("README manifest schema statement mismatch")
 
     paper_points = _read_csv("paper_curve/points.csv")
     offline_rows = _read_csv("a1_summary/offline_96.csv")
