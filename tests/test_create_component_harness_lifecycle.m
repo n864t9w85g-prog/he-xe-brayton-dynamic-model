@@ -13,6 +13,7 @@ harness = create_component_harness("reactor");
 cleanup = onCleanup(@() closeHarness(harness)); %#ok<NASGU>
 verifyTrue(testCase, startsWith(harness.path, fullfile(repo, "tmp") + filesep));
 verifyTrue(testCase, isfile(harness.path));
+verifyEqual(testCase, harness.sourcePath, sourcePath);
 close_system(harness.model, 0);
 clear cleanup
 
@@ -27,13 +28,19 @@ sourcePath = fullfile(repo, "data", "provenance", "baselines", ...
 beforePath = path;
 beforeHash = sha256File(sourcePath);
 formalOutput = fullfile(repo, "final_dynamic_24a.slx");
+formalOutputExisted = isfile(formalOutput);
+if formalOutputExisted
+    formalOutputHash = sha256File(formalOutput);
+end
 
 verifyError(testCase, @() create_component_harness("not_a_component"), ...
     "steady53:UnknownComponent");
 verifyEqual(testCase, path, beforePath);
 verifyEqual(testCase, sha256File(sourcePath), beforeHash);
-verifyFalse(testCase, isfile(formalOutput), ...
-    "An invalid component must not create the formal model output.");
+verifyEqual(testCase, isfile(formalOutput), formalOutputExisted);
+if formalOutputExisted
+    verifyEqual(testCase, sha256File(formalOutput), formalOutputHash);
+end
 end
 
 function closeHarness(harness)
