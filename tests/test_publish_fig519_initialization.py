@@ -43,67 +43,88 @@ class Figure519InitializationPublicationTests(unittest.TestCase):
     def _source(self, parent: Path) -> Path:
         run = parent / "run"
         run.mkdir()
-        raw = ROOT / "tmp/fig519_initialization_20260831_A1/raw_reference.mat"
-        self.assertTrue(raw.is_file())
-        audit = {
-            "audit_schema": "steady53_fig519_initialization_v1",
-            "model_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
-            "source_hash_after": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
-            "source_hash_unchanged": True,
-            "state_count": 40,
-            "reference_final_time_s": 500,
-            "reference_success": True,
-            "reference_run_reason": "missing direct state and derivative evidence in prior saved baseline",
-            "repeated_prior_experiment": False,
-            "direct_generator_signal_found": False,
-            "paper_reproduced": False,
-            "formal_promotion": False,
-            "raw_reference": {
-                "repository_relative_path": str(raw.relative_to(ROOT)),
-                "absolute_path": str(raw),
-                "sha256": hashlib.sha256(raw.read_bytes()).hexdigest(),
-                "bytes": raw.stat().st_size,
-            },
-            "protected_manifest": {"row_count": 34, "resolved_count": 34, "unresolved_count": 0},
-            "runtime_dependency_contract": {
-                "dependency_count": 9, "all_paths_durable": True,
-                "dependencies": [{"is_durable": True} for _ in range(9)],
-            },
-            "state_inventory": ([
-                {"path": "final_steady_24a/reactor/Integrator6"},
-                {"path": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator"},
-                {"path": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator"},
-                {"path": "final_steady_24a/TAC/rotor/N_rpm_Integrator"},
-            ] + [{"path": f"final_steady_24a/state/{i}"} for i in range(36)]),
-            "boundary_contract": {"all_inputs_classified": True, "load_input_classified": True},
-            "solver_contract": {"solver_name": "ode15s", "stop_time_dependency_checked": True},
-            "power_signal_paths": {
-                "reactor": {"status": "verified_by_official_api", "workspace_block": "final_steady_24a/reactor/P_sw", "upstream_block": "final_steady_24a/reactor/Integrator6", "upstream_output_port": 1},
-                "turbine": {"status": "verified_by_official_api", "block": "final_steady_24a/TAC/Turbine", "output_port": 4},
-                "compressor": {"status": "verified_by_official_api", "block": "final_steady_24a/TAC/Compressor", "output_port": 2},
-                "load": {"status": "verified_by_official_api", "source_block": "final_steady_24a/Constant14", "destination_block": "final_steady_24a/TAC", "destination_input_port": 6, "destination_inport_block": "final_steady_24a/TAC/Pload", "value_W": 1000210.0},
-                "electrical": {"status": "no_direct_generator_signal_found"},
-                "direct_generator_signal_found": False,
-            },
-            "initial_residuals": {"all_items_accounted_for": True, "items": [
-                {"name": "shaft_excess_power", "status": "computed", "value": 35934.17908170889,
-                 "unit": "W", "formula": "WT(t0)-Wc(t0)-Pload",
-                 "source_paths": ["final_steady_24a/TAC/Turbine", "final_steady_24a/TAC/Compressor", "final_steady_24a/Constant14", "final_steady_24a/TAC/Pload"]}
-            ]},
-            "flat_start_explanation": {
-                "has_state_evidence": True, "has_signal_path_evidence": True,
-                "near_zero_rule": {"metric": "abs(first_sample_slope)/max(abs(t0_value),1)", "threshold_per_s": 1e-6},
-                "near_zero_state_derivatives": [{"path": "final_steady_24a/reactor/Integrator6"}],
-                "power_state_signal_mappings": [
-                    {"power_definition": name, "traced_state_paths": ["final_steady_24a/reactor/Integrator6"], "traced_signal_paths": ["verified/path"]}
-                    for name in ("reactor", "turbine", "compressor", "electrical_paper_eta")
-                ],
-                "paper_initial_state_identified": False,
-            },
-        }
+        audit = json.loads((DURABLE / "initialization_audit.json").read_text())
         source = run / "initialization_audit.json"
         source.write_text(json.dumps(audit, indent=2, sort_keys=True) + "\n")
         return source
+
+    def test_structural_fake_audits_and_invented_hops_are_rejected(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            parent = Path(work)
+            output = self._task5_copy(parent)
+            source = self._source(parent)
+            valid = json.loads(source.read_text())
+
+            def fake_states(audit):
+                retained = {path for mapping in
+                    audit["flat_start_explanation"]["power_state_signal_mappings"]
+                    for path in mapping["traced_state_paths"]}
+                for index, item in enumerate(audit["state_inventory"]):
+                    if item["path"] not in retained:
+                        item["path"] = f"final_steady_24a/invented/state/{index}"
+
+            def missing_residuals(audit):
+                audit["initial_residuals"]["items"] = [item for item in
+                    audit["initial_residuals"]["items"] if item["name"] == "shaft_excess_power"]
+
+            def inconsistent_state(audit):
+                audit["state_inventory"][0]["absolute_change"] += 1.0
+
+            def inconsistent_near_zero(audit):
+                audit["flat_start_explanation"]["near_zero_state_derivatives"] = []
+
+            def invented_hop(audit):
+                mapping = audit["flat_start_explanation"]["power_state_signal_mappings"][0]
+                mapping["api_trace_records"] = [{
+                    "state_path": mapping["traced_state_paths"][0],
+                    "endpoint_block": "final_steady_24a/invented/endpoint",
+                    "status": "verified_by_official_api",
+                    "hops": [{"from_block": "invented/path", "from_port": 1,
+                              "from_port_kind": "output", "to_block": "invented/path2",
+                              "to_port": 1, "to_port_kind": "input",
+                              "bridge_kind": "signal_line"}],
+                }]
+
+            def changed_residual_formula(audit):
+                audit["initial_residuals"]["items"][0]["formula"] = "fitted formula"
+
+            def changed_missing_signal(audit):
+                item = next(item for item in audit["initial_residuals"]["items"]
+                            if item["name"] == "ihx_energy")
+                item["missing_direct_signals"] = ["unspecified"]
+
+            def changed_trace_hop(audit):
+                mapping = next(item for item in
+                    audit["flat_start_explanation"]["power_state_signal_mappings"]
+                    if item["power_definition"] == "turbine")
+                mapping["api_trace_records"][0]["hops"][0]["to_port"] += 1
+
+            def changed_trace_endpoint(audit):
+                mapping = next(item for item in
+                    audit["flat_start_explanation"]["power_state_signal_mappings"]
+                    if item["power_definition"] == "compressor")
+                mapping["api_trace_records"][0]["endpoint_block"] = \
+                    "final_steady_24a/TAC/Turbine"
+
+            def changed_generator_identity(audit):
+                audit["generation_contract"]["generator_sha256"] = "0" * 64
+
+            for label, mutation in (("fake states", fake_states),
+                                    ("missing residuals", missing_residuals),
+                                    ("inconsistent state", inconsistent_state),
+                                    ("inconsistent near-zero", inconsistent_near_zero),
+                                    ("invented hop", invented_hop),
+                                    ("changed residual formula", changed_residual_formula),
+                                    ("changed missing signal", changed_missing_signal),
+                                    ("changed trace hop", changed_trace_hop),
+                                    ("changed trace endpoint", changed_trace_endpoint),
+                                    ("changed generator identity", changed_generator_identity)):
+                with self.subTest(label=label):
+                    fake = json.loads(json.dumps(valid))
+                    mutation(fake)
+                    source.write_text(json.dumps(fake))
+                    with self.assertRaises(RuntimeError):
+                        subject.publish(source, output)
 
     def test_publish_is_idempotent_and_updates_api_contract(self):
         with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
@@ -187,6 +208,48 @@ class Figure519InitializationPublicationTests(unittest.TestCase):
                 subject.publish(source, output)
                 subject.verify_only(output)
                 self.assertFalse(subject.transaction_dir(output).exists())
+
+    def test_every_cleanup_boundary_is_recoverable_and_tombstone_owned(self):
+        cleanup_boundaries = (
+            "cleanup-tombstone-rename-before", "cleanup-tombstone-rename-after",
+            "cleanup-audit-unlink-before", "cleanup-audit-unlink-after",
+            "cleanup-signal-contract-unlink-before", "cleanup-signal-contract-unlink-after",
+            "cleanup-manifest-unlink-before", "cleanup-manifest-unlink-after",
+            "cleanup-payload-rmdir-before", "cleanup-payload-rmdir-after",
+            "cleanup-record-unlink-before", "cleanup-record-unlink-after",
+            "cleanup-tombstone-rmdir-before", "cleanup-tombstone-rmdir-after",
+        )
+        for fail_at in cleanup_boundaries:
+            with self.subTest(fail_at=fail_at), tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+                parent = Path(work)
+                output = self._task5_copy(parent)
+                source = self._source(parent)
+
+                def fail(point: str):
+                    if point == fail_at:
+                        raise OSError("injected cleanup interruption")
+
+                with mock.patch.object(subject, "_publication_boundary", fail):
+                    with self.assertRaises(OSError):
+                        subject.publish(source, output)
+                subject.publish(source, output)
+                subject.verify_only(output)
+                self.assertFalse(subject.transaction_dir(output).exists())
+                self.assertFalse(any("task6-cleanup" in entry.name for entry in output.parent.iterdir()))
+
+    def test_cleanup_refuses_unowned_tombstone_without_deleting_it(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            parent = Path(work)
+            output = self._task5_copy(parent)
+            source = self._source(parent)
+            payloads = subject._planned(source, output)
+            tombstone = subject.cleanup_tombstone_path(output, payloads)
+            tombstone.mkdir(mode=0o700)
+            sentinel = tombstone / "not-owned-by-task6"
+            sentinel.write_text("preserve")
+            with self.assertRaises(RuntimeError):
+                subject.publish(source, output)
+            self.assertEqual(sentinel.read_text(), "preserve")
 
     def test_verify_only_rejects_corruption_and_writes_nothing(self):
         with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:

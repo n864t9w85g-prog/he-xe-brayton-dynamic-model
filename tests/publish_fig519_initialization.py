@@ -26,10 +26,19 @@ SOURCE = ROOT / "tmp/fig519_initialization_20260831_A1/initialization_audit.json
 AUDIT_NAME = baseline.INITIALIZATION_AUDIT_NAME
 TARGETS = (AUDIT_NAME, "signal_contract.json", "manifest.csv")
 TRANSACTION_VERSION = 1
-LEGACY_TASK6_SHA256 = {
-    AUDIT_NAME: "d5b000c3ac9c1c05437aeae2652712e5d69e51de40eb49b43537b76274159818",
-    "signal_contract.json": "515c58ce7fc1cc349054bcf0e0f06760ff995ceef928f4056004394bed50e9f6",
-    "manifest.csv": "dae38c7d79eb409981624001158f5b54075f3f500b4eaa390045aa5853dc9458",
+REGISTERED_TASK6_PREDECESSOR_SHA256 = {
+    AUDIT_NAME: {
+        "d5b000c3ac9c1c05437aeae2652712e5d69e51de40eb49b43537b76274159818",
+        "753cc01e6a260c66680c0a2ba5c80217fac53e871e950b321d37b77f7c1bfef6",
+    },
+    "signal_contract.json": {
+        "515c58ce7fc1cc349054bcf0e0f06760ff995ceef928f4056004394bed50e9f6",
+        "de619fd27f0757dc88eb2c50e6da9eb282648735fab94b4015ebbcca430c5d05",
+    },
+    "manifest.csv": {
+        "dae38c7d79eb409981624001158f5b54075f3f500b4eaa390045aa5853dc9458",
+        "47a9c43278bb5be55544a8976d1b3d6c504fd0e80ec5e19d5b0541405b7e62ff",
+    },
 }
 
 
@@ -96,6 +105,11 @@ def transaction_dir(output: Path) -> Path:
     return output.parent / (output.name + ".task6-transaction")
 
 
+def cleanup_tombstone_path(output: Path, payloads: dict[str, bytes]) -> Path:
+    identity = _hash(_record(payloads))[:20]
+    return output.parent / f"{output.name}.task6-cleanup-{identity}"
+
+
 def _publication_boundary(point: str) -> None:
     del point
 
@@ -158,7 +172,7 @@ def _target_state(output: Path, payloads: dict[str, bytes]) -> dict[str, str]:
         current = target.read_bytes()
         if current == payloads[name]:
             states[name] = "expected"
-        elif _hash(current) == LEGACY_TASK6_SHA256[name]:
+        elif _hash(current) in REGISTERED_TASK6_PREDECESSOR_SHA256[name]:
             states[name] = "predecessor"
         elif name == "signal_contract.json" and current == old_contract:
             states[name] = "predecessor"
@@ -241,24 +255,92 @@ def _commit(output: Path, txn: Path, payloads: dict[str, bytes]) -> None:
                     _check(output / name, payloads[name], f"concurrently committed {name}")
             else:
                 os.replace(staged, output / name)
+                # Keep an owned staged hard link for uniform, fault-injected
+                # cleanup.  A real crash between replace and this link is
+                # still recoverable because expected final targets may have
+                # no remaining staged payload.
+                os.link(output / name, staged, follow_symlinks=False)
             _check(output / name, payloads[name], f"committed {name}")
             _fsync_directory(output)
         _publication_boundary(f"{boundary}-commit-after")
 
 
-def _cleanup(txn: Path, payloads: dict[str, bytes], output: Path) -> None:
-    root = _validate_transaction(txn, payloads, output)
+def _validate_cleanup_tombstone(tombstone: Path, payloads: dict[str, bytes],
+                                output: Path) -> Path | None:
+    if tombstone != cleanup_tombstone_path(output, payloads):
+        raise RuntimeError("Task 6 cleanup tombstone identity mismatch")
+    if tombstone.is_symlink() or not tombstone.is_dir():
+        raise RuntimeError("Task 6 cleanup tombstone is unsafe")
+    mode = tombstone.stat().st_mode
+    if tombstone.stat().st_uid != os.geteuid() or mode & 0o077:
+        raise RuntimeError("Task 6 cleanup tombstone ownership is unsafe")
+    entries = {entry.name for entry in tombstone.iterdir()}
+    if not entries.issubset({"record.json", "payload"}):
+        raise RuntimeError("Task 6 cleanup tombstone has unowned entries")
     if any(state != "expected" for state in _target_state(output, payloads).values()):
-        raise RuntimeError("refusing to clean an incomplete Task 6 transaction")
+        raise RuntimeError("Task 6 cleanup tombstone does not follow a full commit")
+    record = tombstone / "record.json"
+    root = tombstone / "payload"
+    if os.path.lexists(record):
+        _check(record, _record(payloads), "cleanup record")
+    elif os.path.lexists(root):
+        raise RuntimeError("Task 6 cleanup payload has lost its ownership record")
+    if not os.path.lexists(root):
+        return None
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError("Task 6 cleanup payload is unsafe")
+    unexpected = {entry.name for entry in root.iterdir()} - set(TARGETS)
+    if unexpected:
+        raise RuntimeError("Task 6 cleanup payload has unowned entries")
     for name in TARGETS:
         staged = root / name
         if os.path.lexists(staged):
             _check(staged, payloads[name], f"cleanup staged {name}")
-            os.unlink(staged)
-    os.rmdir(root)
-    os.unlink(txn / "record.json")
-    os.rmdir(txn)
-    _fsync_directory(txn.parent)
+    return root
+
+
+def _cleanup_tombstone(tombstone: Path, payloads: dict[str, bytes], output: Path) -> None:
+    root = _validate_cleanup_tombstone(tombstone, payloads, output)
+    boundary_names = {AUDIT_NAME: "audit", "signal_contract.json": "signal-contract",
+                      "manifest.csv": "manifest"}
+    if root is not None:
+        for name in TARGETS:
+            staged = root / name
+            if os.path.lexists(staged):
+                _check(staged, payloads[name], f"cleanup staged {name}")
+                boundary = boundary_names[name]
+                _publication_boundary(f"cleanup-{boundary}-unlink-before")
+                os.unlink(staged)
+                _publication_boundary(f"cleanup-{boundary}-unlink-after")
+        _publication_boundary("cleanup-payload-rmdir-before")
+        os.rmdir(root)
+        _publication_boundary("cleanup-payload-rmdir-after")
+    record = tombstone / "record.json"
+    if os.path.lexists(record):
+        _check(record, _record(payloads), "cleanup record")
+        _publication_boundary("cleanup-record-unlink-before")
+        os.unlink(record)
+        _publication_boundary("cleanup-record-unlink-after")
+    if any(tombstone.iterdir()):
+        raise RuntimeError("Task 6 cleanup tombstone has unowned residual entries")
+    _publication_boundary("cleanup-tombstone-rmdir-before")
+    os.rmdir(tombstone)
+    _fsync_directory(tombstone.parent)
+    _publication_boundary("cleanup-tombstone-rmdir-after")
+
+
+def _transition_to_cleanup(txn: Path, payloads: dict[str, bytes], output: Path) -> Path:
+    _validate_transaction(txn, payloads, output)
+    if any(state != "expected" for state in _target_state(output, payloads).values()):
+        raise RuntimeError("refusing to clean an incomplete Task 6 transaction")
+    tombstone = cleanup_tombstone_path(output, payloads)
+    _publication_boundary("cleanup-tombstone-rename-before")
+    if os.path.lexists(tombstone):
+        raise RuntimeError("Task 6 cleanup tombstone appeared concurrently")
+    os.rename(txn, tombstone)
+    _fsync_directory(tombstone.parent)
+    _publication_boundary("cleanup-tombstone-rename-after")
+    return tombstone
 
 
 def publish(source: Path = SOURCE, output: Path = OUTPUT) -> None:
@@ -268,6 +350,11 @@ def publish(source: Path = SOURCE, output: Path = OUTPUT) -> None:
     payloads = _planned(Path(source), output)
     with _lock(output):
         txn = transaction_dir(output)
+        tombstone = cleanup_tombstone_path(output, payloads)
+        if os.path.lexists(tombstone):
+            if os.path.lexists(txn):
+                raise RuntimeError("Task 6 canonical transaction conflicts with cleanup tombstone")
+            _cleanup_tombstone(tombstone, payloads, output)
         if not os.path.lexists(txn):
             try:
                 verify_only(output)
@@ -277,7 +364,8 @@ def publish(source: Path = SOURCE, output: Path = OUTPUT) -> None:
                 return
             _birth(txn, payloads, output)
         _commit(output, txn, payloads)
-        _cleanup(txn, payloads, output)
+        tombstone = _transition_to_cleanup(txn, payloads, output)
+        _cleanup_tombstone(tombstone, payloads, output)
     verify_only(output)
 
 

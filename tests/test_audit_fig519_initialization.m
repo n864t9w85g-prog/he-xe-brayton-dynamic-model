@@ -30,8 +30,24 @@ verifyEqual(testCase, result.reference_run_reason, ...
     "missing direct state and derivative evidence in prior saved baseline");
 verifyNotEmpty(testCase, result.solver_contract.solver_name);
 verifyTrue(testCase, result.solver_contract.stop_time_dependency_checked);
+sampleTimes = result.solver_contract.compiled_sample_times;
+verifyTrue(testCase, isfield(sampleTimes, "is_infinite") && ...
+    isfield(sampleTimes, "semantic"));
+constantSample = sampleTimes(string({sampleTimes.description}) == "Constant");
+verifyEqual(testCase, numel(constantSample), 1);
+verifyTrue(testCase, constantSample.is_infinite);
+verifyEqual(testCase, string(constantSample.semantic), ...
+    "constant sample time (infinite period)");
 verifyTrue(testCase, result.boundary_contract.all_inputs_classified);
 verifyTrue(testCase, result.boundary_contract.load_input_classified);
+sources = result.boundary_contract.root_source_blocks;
+verifyEqual(testCase, numel(sources), 2);
+verifyEqual(testCase, unique(string({sources.block_type})), "Constant");
+constantSource = sources(string({sources.path}) == "final_steady_24a/Constant");
+verifyEqual(testCase, string(constantSource.value_expression), "6.95");
+verifyEqual(testCase, string(constantSource.destination_connections.to_block), ...
+    "final_steady_24a/precooler");
+verifyEqual(testCase, constantSource.destination_connections.to_port, 2);
 verifyTrue(testCase, result.initial_residuals.all_items_accounted_for);
 verifyTrue(testCase, result.flat_start_explanation.has_state_evidence);
 verifyTrue(testCase, result.flat_start_explanation.has_signal_path_evidence);
@@ -107,6 +123,8 @@ verifyEqual(testCase, loadPath.destination_input_port, 6);
 verifyEqual(testCase, string(loadPath.destination_inport_block), ...
     "final_steady_24a/TAC/Pload");
 verifyEqual(testCase, loadPath.value_W, 1000.21e3, "AbsTol", 1e-9);
+verifyTrue(testCase, all(ismember(["p_e", "wgen", "pgen", "pelec"], ...
+    lower(string(result.power_signal_paths.electrical.search_terms)))));
 
 flat = result.flat_start_explanation;
 verifyEqual(testCase, flat.near_zero_rule.metric, ...
@@ -118,6 +136,50 @@ for index = 1:numel(flat.power_state_signal_mappings)
     mapping = flat.power_state_signal_mappings(index);
     verifyNotEmpty(testCase, mapping.traced_state_paths);
     verifyNotEmpty(testCase, mapping.traced_signal_paths);
+    if string(mapping.power_definition) == "electrical_paper_eta"
+        verifyEqual(testCase, string(mapping.api_verification_status), ...
+            "verified_offline_composition_of_api_traces");
+        verifyFalse(testCase, mapping.direct_model_endpoint_claimed);
+        verifyEqual(testCase, sort(string(mapping.composition_sources(:))), ...
+            sort(["turbine"; "compressor"]));
+        verifyEmpty(testCase, mapping.api_trace_records);
+    else
+        verifyEqual(testCase, string(mapping.api_verification_status), ...
+            "verified_by_official_api_graph");
+        traces = mapping.api_trace_records;
+        verifyEqual(testCase, sort(string({traces.state_path})'), ...
+            sort(string(mapping.traced_state_paths(:))));
+        for traceIndex = 1:numel(traces)
+            trace = traces(traceIndex);
+            verifyEqual(testCase, string(trace.status), ...
+                "verified_by_official_api_graph");
+            verifyNotEmpty(testCase, trace.hops);
+            verifyEqual(testCase, string(trace.hops(1).from_block), ...
+                string(trace.state_path));
+            verifyEqual(testCase, string(trace.hops(end).to_block), ...
+                string(trace.endpoint_block));
+            if string(mapping.power_definition) == "reactor"
+                verifyEqual(testCase, string(trace.hops(end).to_port_kind), "input");
+                verifyEqual(testCase, trace.hops(end).to_port, 1);
+            elseif string(mapping.power_definition) == "turbine"
+                verifyEqual(testCase, string(trace.hops(end).to_port_kind), "output");
+                verifyEqual(testCase, trace.hops(end).to_port, 4);
+            elseif string(mapping.power_definition) == "compressor"
+                verifyEqual(testCase, string(trace.hops(end).to_port_kind), "output");
+                verifyEqual(testCase, trace.hops(end).to_port, 2);
+            end
+            verifyTrue(testCase, isfield(trace.hops, "from_block") && ...
+                isfield(trace.hops, "from_port") && ...
+                isfield(trace.hops, "from_port_kind") && ...
+                isfield(trace.hops, "to_block") && ...
+                isfield(trace.hops, "to_port") && ...
+                isfield(trace.hops, "to_port_kind") && ...
+                isfield(trace.hops, "bridge_kind"));
+            verifyTrue(testCase, all(ismember(string({trace.hops.bridge_kind}), ...
+                ["signal_line", "subsystem_inport", "subsystem_outport", ...
+                 "goto_from", "block_dependency"])));
+        end
+    end
 end
 verifyFalse(testCase, flat.paper_initial_state_identified);
 

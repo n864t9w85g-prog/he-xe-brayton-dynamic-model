@@ -12,6 +12,15 @@
   "direct_generator_signal_found": false,
   "paper_reproduced": false,
   "formal_promotion": false,
+  "generation_contract": {
+    "schema_version": "steady53_fig519_initialization_v2_api_graph",
+    "generator_repository_path": "tests/audit_fig519_initialization.m",
+    "generator_sha256": "a4a49532971ca1cbd0093d598d2c1532c4f91dcdd84b4cd6385a26abb8bc5393",
+    "model_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+    "raw_reference_sha256": "185d59ca6e55647ad14fb5f23599bc85e6566f8da2ca6120f42a0ef8dedbb648",
+    "python_validation_scope": "structural, identity, exact-contract, and cross-field checks only; Python does not recompute MATLAB state values from raw_reference.mat",
+    "matlab_evidence_scope": "state values come from fixed raw evidence; connection hops come from the Simulink official API graph"
+  },
   "raw_reference": {
     "repository_relative_path": "tmp/fig519_initialization_20260831_A1/raw_reference.mat",
     "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_initialization_20260831_A1/raw_reference.mat",
@@ -696,16 +705,34 @@
         "path": "final_steady_24a/Constant",
         "block_type": "Constant",
         "classification": "fixed_internal_boundary_source",
-        "value_expression": "6.95"
+        "value_expression": "6.95",
+        "destination_connections": {
+          "from_block": "final_steady_24a/Constant",
+          "from_port": 1,
+          "from_port_kind": "output",
+          "to_block": "final_steady_24a/precooler",
+          "to_port": 2,
+          "to_port_kind": "input",
+          "bridge_kind": "signal_line"
+        }
       },
       {
         "path": "final_steady_24a/Constant14",
         "block_type": "Constant",
         "classification": "fixed_internal_boundary_source",
-        "value_expression": "1000.21e3"
+        "value_expression": "1000.21e3",
+        "destination_connections": {
+          "from_block": "final_steady_24a/Constant14",
+          "from_port": 1,
+          "from_port_kind": "output",
+          "to_block": "final_steady_24a/TAC",
+          "to_port": 6,
+          "to_port_kind": "input",
+          "bridge_kind": "signal_line"
+        }
       }
     ],
-    "classification_note": "No external root Inports exist; both root Constant sources are fixed and all remaining root links are internal component coupling.",
+    "classification_note": "No external root Inports exist; every root block with outputs and no input ports is enumerated with its official-API destination connections.",
     "all_inputs_classified": true,
     "load_input_classified": true
   },
@@ -724,25 +751,34 @@
         "value": [
           0,
           0
-        ]
+        ],
+        "is_infinite": false,
+        "infinite_positions": [],
+        "semantic": "finite compiled sample time"
       },
       {
         "description": "Discrete 1",
         "value": [
           280,
           0
-        ]
+        ],
+        "is_infinite": false,
+        "infinite_positions": [],
+        "semantic": "finite compiled sample time"
       },
       {
         "description": "Constant",
-        "value": [
-          null,
-          0
-        ]
+        "value": 0,
+        "is_infinite": true,
+        "infinite_positions": 1,
+        "semantic": "constant sample time (infinite period)"
       },
       {
         "description": "Multirate",
-        "value": []
+        "value": [],
+        "is_infinite": false,
+        "infinite_positions": [],
+        "semantic": "multirate aggregate (no single numeric sample time)"
       }
     ]
   },
@@ -782,7 +818,11 @@
       "search_terms": [
         "generator",
         "electrical",
-        "electric"
+        "electric",
+        "p_e",
+        "wgen",
+        "pgen",
+        "pelec"
       ],
       "searched_to_workspace_and_tac_outports": [
         "final_steady_24a/IHX/IHX_region_1/V_T_tin [VariableName=V_T_tin]",
@@ -1211,39 +1251,1713 @@
           "final_steady_24a/reactor/Integrator6",
           "final_steady_24a/reactor/P_sw"
         ],
-        "mapping_explanation": "Recorded reactor power and temperature states feed the direct P_sw definition."
+        "mapping_explanation": "Only recorded reactor states with an official-API graph path to the P_sw logger are listed.",
+        "api_verification_status": "verified_by_official_api_graph",
+        "api_trace_records": [
+          {
+            "state_path": "final_steady_24a/reactor/Integrator6",
+            "endpoint_block": "final_steady_24a/reactor/P_sw",
+            "endpoint_port": 1,
+            "endpoint_port_kind": "input",
+            "endpoint_role": "reactor_power_logger",
+            "status": "verified_by_official_api_graph",
+            "hops": {
+              "from_block": "final_steady_24a/reactor/Integrator6",
+              "from_port": 1,
+              "from_port_kind": "output",
+              "to_block": "final_steady_24a/reactor/P_sw",
+              "to_port": 1,
+              "to_port_kind": "input",
+              "bridge_kind": "signal_line"
+            }
+          },
+          {
+            "state_path": "final_steady_24a/reactor/Integrator7",
+            "endpoint_block": "final_steady_24a/reactor/P_sw",
+            "endpoint_port": 1,
+            "endpoint_port_kind": "input",
+            "endpoint_role": "reactor_power_logger",
+            "status": "verified_by_official_api_graph",
+            "hops": [
+              {
+                "from_block": "final_steady_24a/reactor/Integrator7",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Goto2",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Goto2",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/From27",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/From27",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Sum9",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Sum9",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/Sum9",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Sum9",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Product20",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Product20",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/Product20",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Product20",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Sum10",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Sum10",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/Sum10",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Sum10",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Goto",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Goto",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/From19",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/From19",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Sum6",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Sum6",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/Sum6",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Sum6",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Product18",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Product18",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/Product18",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Product18",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Product19",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Product19",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/Product19",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Product19",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Sum8",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Sum8",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/Sum8",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Sum8",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/Integrator6",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Integrator6",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/reactor/Integrator6",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/reactor/Integrator6",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/reactor/P_sw",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              }
+            ]
+          }
+        ],
+        "direct_model_endpoint_claimed": true,
+        "composition_sources": []
       },
       {
         "power_definition": "turbine",
         "traced_state_paths": [
           "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
-          "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
-          "final_steady_24a/TAC/rotor/N_rpm_Integrator"
+          "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator"
         ],
         "traced_signal_paths": [
           "final_steady_24a/TAC/Turbine output 4",
           "final_steady_24a/TAC/WT_sw"
         ],
-        "mapping_explanation": "Recorded turbine-inlet thermal states and rotor speed map to the traced WT_sw component output."
+        "mapping_explanation": "Only recorded states with an official-API graph path to the Turbine component are listed.",
+        "api_verification_status": "verified_by_official_api_graph",
+        "api_trace_records": [
+          {
+            "state_path": "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
+            "endpoint_block": "final_steady_24a/TAC/Turbine",
+            "endpoint_port": 4,
+            "endpoint_port_kind": "output",
+            "endpoint_role": "turbine_power_output",
+            "status": "verified_by_official_api_graph",
+            "hops": [
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Goto10",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Goto10",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/From24",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/From24",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Sum8",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Sum8",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Sum8",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Sum8",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Product5",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Product5",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Product5",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Product5",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Sum9",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Sum9",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Sum9",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Sum9",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Divide3*",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Divide3*",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Divide3*",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Divide3*",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Goto12",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Goto12",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/From30",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/From30",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/T_HeXe_out",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/T_HeXe_out",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2",
+                "to_port": 5,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2",
+                "from_port": 5,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1",
+                "to_port": 5,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1",
+                "from_port": 5,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_HeXe_in",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_HeXe_in",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Goto3",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Goto3",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/From10",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/From10",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum6",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum6",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum6",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum6",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Product3",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Product3",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Product3",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Product3",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum7",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum7",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum7",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum7",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Divide2",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Divide2",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Divide2",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Divide2",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Goto10",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Goto10",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/From24",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/From24",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum8",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum8",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum8",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum8",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Product5",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Product5",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Product5",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Product5",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum9",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum9",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum9",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum9",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Divide3*",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Divide3*",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Divide3*",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Divide3*",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Goto12",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Goto12",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/From30",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/From30",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_HeXe_out",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_HeXe_out",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1",
+                "to_port": 5,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1",
+                "from_port": 5,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/T_co",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/T_co",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX",
+                "to_port": 3,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/IHX",
+                "from_port": 3,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/T_in_Turbine",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/T_in_Turbine",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine",
+                "to_port": 4,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine",
+                "from_port": 4,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine/T_in",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/T_in",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine/Goto2",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Goto2",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine/From21",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/From21",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine/Sum3",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Sum3",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine/Sum3",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Sum3",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine/Product4",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Product4",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine/Product4",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Product4",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine/WT",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/WT",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine",
+                "to_port": 4,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              }
+            ]
+          },
+          {
+            "state_path": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+            "endpoint_block": "final_steady_24a/TAC/Turbine",
+            "endpoint_port": 4,
+            "endpoint_port_kind": "output",
+            "endpoint_role": "turbine_power_output",
+            "status": "verified_by_official_api_graph",
+            "hops": [
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/Goto12",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/Goto12",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/From30",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/From30",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_2/T_HeXe_out",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2/T_HeXe_out",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_2",
+                "to_port": 5,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_2",
+                "from_port": 5,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1",
+                "to_port": 5,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1",
+                "from_port": 5,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_HeXe_in",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_HeXe_in",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Goto3",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Goto3",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/From10",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/From10",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum6",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum6",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum6",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum6",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Product3",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Product3",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Product3",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Product3",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum7",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum7",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum7",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum7",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Divide2",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Divide2",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Divide2",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Divide2",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_c1_average_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Goto10",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Goto10",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/From24",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/From24",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum8",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum8",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum8",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum8",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Product5",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Product5",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Product5",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Product5",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum9",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum9",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Sum9",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Sum9",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Divide3*",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Divide3*",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Divide3*",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Divide3*",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_c2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/Goto12",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/Goto12",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/From30",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/From30",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/IHX_region_1/T_HeXe_out",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1/T_HeXe_out",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX/IHX_region_1",
+                "to_port": 5,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/IHX_region_1",
+                "from_port": 5,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/IHX/T_co",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/IHX/T_co",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/IHX",
+                "to_port": 3,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/IHX",
+                "from_port": 3,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/T_in_Turbine",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/T_in_Turbine",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine",
+                "to_port": 4,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine",
+                "from_port": 4,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine/T_in",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/T_in",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine/Goto2",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Goto2",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine/From21",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/From21",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine/Sum3",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Sum3",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine/Sum3",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Sum3",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine/Product4",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Product4",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine/Product4",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/Product4",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Turbine/WT",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Turbine/WT",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Turbine",
+                "to_port": 4,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              }
+            ]
+          }
+        ],
+        "direct_model_endpoint_claimed": true,
+        "composition_sources": []
       },
       {
         "power_definition": "compressor",
         "traced_state_paths": [
           "final_steady_24a/precooler/precooler_2/T_h1_average_Integrator",
-          "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
-          "final_steady_24a/TAC/rotor/N_rpm_Integrator"
+          "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator"
         ],
         "traced_signal_paths": [
           "final_steady_24a/TAC/Compressor output 2",
           "final_steady_24a/TAC/Wc_sw"
         ],
-        "mapping_explanation": "Recorded compressor-inlet thermal states and rotor speed map to the traced Wc_sw component output."
+        "mapping_explanation": "Only recorded states with an official-API graph path to the Compressor component are listed.",
+        "api_verification_status": "verified_by_official_api_graph",
+        "api_trace_records": [
+          {
+            "state_path": "final_steady_24a/precooler/precooler_2/T_h1_average_Integrator",
+            "endpoint_block": "final_steady_24a/TAC/Compressor",
+            "endpoint_port": 2,
+            "endpoint_port_kind": "output",
+            "endpoint_role": "compressor_power_output",
+            "status": "verified_by_official_api_graph",
+            "hops": [
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/T_h1_average_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/Goto6",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Goto6",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2/From2",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/From2",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/Sum3",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Sum3",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2/Sum3",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Sum3",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/Product2",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Product2",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2/Product2",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Product2",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/Sum4",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Sum4",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2/Sum4",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Sum4",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/Divide1",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Divide1",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2/Divide1",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Divide1",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/Goto7",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Goto7",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2/From3",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/From3",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/T_h,o",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/T_h,o",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/T_h,o",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/T_h,o",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler",
+                "to_port": 3,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/precooler",
+                "from_port": 3,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC",
+                "to_port": 3,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC",
+                "from_port": 3,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/T_in_Compressor",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/T_in_Compressor",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor",
+                "to_port": 4,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor",
+                "from_port": 4,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor/T_in",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/T_in",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor/Goto6",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Goto6",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor/From27",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/From27",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor/Sum3",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Sum3",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor/Sum3",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Sum3",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor/Product4",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Product4",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor/Product4",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Product4",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor/W_c",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/W_c",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor",
+                "to_port": 2,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              }
+            ]
+          },
+          {
+            "state_path": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+            "endpoint_block": "final_steady_24a/TAC/Compressor",
+            "endpoint_port": 2,
+            "endpoint_port_kind": "output",
+            "endpoint_role": "compressor_power_output",
+            "status": "verified_by_official_api_graph",
+            "hops": [
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/Goto7",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/Goto7",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2/From3",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/From3",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/precooler_2/T_h,o",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2/T_h,o",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler/precooler_2",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/precooler_2",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/precooler/T_h,o",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/precooler/T_h,o",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/precooler",
+                "to_port": 3,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              },
+              {
+                "from_block": "final_steady_24a/precooler",
+                "from_port": 3,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC",
+                "to_port": 3,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC",
+                "from_port": 3,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/T_in_Compressor",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/T_in_Compressor",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor",
+                "to_port": 4,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor",
+                "from_port": 4,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor/T_in",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_inport"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/T_in",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor/Goto6",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Goto6",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor/From27",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "goto_from"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/From27",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor/Sum3",
+                "to_port": 2,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Sum3",
+                "from_port": 2,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor/Sum3",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Sum3",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor/Product4",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Product4",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor/Product4",
+                "to_port": 1,
+                "to_port_kind": "output",
+                "bridge_kind": "block_dependency"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/Product4",
+                "from_port": 1,
+                "from_port_kind": "output",
+                "to_block": "final_steady_24a/TAC/Compressor/W_c",
+                "to_port": 1,
+                "to_port_kind": "input",
+                "bridge_kind": "signal_line"
+              },
+              {
+                "from_block": "final_steady_24a/TAC/Compressor/W_c",
+                "from_port": 1,
+                "from_port_kind": "input",
+                "to_block": "final_steady_24a/TAC/Compressor",
+                "to_port": 2,
+                "to_port_kind": "output",
+                "bridge_kind": "subsystem_outport"
+              }
+            ]
+          }
+        ],
+        "direct_model_endpoint_claimed": true,
+        "composition_sources": []
       },
       {
         "power_definition": "electrical_paper_eta",
         "traced_state_paths": [
-          "final_steady_24a/TAC/rotor/N_rpm_Integrator",
+          "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
           "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+          "final_steady_24a/precooler/precooler_2/T_h1_average_Integrator",
           "final_steady_24a/precooler/precooler_2/T_h2_out_Integrator"
         ],
         "traced_signal_paths": [
@@ -1252,7 +2966,14 @@
           "final_steady_24a/TAC/Compressor output 2",
           "final_steady_24a/TAC/Wc_sw"
         ],
-        "mapping_explanation": "The paper-efficiency electrical definition is an offline function of the two traced shaft powers; no direct generator signal was found."
+        "mapping_explanation": "The electrical definition is only an offline composition of the two API-verified shaft paths; no direct model endpoint is claimed.",
+        "api_verification_status": "verified_offline_composition_of_api_traces",
+        "api_trace_records": [],
+        "direct_model_endpoint_claimed": false,
+        "composition_sources": [
+          "turbine",
+          "compressor"
+        ]
       }
     ],
     "has_state_evidence": true,
