@@ -189,6 +189,38 @@ class PublishFigure518dEvidenceTests(unittest.TestCase):
             self.assertEqual(staging.read_bytes(), b"audit-preserved")
             self.assertFalse(os.path.lexists(external / "file"))
 
+    def test_immutable_contract_keys_and_current_sources(self):
+        self.assertEqual(
+            set(publisher.EXPECTED_SHA256),
+            {spec["durable_path"] for spec in publisher.SOURCE_SPECS},
+        )
+        self.assertEqual(len(publisher.EXPECTED_SHA256), 34)
+        for spec in publisher.SOURCE_SPECS:
+            digest = publisher.EXPECTED_SHA256[spec["durable_path"]]
+            self.assertEqual(publisher.sha256(publisher.ROOT / spec["source_path"]), digest)
+
+    def test_mutated_source_is_refused_by_literal_contract(self):
+        spec = publisher.SOURCE_SPECS[0]
+        source = publisher.ROOT / spec["source_path"]
+        original = source.read_bytes()
+        try:
+            source.write_bytes(original + b"mutation")
+            with self.assertRaises(publisher.PublicationError):
+                publisher.source_entries()
+        finally:
+            source.write_bytes(original)
+
+    def test_representative_semantics_rejects_identity_and_eligibility_drift(self):
+        rows = [{"candidate_id": i, "eligible_for_slx": "false" if i in publisher.EXPECTED_INELIGIBLE_IDS else "true"}
+                for i in publisher.EXPECTED_REPRESENTATIVE_IDS]
+        manifests = [{"candidate_id": i, "eligible_for_slx": True}
+                     for i in publisher.EXPECTED_REPRESENTATIVE_IDS if i not in publisher.EXPECTED_INELIGIBLE_IDS]
+        selection = {"eligible_candidate_ids": [m["candidate_id"] for m in manifests], "eligible_count": 11}
+        publisher.validate_representative_semantics(rows, selection, manifests)
+        rows[-1]["eligible_for_slx"] = "false"
+        with self.assertRaises(publisher.PublicationError):
+            publisher.validate_representative_semantics(rows, selection, manifests)
+
 
 if __name__ == "__main__":
     unittest.main()

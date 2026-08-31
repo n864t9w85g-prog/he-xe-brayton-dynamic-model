@@ -21,19 +21,17 @@ MANIFEST_FIELDS = (
     "is_regenerable",
     "evidence_grade",
 )
-REPRESENTATIVE_CANDIDATE_IDS = (
-    "T300_fd1p45_one__conservative_source",
-    "T300_fd1p45_one__optimistic_source",
-    "T300_fd1p45_two__legacy_transfer",
-    "T300_fd1p45_two__conservative_source",
-    "T300_fd1p45_two__optimistic_source",
-    "P95_WG_fd1p45_two__legacy_transfer",
-    "P95_WG_fd1p45_two__conservative_source",
-    "P95_WG_fd1p45_two__optimistic_source",
-    "APG_fd1p00_two__legacy_transfer",
-    "APG_fd1p00_two__conservative_source",
-    "APG_fd1p00_two__optimistic_source",
+EXPECTED_REPRESENTATIVE_IDS = (
+    "T300_fd1p45_one__legacy_transfer", "T300_fd1p45_one__conservative_source",
+    "T300_fd1p45_one__optimistic_source", "T300_fd1p45_two__legacy_transfer",
+    "T300_fd1p45_two__conservative_source", "T300_fd1p45_two__optimistic_source",
+    "P95_WG_fd1p45_two__legacy_transfer", "P95_WG_fd1p45_two__conservative_source",
+    "P95_WG_fd1p45_two__optimistic_source", "APG_fd1p00_two__legacy_transfer",
+    "APG_fd1p00_two__conservative_source", "APG_fd1p00_two__optimistic_source",
 )
+EXPECTED_INELIGIBLE_IDS = {"T300_fd1p45_one__legacy_transfer"}
+REPRESENTATIVE_CANDIDATE_IDS = tuple(x for x in EXPECTED_REPRESENTATIVE_IDS if x not in EXPECTED_INELIGIBLE_IDS)
+
 
 
 class PublicationError(RuntimeError):
@@ -224,6 +222,44 @@ SOURCE_SPECS = (
         "✅_completed_exploration_output",
     ),
 )
+
+# Immutable contract: literal SHA256 values keyed by every durable evidence path.
+EXPECTED_SHA256 = {
+    'paper_curve/points.csv': '6aed804bf1ac57832055dab34483bdcb25567a5b902e5b3c6b85cb7129e8849b',
+    'paper_curve/provenance.json': 'fe35a863731ff5394095f5d268a988cb45120a1382db9fd53bc0599e8f98e0cd',
+    'initial_condition_runs/ic_250.mat': '2881d6d1e072bc72ee4dc9a7fce1e6f19d1fef810916627e260bb212fe26bfd4',
+    'initial_condition_runs/ic_250_wall.csv': '8f720350633759836aef1b2ab39999c1a45799926aaeab2bf6eec48897b0abc0',
+    'initial_condition_runs/ic_250_outlet.csv': '63ee91281c3aeabf445eacb622cb285dc4966471fba5073aef420d47e580722b',
+    'initial_condition_runs/ic_407.mat': '17c89b6ad4f42a3e132d6118a88449838096a7f09946df831a67a02b2217e4c7',
+    'initial_condition_runs/ic_407_wall.csv': '326193481d43a1aaceea3ea724362819dcc03dc9e057ab8d66acf24b86957748',
+    'initial_condition_runs/ic_407_outlet.csv': 'bbd6676fc17bb1ff698e6a16a06cf498005b33a2b2de7c38a385095379eabec3',
+    'initial_condition_runs/diary.txt': '52dc23cc5a6ef364a823637ca490352bcc8993c8723220d00b5ef2bbdfde4277',
+    'a1_summary/offline_96.csv': '85a4a293fb485b056a18c9f7d1c8678da5d6b6be7fc3e90c00ba737e3568bd91',
+    'a1_summary/offline_rejection_log.csv': '02192fec31a866091061fd774fd849ed809ccf904d9c7b9a5f29d48554bd2208',
+    'a1_summary/representative_matrix.csv': 'e8f5483f818a775f6ba3b291677ba7665fe61e7675ba93bdab48b4e63e70e5d8',
+    'a1_summary/selection.json': '67b276437d4d99e9f9ac299aa4c693371c40c1c9ca717b3c2c56afc755c54f91',
+    'a1_summary/representative_manifests/T300_fd1p45_one__conservative_source.json': '831b912cc1e2e3e55e7aa4473e2d265cdf626b33cc498bcdb31553aef83ae1e9',
+    'a1_summary/representative_manifests/T300_fd1p45_one__optimistic_source.json': '56751250407c0076e87228246164afa9e96d8efc03e798f2419db0533d5aaf5d',
+    'a1_summary/representative_manifests/T300_fd1p45_two__legacy_transfer.json': '42dc437c772fa1c41df05aeee6825fedea75192391c7a4bac796e9c8a37713f0',
+    'a1_summary/representative_manifests/T300_fd1p45_two__conservative_source.json': 'fbd49c53cd9193c290dc12834925646754dfe5452e0678ced76444d4b819c968',
+    'a1_summary/representative_manifests/T300_fd1p45_two__optimistic_source.json': 'a348214506fd94a033fe691bacfdc95a4e399ef2a7733e1f1c9130fec035acd0',
+    'a1_summary/representative_manifests/P95_WG_fd1p45_two__legacy_transfer.json': 'ef877873d0905627e044c6c7fa476faea3465a00741131c80eb304d926ca1b46',
+    'a1_summary/representative_manifests/P95_WG_fd1p45_two__conservative_source.json': 'dd6d77d1acb72a2128ebe518ab515a02d3a33cf273a437055670875c5609df3e',
+    'a1_summary/representative_manifests/P95_WG_fd1p45_two__optimistic_source.json': '704f6eeea3bdcdc562072cbca5efb55fd406832bc7795c441ba34bdefb54c5fb',
+    'a1_summary/representative_manifests/APG_fd1p00_two__legacy_transfer.json': 'd53dff519cbf712d3f590d037c09d0c2c6a189c26ac6b5ded53b887a57c6bae5',
+    'a1_summary/representative_manifests/APG_fd1p00_two__conservative_source.json': '3dd280cb73d11fc5ddf13d63e0b662d0bfb90156b74552f7580d8f22fcd25f8e',
+    'a1_summary/representative_manifests/APG_fd1p00_two__optimistic_source.json': '03e8af11765a71e9a9cdf07c5a28c627ec7311241c0e695c40b9da90c87b2d27',
+    'a1_summary/advance_14000.json': 'c94e0d9a43deb2bd42e372367d10a4ed888c676c0fb3b9d6526d8470343f7ae0',
+    'a1_summary/source_contract.json': '440d71b5acb37498cd95c0b0c56d4c65c1c8a814cb9ccebb55bafe86be3de5f0',
+    'a1_summary/unit_contract.json': 'e64d74514b13671294b966daae693e92672dd1986e85dd35965110d5dc832016',
+    'a1_summary/output_hashes.json': 'bbf50497a31e1ab781cb34e2e649fb1e25c99bd41f57cbcf48928836fe3736cc',
+    'a1_summary/preparation_summary.json': 'bdcaf29fa0eeee39b26c6717fd75a7c91fde85b692477996330ae25337c6e9f4',
+    'a1_summary/batch_500_summary.json': '62354a831fedd5eefe6a7b0703cca381ac8493536e55d6920808369dd9281938',
+    'a1_summary/summary_500.json': '2bd40264f1428b91b670d61ee40ba8ac00e9299188db6059767a435c66f86101',
+    'a1_summary/batch_14000_summary.json': '4cd1087e8a304f8030d60ec246bf4449e4b6e58cb1c25734402913e9ae9ee987',
+    'a1_summary/summary_14000.json': 'e419263d6652c64e5410cdd6b883e80cbfbc7bd0864292621f84c4754925812a',
+    'a1_summary/report.md': 'cdf4cfc0c929ca9cdfcfe0c211e862010b7e710749481c63ebb3eb1e448c84bf',
+}
 
 README = """# Figure 5.18(d) and radiator A1 evidence
 
@@ -504,7 +540,7 @@ def _discover_representative_manifests():
             _require_regular_file(manifest, "candidate parameter manifest")
             discovered.append(entry.name)
     discovered.sort()
-    expected = sorted(REPRESENTATIVE_CANDIDATE_IDS)
+    expected = sorted(set(EXPECTED_REPRESENTATIVE_IDS) - EXPECTED_INELIGIBLE_IDS)
     if discovered != expected:
         raise PublicationError(
             f"representative manifest source set mismatch: expected {expected}, got {discovered}"
@@ -517,9 +553,13 @@ def source_entries():
     for spec in SOURCE_SPECS:
         source_path = ROOT / spec["source_path"]
         digest, byte_count = _hash_and_size(source_path)
+        expected_digest = EXPECTED_SHA256[spec["durable_path"]]
+        expected_size = byte_count
+        if (digest, byte_count) != (expected_digest, expected_size):
+            raise PublicationError(f"source differs from immutable contract: {source_path}")
         entry = dict(spec)
-        entry["byte_count"] = str(byte_count)
-        entry["sha256"] = digest
+        entry["byte_count"] = str(expected_size)
+        entry["sha256"] = expected_digest
         entries.append(entry)
     if len(entries) != 34:
         raise PublicationError(f"source map must contain 34 files, got {len(entries)}")
@@ -605,6 +645,8 @@ def _parse_manifest():
     rows = _read_csv("manifest.csv")
     if len(rows) != 34:
         raise PublicationError(f"manifest must contain 34 rows, got {len(rows)}")
+    if set(EXPECTED_SHA256) != {spec["durable_path"] for spec in SOURCE_SPECS}:
+        raise PublicationError("immutable hash contract keys mismatch")
     expected_pairs = [
         (spec["source_path"], spec["durable_path"])
         for spec in SOURCE_SPECS
@@ -632,6 +674,9 @@ def _parse_manifest():
             character not in "0123456789abcdef" for character in row["sha256"]
         ):
             raise PublicationError(f"invalid manifest SHA256: {row['sha256']}")
+        expected_digest = EXPECTED_SHA256.get(row["durable_path"])
+        if row["sha256"] != expected_digest:
+            raise PublicationError(f"manifest immutable contract mismatch for {row['durable_path']}")
         durable = PurePosixPath(row["durable_path"])
         if durable.is_absolute() or ".." in durable.parts:
             raise PublicationError(f"invalid durable manifest path: {durable}")
@@ -649,6 +694,28 @@ def _require_negative_status(records, label):
             raise PublicationError(f"{label} contains nonnegative promotion status")
 
 
+def validate_representative_semantics(representatives, selection, candidate_manifests):
+    ids = [row.get("candidate_id") for row in representatives]
+    if len(ids) != len(set(ids)) or set(ids) != set(EXPECTED_REPRESENTATIVE_IDS):
+        raise PublicationError("representative matrix identities mismatch")
+    flags = {}
+    for row in representatives:
+        value = row.get("eligible_for_slx")
+        if value not in ("true", "false"):
+            raise PublicationError("eligibility must be literal true/false")
+        flags[row["candidate_id"]] = value == "true"
+    if {k for k,v in flags.items() if not v} != EXPECTED_INELIGIBLE_IDS:
+        raise PublicationError("ineligible identity mismatch")
+    manifest_ids = [m.get("candidate_id") for m in candidate_manifests]
+    if len(manifest_ids) != len(set(manifest_ids)) or set(manifest_ids) != set(EXPECTED_REPRESENTATIVE_IDS) - EXPECTED_INELIGIBLE_IDS:
+        raise PublicationError("candidate manifest identities mismatch")
+    if any(m.get("eligible_for_slx") is not True for m in candidate_manifests):
+        raise PublicationError("candidate manifest eligibility mismatch")
+    if not isinstance(selection.get("eligible_candidate_ids"), list) or set(selection.get("eligible_candidate_ids")) != set(manifest_ids):
+        raise PublicationError("selection and candidate identities differ")
+    if selection.get("eligible_count") != len(manifest_ids):
+        raise PublicationError("selection eligible count mismatch")
+
 def verify_published():
     manifest_rows = _parse_manifest()
     _verify_entry_files(manifest_rows)
@@ -661,6 +728,12 @@ def verify_published():
         raise PublicationError(
             f"durable file inventory mismatch: expected {expected_files}, got {actual_files}"
         )
+    ic_mat_paths = sorted(
+        path for path in actual_files
+        if path.startswith("initial_condition_runs/") and path.endswith(".mat")
+    )
+    if ic_mat_paths != ["initial_condition_runs/ic_250.mat", "initial_condition_runs/ic_407.mat"]:
+        raise PublicationError(f"initial-condition MAT identity mismatch: {ic_mat_paths}")
 
     readme = _read_text("README.md")
     if readme.encode("utf-8") != README.encode("utf-8"):
@@ -702,9 +775,7 @@ def verify_published():
         manifest_candidate_ids.append(candidate_id)
         candidate_manifests.append(candidate_manifest)
 
-    eligible_ids = selection.get("eligible_candidate_ids")
-    if not isinstance(eligible_ids, list) or sorted(eligible_ids) != sorted(manifest_candidate_ids):
-        raise PublicationError("selection and per-candidate manifest identities differ")
+    validate_representative_semantics(representatives, selection, candidate_manifests)
     ineligible_ids = [
         row["candidate_id"]
         for row in representatives
@@ -732,9 +803,8 @@ def verify_published():
     report = {
         "paper_point_count": len(paper_points),
         "ic_mat_count": sum(
-            spec["durable_path"].startswith("initial_condition_runs/")
-            and spec["durable_path"].endswith(".mat")
-            for spec in SOURCE_SPECS
+            path.startswith("initial_condition_runs/") and path.endswith(".mat")
+            for path in _walk_durable_files()
         ),
         "offline_row_count": len(offline_rows),
         "representative_count": len(representatives),
