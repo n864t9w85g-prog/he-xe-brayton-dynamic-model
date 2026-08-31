@@ -53,6 +53,96 @@ class Figure519BaselineTests(unittest.TestCase):
             subject.verify_only(output=output)
             digitizer.verify_only(output=output)
 
+    def test_first_record_write_failure_never_publishes_canonical_transaction(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._paper_only_output(work)
+            txn = subject._transaction_dir(output)
+            original = subject._write_exclusive
+            def fail_record(path, payload):
+                if path.name == "record.json":
+                    raise OSError("injected record write failure")
+                original(path, payload)
+            with mock.patch.object(subject, "_write_exclusive", fail_record):
+                with self.assertRaises(OSError):
+                    subject.publish(output=output)
+            self.assertFalse(os.path.lexists(txn))
+            self.assertTrue(list(output.parent.glob(output.name + ".task5-init-*")))
+            with self.assertRaises(RuntimeError):
+                subject.verify_only(output=output)
+            subject.publish(output=output)
+            subject.verify_only(output=output)
+
+    def test_nonreplace_commit_never_overwrites_a_concurrently_created_target(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            root = Path(work)
+            staged = root / "staged.json"
+            target = root / "target.json"
+            payload = b"expected"
+            staged.write_bytes(payload)
+            original_link = os.link
+            def create_conflict(source, destination, **kwargs):
+                target.write_bytes(b"concurrent")
+                return original_link(source, destination, **kwargs)
+            with mock.patch.object(subject.os, "link", create_conflict):
+                with self.assertRaises(RuntimeError):
+                    subject._commit_target(staged, target, payload)
+            self.assertEqual(target.read_bytes(), b"concurrent")
+
+    def test_precanonical_boundaries_leave_only_ignorable_init_audit_directories(self):
+        boundaries = (
+            "init-mkdir-after", "record-write-after", "payload-mkdir-before",
+            "payload-mkdir-after", "staged-first-after", "staged-middle-after",
+            "staged-last-after", "canonical-rename-before",
+        )
+        for boundary in boundaries:
+            with self.subTest(boundary=boundary), tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+                output = self._paper_only_output(work)
+                def fail(point):
+                    if point == boundary:
+                        raise OSError(f"injected {point}")
+                with mock.patch.object(subject, "_publication_boundary", fail):
+                    with self.assertRaises(OSError):
+                        subject.publish(output=output)
+                self.assertFalse(os.path.lexists(subject._transaction_dir(output)))
+                self.assertTrue(list(output.parent.glob(output.name + ".task5-init-*")))
+                with self.assertRaises(RuntimeError):
+                    subject.verify_only(output=output)
+                subject.publish(output=output)
+                subject.verify_only(output=output)
+
+    def test_actual_first_middle_last_staged_write_failures_remain_precanonical(self):
+        for failing_index in (0, 3, 6):
+            with self.subTest(failing_index=failing_index), tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+                output = self._paper_only_output(work)
+                original = subject._write_exclusive
+                staged_writes = 0
+                def fail_payload_write(path, payload):
+                    nonlocal staged_writes
+                    if "payload" in path.parts:
+                        if staged_writes == failing_index:
+                            raise OSError(f"injected staged write {failing_index}")
+                        staged_writes += 1
+                    original(path, payload)
+                with mock.patch.object(subject, "_write_exclusive", fail_payload_write):
+                    with self.assertRaises(OSError):
+                        subject.publish(output=output)
+                self.assertFalse(os.path.lexists(subject._transaction_dir(output)))
+                subject.publish(output=output)
+                subject.verify_only(output=output)
+
+    def test_postcanonical_rename_failure_resumes_from_the_canonical_transaction(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = self._paper_only_output(work)
+            def fail(point):
+                if point == "canonical-rename-after":
+                    raise OSError("injected post-canonical rename failure")
+            with mock.patch.object(subject, "_publication_boundary", fail):
+                with self.assertRaises(OSError):
+                    subject.publish(output=output)
+            self.assertTrue(subject._transaction_dir(output).is_dir())
+            subject.publish(output=output)
+            subject.verify_only(output=output)
+
     def test_normal_publish_recovers_exact_pre_transaction_partial_layer(self):
         """An older interruption may have moved the layer before creating a record."""
         with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
@@ -272,6 +362,7 @@ class Figure519BaselineTests(unittest.TestCase):
         self.assertEqual(verify.returncode, 0, verify.stderr)
         target = OUT / "baseline_metrics.json"
         original = target.read_bytes()
+        original_manifest = (OUT / "manifest.csv").read_bytes()
         target.write_bytes(original + b" ")
         try:
             # A coordinated manifest rewrite cannot bypass recomputation from durable data.
@@ -284,9 +375,12 @@ class Figure519BaselineTests(unittest.TestCase):
             subject.write_manifest(OUT, rows)
             with self.assertRaises(RuntimeError):
                 subject.verify_only()
+            with self.assertRaises(RuntimeError):
+                subject.publish()
         finally:
             target.write_bytes(original)
-            subject.publish()
+            (OUT / "manifest.csv").write_bytes(original_manifest)
+        subject.verify_only()
 
 
 if __name__ == "__main__":

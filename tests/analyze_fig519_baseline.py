@@ -8,13 +8,16 @@ from __future__ import annotations
 
 import argparse
 import csv
+import fcntl
 import hashlib
 import io
 import json
 import math
 import os
 import stat
+import tempfile
 from bisect import bisect_left
+from contextlib import contextmanager
 from pathlib import Path
 
 try:  # Works both as ``tests.*`` and as an executable in ``tests/``.
@@ -267,6 +270,18 @@ def _transaction_dir(output: Path) -> Path:
     return output.parent / (output.name + ".task5-transaction")
 
 
+@contextmanager
+def _publication_lock(output: Path):
+    """Serialize this tool's publishers; hostile same-user path swaps are out of scope."""
+    fd = os.open(output, os.O_RDONLY)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
 def _transaction_record(payloads: dict[str, bytes]) -> bytes:
     data = {"version": TRANSACTION_VERSION, "state": "prepared", "targets": [
         {"path": path, "bytes": len(payloads[path]), "sha256": _hash(payloads[path])}
@@ -322,6 +337,25 @@ def _final_layer_state(output: Path, payloads: dict[str, bytes]) -> bool:
     return True
 
 
+def _is_allowed_manifest_predecessor(output: Path, payload: bytes) -> bool:
+    paper_bytes = {name: (output / name).read_bytes() for name in paper.ARTIFACT_NAMES}
+    return payload == paper._manifest(paper_bytes)
+
+
+def _manifest_is_expected_or_allowed(output: Path, expected: bytes) -> bool:
+    target = output / "manifest.csv"
+    if not os.path.lexists(target):
+        return False
+    if target.is_symlink() or not target.is_file():
+        raise RuntimeError("transaction conflict: manifest")
+    payload = target.read_bytes()
+    if payload == expected:
+        return True
+    if not _is_allowed_manifest_predecessor(output, payload):
+        raise RuntimeError("transaction conflict: manifest predecessor")
+    return False
+
+
 def _pending_targets(output: Path, payloads: dict[str, bytes]) -> set[str]:
     pending: set[str] = set()
     if not _final_layer_state(output, payloads):
@@ -332,7 +366,7 @@ def _pending_targets(output: Path, payloads: dict[str, bytes]) -> set[str]:
             _check_regular_payload(target, payloads[name], f"final {name}")
         else:
             pending.add(name)
-    if not _final_has_payload(output, "manifest.csv", payloads["manifest.csv"]):
+    if not _manifest_is_expected_or_allowed(output, payloads["manifest.csv"]):
         pending.add("manifest.csv")
     return pending
 
@@ -361,42 +395,74 @@ def _validate_transaction_structure(txn: Path, record: bytes) -> Path:
     return payload_root
 
 
+def _staged_paths(payload_root: Path) -> set[str]:
+    return {str(path.relative_to(payload_root)) for path in payload_root.rglob("*") if path.is_file()}
+
+
+def _validate_staged_payloads(payload_root: Path, pending: set[str], payloads: dict[str, bytes], output: Path) -> None:
+    staged = _staged_paths(payload_root)
+    retained_links = {name for name in ("baseline_metrics.json", "signal_contract.json")
+                      if name in staged and _final_has_payload(output, name, payloads[name])}
+    if not pending <= staged or staged - (pending | retained_links):
+        raise RuntimeError("transaction payload set is incomplete or unexpected")
+    for relative in staged:
+        _check_regular_payload(payload_root / relative, payloads[relative], f"staged {relative}")
+    baseline_staged = {f"{paper.BASELINE_LAYER_DIR}/{name}" for name in paper.BASELINE_LAYER_NAMES} & staged
+    if baseline_staged and baseline_staged != {f"{paper.BASELINE_LAYER_DIR}/{name}" for name in paper.BASELINE_LAYER_NAMES}:
+        raise RuntimeError("transaction baseline layer is only partially staged")
+    layer = payload_root / paper.BASELINE_LAYER_DIR
+    if bool(baseline_staged) != layer.exists():
+        raise RuntimeError("transaction baseline staging directory is inconsistent")
+
+
+def _birth_transaction(txn: Path, payloads: dict[str, bytes], output: Path, record: bytes) -> None:
+    """Build a complete private skeleton before exposing the canonical name."""
+    pending = _pending_targets(output, payloads)
+    init = Path(tempfile.mkdtemp(prefix=txn.name.replace("transaction", "init") + "-", dir=txn.parent))
+    _publication_boundary("init-mkdir-after")
+    _publication_boundary("transaction-record")
+    _publication_boundary("record-write-before")
+    _write_exclusive(init / "record.json", record)
+    _publication_boundary("record-write-after")
+    _publication_boundary("payload-mkdir-before")
+    payload_root = init / "payload"
+    os.mkdir(payload_root, 0o700)
+    _publication_boundary("payload-mkdir-after")
+    baseline_pending = {f"{paper.BASELINE_LAYER_DIR}/{name}" for name in paper.BASELINE_LAYER_NAMES} & pending
+    if baseline_pending:
+        os.mkdir(payload_root / paper.BASELINE_LAYER_DIR, 0o700)
+    ordered = sorted(pending)
+    for index, relative in enumerate(ordered):
+        if relative.startswith(f"{paper.BASELINE_LAYER_DIR}/"):
+            _publication_boundary("staged-baseline")
+        label = "first" if index == 0 else "last" if index == len(ordered) - 1 else "middle"
+        _publication_boundary(f"staged-{label}-before")
+        _write_exclusive(payload_root / relative, payloads[relative])
+        _publication_boundary(f"staged-{label}-after")
+    _validate_transaction_structure(init, record)
+    _validate_staged_payloads(payload_root, pending, payloads, output)
+    if (payload_root / paper.BASELINE_LAYER_DIR).exists():
+        _fsync_directory(payload_root / paper.BASELINE_LAYER_DIR)
+    _fsync_directory(payload_root)
+    _fsync_directory(init)
+    _publication_boundary("canonical-rename-before")
+    if os.path.lexists(txn):
+        raise RuntimeError("canonical transaction appeared during initialization")
+    # The directory lock serializes this tool's publishers.  An adversarial
+    # same-user replacement between this check and rename is outside Task 4/5's
+    # threat model; verify immediately after the rename before committing data.
+    os.rename(init, txn)
+    _fsync_directory(txn.parent)
+    _publication_boundary("canonical-rename-after")
+
+
 def _ensure_safe_transaction(txn: Path, payloads: dict[str, bytes], output: Path) -> None:
     _require_delta_shape(payloads)
     record = _transaction_record(payloads)
     if not os.path.lexists(txn):
-        _publication_boundary("transaction-record")
-        os.mkdir(txn, 0o700)
-        _write_exclusive(txn / "record.json", record)
-        os.mkdir(txn / "payload", 0o700)
-        _fsync_directory(txn / "payload")
-        _fsync_directory(txn)
-        _fsync_directory(txn.parent)
+        _birth_transaction(txn, payloads, output, record)
     payload_root = _validate_transaction_structure(txn, record)
-    pending = _pending_targets(output, payloads)
-    staged = {str(path.relative_to(payload_root)) for path in payload_root.rglob("*") if path.is_file()}
-    if staged - pending:
-        raise RuntimeError("transaction has stale staged payloads")
-    baseline_pending = {f"{paper.BASELINE_LAYER_DIR}/{name}" for name in paper.BASELINE_LAYER_NAMES} & pending
-    if baseline_pending and baseline_pending != {f"{paper.BASELINE_LAYER_DIR}/{name}" for name in paper.BASELINE_LAYER_NAMES}:
-        raise RuntimeError("transaction baseline layer is only partially staged")
-    if baseline_pending and not (payload_root / paper.BASELINE_LAYER_DIR).exists():
-        os.mkdir(payload_root / paper.BASELINE_LAYER_DIR, 0o700)
-        _fsync_directory(payload_root)
-    for relative in sorted(pending):
-        staged_path = payload_root / relative
-        if os.path.lexists(staged_path):
-            _check_regular_payload(staged_path, payloads[relative], f"staged {relative}")
-            continue
-        if relative.startswith(f"{paper.BASELINE_LAYER_DIR}/"):
-            _publication_boundary("staged-baseline")
-        _write_exclusive(staged_path, payloads[relative])
-    staged = {str(path.relative_to(payload_root)) for path in payload_root.rglob("*") if path.is_file()}
-    if staged != pending:
-        raise RuntimeError("transaction payload set is incomplete or unexpected")
-    if (payload_root / paper.BASELINE_LAYER_DIR).exists():
-        _fsync_directory(payload_root / paper.BASELINE_LAYER_DIR)
-    _fsync_directory(payload_root)
+    _validate_staged_payloads(payload_root, _pending_targets(output, payloads), payloads, output)
 
 
 def _commit_target(staged: Path, target: Path, payload: bytes, replace: bool = False) -> None:
@@ -412,14 +478,25 @@ def _commit_target(staged: Path, target: Path, payload: bytes, replace: bool = F
     if replace:
         os.replace(staged, target)
     else:
-        os.rename(staged, target)
+        try:
+            os.link(staged, target, follow_symlinks=False)
+        except FileExistsError:
+            _check_regular_payload(target, payload, f"concurrently committed {target.name}")
+            return
     _check_regular_payload(target, payload, f"committed {target.name}")
     _fsync_directory(target.parent)
 
 
-def _cleanup_transaction(txn: Path) -> None:
+def _cleanup_transaction(txn: Path, output: Path, payloads: dict[str, bytes]) -> None:
     """Remove only the exact, verified transaction left after a full commit."""
     payload_root = txn / "payload"
+    _validate_transaction_structure(txn, _transaction_record(payloads))
+    for name in ("baseline_metrics.json", "signal_contract.json"):
+        staged = payload_root / name
+        if os.path.lexists(staged):
+            _check_regular_payload(staged, payloads[name], f"cleanup staged {name}")
+            _check_regular_payload(output / name, payloads[name], f"cleanup final {name}")
+            os.unlink(staged)
     staged_layer = payload_root / paper.BASELINE_LAYER_DIR
     if os.path.lexists(staged_layer):
         if staged_layer.is_symlink() or not staged_layer.is_dir():
@@ -443,25 +520,28 @@ def _cleanup_transaction(txn: Path) -> None:
 
 
 def _recover_or_publish_delta(output: Path, payloads: dict[str, bytes]) -> None:
-    txn = _transaction_dir(output)
-    _ensure_safe_transaction(txn, payloads, output)
-    staged_root = txn / "payload"
-    layer_target = output / paper.BASELINE_LAYER_DIR
-    staged_layer = staged_root / paper.BASELINE_LAYER_DIR
-    if not _final_layer_state(output, payloads):
-        _publication_boundary("baseline-layer-rename")
-        os.rename(staged_layer, layer_target)
-        _fsync_directory(output)
-        for name in paper.BASELINE_LAYER_NAMES:
-            _check_regular_payload(layer_target / name, payloads[f"{paper.BASELINE_LAYER_DIR}/{name}"], f"committed {name}")
-    for name in ("baseline_metrics.json", "signal_contract.json"):
-        _publication_boundary("baseline-metrics-commit" if name == "baseline_metrics.json" else "signal-contract-commit")
-        _commit_target(staged_root / name, output / name, payloads[name])
-    # Manifest is deliberately last: before this replace, verify-only rejects
-    # the partial tree; after it, it is the complete publication marker.
-    _publication_boundary("manifest-commit")
-    _commit_target(staged_root / "manifest.csv", output / "manifest.csv", payloads["manifest.csv"], replace=True)
-    _cleanup_transaction(txn)
+    with _publication_lock(output):
+        txn = _transaction_dir(output)
+        _ensure_safe_transaction(txn, payloads, output)
+        staged_root = txn / "payload"
+        layer_target = output / paper.BASELINE_LAYER_DIR
+        staged_layer = staged_root / paper.BASELINE_LAYER_DIR
+        if not _final_layer_state(output, payloads):
+            _publication_boundary("baseline-layer-rename")
+            os.rename(staged_layer, layer_target)
+            _fsync_directory(output)
+            for name in paper.BASELINE_LAYER_NAMES:
+                _check_regular_payload(layer_target / name, payloads[f"{paper.BASELINE_LAYER_DIR}/{name}"], f"committed {name}")
+        for name in ("baseline_metrics.json", "signal_contract.json"):
+            _publication_boundary("baseline-metrics-commit" if name == "baseline_metrics.json" else "signal-contract-commit")
+            _commit_target(staged_root / name, output / name, payloads[name])
+        # Manifest is deliberately last: before this replace, verify-only rejects
+        # the partial tree; after it, it is the complete publication marker.
+        _publication_boundary("manifest-commit")
+        manifest_target = output / "manifest.csv"
+        if not _manifest_is_expected_or_allowed(output, payloads["manifest.csv"]):
+            _commit_target(staged_root / "manifest.csv", manifest_target, payloads["manifest.csv"], replace=True)
+        _cleanup_transaction(txn, output, payloads)
 
 
 def write_manifest(output: Path, rows: list[dict[str, str]]) -> None:
