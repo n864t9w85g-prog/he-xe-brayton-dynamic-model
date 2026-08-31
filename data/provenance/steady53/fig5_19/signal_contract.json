@@ -1,0 +1,32 @@
+{
+  "figure": "5.19",
+  "formal_promotion": false,
+  "paper_reproduced": false,
+  "signals": {
+    "compressor": {
+      "api_trace_status": "required_in_task_6",
+      "kind": "direct_component_power",
+      "model_signal": "Wc_sw"
+    },
+    "electrical_historical_metric": {
+      "accepted_for_fig519": false,
+      "formula": "0.96527*(WT_sw-Wc_sw)",
+      "kind": "historical_offline_derived"
+    },
+    "electrical_paper_eta": {
+      "direct_generator_signal": null,
+      "formula": "0.98*(WT_sw-Wc_sw)",
+      "kind": "offline_derived"
+    },
+    "reactor": {
+      "api_trace_status": "required_in_task_6",
+      "kind": "direct_workspace_signal",
+      "model_signal": "P_sw"
+    },
+    "turbine": {
+      "api_trace_status": "required_in_task_6",
+      "kind": "direct_component_power",
+      "model_signal": "WT_sw"
+    }
+  }
+}

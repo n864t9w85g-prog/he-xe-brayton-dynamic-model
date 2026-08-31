@@ -28,6 +28,14 @@ THRESHOLD = 120
 X_NEIGHBORHOOD = 1
 SAMPLE_TIMES = (10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 230, 300, 400, 450, 495)
 ARTIFACT_NAMES = ("source_page_106.png", "paper_points.csv", "provenance.json", "digitization_overlay.png", "README.md")
+BASELINE_LAYER_NAMES = ("baseline.mat", "baseline_P_sw.csv", "baseline_WT_sw.csv", "baseline_Wc_sw.csv")
+BASELINE_TOP_LEVEL_NAMES = ("baseline_metrics.json", "signal_contract.json")
+BASELINE_LAYER_DIR = "model_baseline"
+
+
+def registered_paths() -> tuple[str, ...]:
+    """The closed, two-layer Figure 5.19 publication registry."""
+    return ARTIFACT_NAMES + tuple(f"{BASELINE_LAYER_DIR}/{name}" for name in BASELINE_LAYER_NAMES) + BASELINE_TOP_LEVEL_NAMES
 
 
 @dataclass(frozen=True)
@@ -193,13 +201,32 @@ def _readme() -> bytes:
     return """# Figure 5.19 paper-only digitization\n\nThis directory is observation evidence from the scanned thesis page only, not a model result or a reproduction claim. It contains 60 points (15 fixed times for each of four panels). The digitizer reads no model file, SLX, MAT file, baseline, or model output.\n\nAt each fixed time it uses the literal pixel calibrations in `provenance.json`, thresholds the three image columns x-1:x+1 at grayscale <120, groups contiguous dark y pixels, and traces backwards from 495 s by nearest image-continuous group center. Ties use the uppermost group center. Axis-border ink, empty columns, and jumps over 80 pixels are rejected.\n\nLimitations: the early trace is nearly vertical and scan-limited; t=10 s is a proxy for the authors' t0, not an asserted original sampling instant. There is no smoothing, time shifting, model-guided choice, fitted correction, or formal promotion. `paper_reproduced = false`; `formal_promotion = false`.\n\n`manifest.csv` is nonrecursive and intentionally excludes itself; it records hashes for every other durable artifact in this directory.\n""".encode()
 
 
-def _manifest(artifacts: dict[str, bytes]) -> bytes:
+def manifest_bytes(entries: dict[str, bytes], roles: dict[str, tuple[str, str]]) -> bytes:
     stream = io.StringIO(newline="")
     writer = csv.writer(stream, lineterminator="\n")
     writer.writerow(("path", "bytes", "sha256", "role", "identity"))
-    roles = {"source_page_106.png": "contracted source", "paper_points.csv": "generated digitization", "provenance.json": "generated provenance", "digitization_overlay.png": "generated overlay", "README.md": "generated documentation"}
+    for name in sorted(entries):
+        payload = entries[name]
+        role, identity = roles[name]
+        writer.writerow((name, len(payload), _hash(payload), role, identity))
+    return stream.getvalue().encode()
+
+
+def _manifest(artifacts: dict[str, bytes]) -> bytes:
+    roles = {
+        "source_page_106.png": ("contracted source", "paper-106-only"),
+        "paper_points.csv": ("generated digitization", "paper-106-only"),
+        "provenance.json": ("generated provenance", "paper-106-only"),
+        "digitization_overlay.png": ("generated overlay", "paper-106-only"),
+        "README.md": ("generated documentation", "paper-106-only"),
+    }
+    # Preserve Task 4's insertion-order bytes for its standalone publication.
+    stream = io.StringIO(newline="")
+    writer = csv.writer(stream, lineterminator="\n")
+    writer.writerow(("path", "bytes", "sha256", "role", "identity"))
     for name, payload in artifacts.items():
-        writer.writerow((name, len(payload), _hash(payload), roles[name], "paper-106-only"))
+        role, identity = roles[name]
+        writer.writerow((name, len(payload), _hash(payload), role, identity))
     return stream.getvalue().encode()
 
 
@@ -222,16 +249,62 @@ def _planned(source: Path) -> dict[str, bytes]:
     return artifacts
 
 
-def _check_exact_directory(output: Path, artifacts: dict[str, bytes]) -> None:
+def _manifest_rows(output: Path) -> dict[str, dict[str, str]]:
+    manifest = output / "manifest.csv"
+    if manifest.is_symlink() or not manifest.is_file():
+        raise RuntimeError("manifest is missing or unsafe")
+    with manifest.open(newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    if not rows or set(rows[0]) != {"path", "bytes", "sha256", "role", "identity"}:
+        raise RuntimeError("manifest schema is invalid")
+    indexed = {row["path"]: row for row in rows}
+    if len(indexed) != len(rows):
+        raise RuntimeError("manifest has duplicate paths")
+    return indexed
+
+
+def _validate_registered_shape(output: Path) -> None:
+    expected = set(registered_paths()) | {"manifest.csv"}
+    actual = {str(path.relative_to(output)) for path in output.rglob("*") if path.is_file() or path.is_symlink()}
+    if actual != expected:
+        raise RuntimeError("artifact set is incomplete or unexpected")
+    for path in output.rglob("*"):
+        if path.is_symlink():
+            raise RuntimeError("symlinked artifact is forbidden")
+    layer = output / BASELINE_LAYER_DIR
+    if layer.exists() and (not layer.is_dir() or layer.is_symlink()):
+        raise RuntimeError("baseline layer is unsafe")
+
+
+def _check_exact_directory(output: Path, artifacts: dict[str, bytes], allow_baseline_layer: bool = False) -> None:
     if not output.is_dir() or output.is_symlink():
         raise RuntimeError("destination is not a safe directory")
-    names = {entry.name for entry in output.iterdir()}
-    if names != set(artifacts):
-        raise RuntimeError("artifact set is incomplete or unexpected")
+    if allow_baseline_layer:
+        _validate_registered_shape(output)
+    else:
+        names = {entry.name for entry in output.iterdir()}
+        if names != set(artifacts):
+            raise RuntimeError("artifact set is incomplete or unexpected")
     for name, payload in artifacts.items():
         target = output / name
         if target.is_symlink() or not target.is_file() or target.read_bytes() != payload:
             raise RuntimeError(f"conflicting existing artifact: {name}")
+
+
+def verify_paper_layer(output: Path = OUTPUT) -> None:
+    """Verify only the paper layer against its durable contracted page."""
+    output = _safe_output(Path(output))
+    if not output.is_dir() or output.is_symlink():
+        raise RuntimeError("durable publication directory is missing or unsafe")
+    source_bytes = (output / "source_page_106.png").read_bytes()
+    artifacts = _artifacts_from_source_bytes(source_bytes)
+    rows = _manifest_rows(output)
+    if not set(ARTIFACT_NAMES).issubset(rows):
+        raise RuntimeError("paper layer rows are missing")
+    for name, payload in artifacts.items():
+        row = rows[name]
+        if row["bytes"] != str(len(payload)) or row["sha256"] != _hash(payload):
+            raise RuntimeError(f"paper layer manifest mismatch: {name}")
 
 
 def _write_file_exclusive(path: Path, payload: bytes) -> None:
@@ -274,10 +347,17 @@ def _publish_new_atomic(output: Path, artifacts: dict[str, bytes]) -> None:
 
 def publish(source: Path = SOURCE, output: Path = OUTPUT) -> None:
     output = _safe_output(Path(output))
-    artifacts = _planned(Path(source))
     if os.path.lexists(output):
-        _check_exact_directory(output, artifacts)
+        # A completed baseline layer is owned by Task 5.  Keep this program a
+        # no-op for it while still recomputing every paper artifact.
+        if (output / BASELINE_LAYER_DIR).exists():
+            verify_paper_layer(output)
+            _validate_registered_shape(output)
+        else:
+            artifacts = _planned(Path(source))
+            _check_exact_directory(output, artifacts)
         return
+    artifacts = _planned(Path(source))
     _publish_new_atomic(output, artifacts)
 
 
@@ -285,6 +365,16 @@ def verify_only(output: Path = OUTPUT) -> None:
     output = _safe_output(Path(output))
     if not output.is_dir() or output.is_symlink():
         raise RuntimeError("durable publication directory is missing or unsafe")
+    if (output / BASELINE_LAYER_DIR).exists():
+        _validate_registered_shape(output)
+        verify_paper_layer(output)
+        rows = _manifest_rows(output)
+        for relative in registered_paths():
+            payload = (output / relative).read_bytes()
+            row = rows.get(relative)
+            if row is None or row["bytes"] != str(len(payload)) or row["sha256"] != _hash(payload):
+                raise RuntimeError(f"manifest mismatch: {relative}")
+        return
     source_bytes = (output / "source_page_106.png").read_bytes()
     if _hash(source_bytes) != SOURCE_SHA256:
         raise RuntimeError("durable source page hash is wrong")
