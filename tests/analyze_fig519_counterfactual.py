@@ -34,11 +34,15 @@ except ModuleNotFoundError:  # pragma: no cover - direct CLI path
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "data/provenance/steady53/fig5_19"
 DEFAULT_RUN_DIR = ROOT / "tmp/fig519_reactor_ic_20260831_A1"
+A1_RUN_DIR = DEFAULT_RUN_DIR
+A2_RUN_DIR = ROOT / "tmp/fig519_reactor_ic_20260901_A2"
+A2_EXECUTION_CAPTURE = ROOT / "tmp/fig519_reactor_ic_20260901_A2_command_capture"
 SOURCE_PATH = ROOT / "data/provenance/baselines/f8bcd83/final_steady_24a.slx"
 SOURCE_SHA256 = "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
 PAPER_POINTS_SHA256 = "e63607ad0f599c84fe6980ed26e05c91902b7928a53fabf5bf4a95a3de0098f2"
 RAW_REFERENCE_SHA256 = "185d59ca6e55647ad14fb5f23599bc85e6566f8da2ca6120f42a0ef8dedbb648"
 SUMMARY_NAME = "reactor_ic_counterfactual.json"
+A1_DURABLE_SUMMARY_SHA256 = "fbd294ecabe7ffc04b90e1ffc5198335f099fc46ba718cd4f8c57b4b75230950"
 CANDIDATE_VALUE_IDENTITY = "figure_5_19_digitized_t10_proxy_not_author_t0"
 CONCLUSIONS = {
     "reactor_ic_alone_falsified",
@@ -87,6 +91,39 @@ FAILURE_EXTERNAL_ARTIFACT_KEYS = (
     "@external/reactor_ic_invocation_failure.json",
     "@external/reactor_ic_analysis.json",
 )
+A1_HISTORY_EXTERNAL_KEYS = {
+    "candidate_slx": "@external/reactor_ic_a1_candidate.slx",
+    "patch_audit": "@external/reactor_ic_a1_patch_audit.json",
+    "invocation_failure_status": "@external/reactor_ic_a1_invocation_failure.json",
+    "analysis": "@external/reactor_ic_a1_analysis.json",
+}
+A2_HISTORY_EXTERNAL_KEYS = {
+    "candidate_slx": "@external/reactor_ic_a2_candidate.slx",
+    "patch_audit": "@external/reactor_ic_a2_patch_audit.json",
+    "raw_result": "@external/reactor_ic_a2_raw_result.mat",
+    "run_status": "@external/reactor_ic_a2_run_status.json",
+    "candidate_curves": "@external/reactor_ic_a2_candidate_curves.csv",
+    "reference_curves": "@external/reactor_ic_a2_reference_curves.csv",
+    "analysis": "@external/reactor_ic_a2_analysis.json",
+}
+A2_CAPTURE_EXTERNAL_KEYS = {
+    "command.txt": "@external/reactor_ic_a2_command.txt",
+    "attempted_runner.m": "@external/reactor_ic_a2_attempted_runner.m",
+    "candidate_generator.m": "@external/reactor_ic_a2_candidate_generator.m",
+    "preflight_status.json": "@external/reactor_ic_a2_preflight_status.json",
+    "SHA256SUMS": "@external/reactor_ic_a2_preflight_SHA256SUMS",
+    "stdout.log": "@external/reactor_ic_a2_stdout.log",
+    "stderr.log": "@external/reactor_ic_a2_stderr.log",
+    "command_started_at_utc.txt": "@external/reactor_ic_a2_command_started_at_utc.txt",
+    "command_completed_at_utc.txt": "@external/reactor_ic_a2_command_completed_at_utc.txt",
+    "formal_exit_code.txt": "@external/reactor_ic_a2_formal_exit_code.txt",
+    "formal_command_invocation_count.txt":
+        "@external/reactor_ic_a2_formal_command_invocation_count.txt",
+    "retry_count.txt": "@external/reactor_ic_a2_retry_count.txt",
+    "timestamp_recorder_failure.json":
+        "@external/reactor_ic_a2_timestamp_recorder_failure.json",
+    "execution_record.json": "@external/reactor_ic_a2_execution_record.json",
+}
 # Backward-compatible name used by the successful synthetic publication tests.
 EXTERNAL_ARTIFACT_KEYS = SUCCESS_EXTERNAL_ARTIFACT_KEYS
 _SUCCESS_EXTERNAL_IDENTITIES = {
@@ -963,7 +1000,76 @@ def _summary(run_dir: Path, result: dict[str, object]) -> dict[str, object]:
             "formal_promotion": False}
 
 
-def _external_rows(summary: dict[str, object]) -> list[tuple[str, dict[str, object]]]:
+def _verified_a2_execution(capture: Path,
+                           run_dir: Path = A2_RUN_DIR) -> dict[str, object]:
+    # Lazy import avoids a module cycle: the preflight/archive module reuses
+    # this analyzer's exact-one-change and completed-run validators.
+    try:
+        from tests import prepare_fig519_reactor_ic_a2 as a2_archive
+    except ModuleNotFoundError:  # pragma: no cover - direct CLI path
+        import prepare_fig519_reactor_ic_a2 as a2_archive
+    return a2_archive.verify_execution(capture, run_dir)
+
+
+def _history_summary(output: Path, run_dir: Path,
+                     result: dict[str, object],
+                     execution_capture: Path) -> dict[str, object]:
+    if run_dir != A2_RUN_DIR.resolve():
+        raise RuntimeError("only the fixed A2 attempt may append Task 7 history")
+    predecessor_path = _regular_file(output / SUMMARY_NAME)
+    predecessor_payload = predecessor_path.read_bytes()
+    predecessor = json.loads(predecessor_payload)
+    if predecessor.get("summary_schema") == (
+            "steady53_fig519_reactor_ic_counterfactual_history_v2"):
+        attempts = predecessor.get("attempts")
+        if (not isinstance(attempts, list) or len(attempts) != 2 or
+                attempts[0].get("attempt_id") != "20260831_A1"):
+            raise RuntimeError("existing Task 7 history is malformed")
+        a1_entry = attempts[0]
+    else:
+        if (_hash(predecessor_payload) != A1_DURABLE_SUMMARY_SHA256 or
+                predecessor.get("summary_schema") !=
+                "steady53_fig519_reactor_ic_counterfactual_summary_v1"):
+            raise RuntimeError("A2 append requires the immutable A1 durable summary")
+        validate_durable_summary(predecessor, run_dir=A1_RUN_DIR)
+        a1_entry = {
+            "attempt_id": "20260831_A1",
+            "source_summary_sha256": _hash(predecessor_payload),
+            "attempt_summary": predecessor,
+        }
+    if (a1_entry.get("source_summary_sha256") != A1_DURABLE_SUMMARY_SHA256 or
+            _hash(_json_bytes(a1_entry.get("attempt_summary"))) !=
+            A1_DURABLE_SUMMARY_SHA256):
+        raise RuntimeError("A1 attempt was not preserved byte-for-byte canonically")
+    execution = _verified_a2_execution(execution_capture, run_dir)
+    a2_summary = _summary(run_dir, result)
+    a2_entry = {
+        "attempt_id": "20260901_A2",
+        "execution_record_sha256": _hash(_json_bytes(execution)),
+        "execution_record": execution,
+        "attempt_summary": a2_summary,
+    }
+    history = {
+        "summary_schema": "steady53_fig519_reactor_ic_counterfactual_history_v2",
+        "history_mode": "append_only_attempts",
+        "attempt_count": 2,
+        "attempts": [a1_entry, a2_entry],
+        "latest_attempt_id": "20260901_A2",
+        "total_formal_command_invocation_count": 2,
+        "total_run_steady53_case_call_count": 1,
+        "total_retry_count": 0,
+        "latest_scientific_conclusion": result["conclusion"],
+        "paper_reproduced": False,
+        "author_initial_state_identified": False,
+        "formal_promotion": False,
+    }
+    validate_durable_summary(history, run_dir=run_dir,
+                             execution_capture=execution_capture)
+    return history
+
+
+def _v1_external_rows(summary: dict[str, object]) -> list[tuple[str, dict[str, object]]]:
+    """Return the original single-attempt locator set."""
     artifacts = summary.get("external_artifacts")
     if not isinstance(artifacts, list):
         raise RuntimeError("summary external artifacts are missing")
@@ -991,6 +1097,48 @@ def _external_rows(summary: dict[str, object]) -> list[tuple[str, dict[str, obje
                 item.get("storage") != "external_tmp_not_copied"):
             raise RuntimeError(f"summary locator mismatch: {key}")
         rows.append((key, item))
+    return rows
+
+
+def _external_rows(summary: dict[str, object]) -> list[tuple[str, dict[str, object]]]:
+    if summary.get("summary_schema") != (
+            "steady53_fig519_reactor_ic_counterfactual_history_v2"):
+        return _v1_external_rows(summary)
+    attempts = summary["attempts"]
+    a1_rows = _v1_external_rows(attempts[0]["attempt_summary"])
+    a2_rows = _v1_external_rows(attempts[1]["attempt_summary"])
+    rows: list[tuple[str, dict[str, object]]] = []
+    for _, item in a1_rows:
+        rows.append((A1_HISTORY_EXTERNAL_KEYS[item["identity"]], item))
+    for _, item in a2_rows:
+        rows.append((A2_HISTORY_EXTERNAL_KEYS[item["identity"]], item))
+    execution = attempts[1]["execution_record"]
+    capture_items = {item["name"]: item for item in execution["capture_artifacts"]}
+    capture_dir = Path(execution["capture_artifacts"][0]["absolute_path"]).parent
+    record_path = _regular_file(capture_dir / "execution_record.json", require_tmp=True)
+    record_item = {
+        "identity": "execution_record",
+        "repository_relative_path": record_path.relative_to(ROOT).as_posix(),
+        "absolute_path": str(record_path),
+        "bytes": record_path.stat().st_size,
+        "sha256": _hash(record_path.read_bytes()),
+        "storage": "external_tmp_not_copied",
+    }
+    capture_items["execution_record.json"] = record_item
+    if set(capture_items) != set(A2_CAPTURE_EXTERNAL_KEYS):
+        raise RuntimeError("A2 execution capture locator set is incomplete")
+    for name, key in A2_CAPTURE_EXTERNAL_KEYS.items():
+        item = dict(capture_items[name])
+        item.setdefault("identity", f"execution_capture/{name}")
+        path = _regular_file(ROOT / item["repository_relative_path"], require_tmp=True)
+        if (str(path) != item.get("absolute_path") or
+                _hash(path.read_bytes()) != item.get("sha256") or
+                path.stat().st_size != item.get("bytes") or
+                item.get("storage") != "external_tmp_not_copied"):
+            raise RuntimeError(f"A2 capture locator mismatch: {name}")
+        rows.append((key, item))
+    if len({key for key, _ in rows}) != len(rows):
+        raise RuntimeError("attempt history external locator collision")
     return rows
 
 
@@ -1098,10 +1246,24 @@ def _lock(output: Path):
         os.close(fd)
 
 
-def _planned(run_dir: Path, output: Path) -> tuple[dict[str, bytes], dict[str, object]]:
+def _planned(run_dir: Path, output: Path,
+             execution_capture: Path | None = None) -> tuple[dict[str, bytes], dict[str, object]]:
     result = analyze(run_dir)
     _ensure_analysis_file(run_dir, result)
-    summary = _summary(run_dir, result)
+    if os.path.lexists(output / SUMMARY_NAME):
+        if run_dir == A2_RUN_DIR.resolve():
+            summary = _history_summary(
+                output, run_dir, result,
+                _safe_under_repo(execution_capture or A2_EXECUTION_CAPTURE,
+                                 require_exists=True, require_tmp=True),
+            )
+        else:
+            existing = json.loads(_regular_file(output / SUMMARY_NAME).read_text())
+            if existing != _summary(run_dir, result):
+                raise RuntimeError("existing Task 7 summary is not idempotent")
+            summary = existing
+    else:
+        summary = _summary(run_dir, result)
     summary_payload = _json_bytes(summary)
     return {SUMMARY_NAME: summary_payload,
             "manifest.csv": _manifest_bytes(output, summary_payload, summary)}, summary
@@ -1126,8 +1288,28 @@ def _task6_manifest(output: Path) -> bytes:
     return baseline.manifest_bytes_with_external(output, entries, baseline._roles(), audit)
 
 
+def _history_predecessors(output: Path,
+                          payloads: dict[str, bytes]) -> dict[str, bytes]:
+    planned = json.loads(payloads[SUMMARY_NAME])
+    if planned.get("summary_schema") != (
+            "steady53_fig519_reactor_ic_counterfactual_history_v2"):
+        return {"manifest.csv": _task6_manifest(output)}
+    attempts = planned.get("attempts")
+    if not isinstance(attempts, list) or len(attempts) != 2:
+        raise RuntimeError("planned Task 7 history lacks its A1 predecessor")
+    a1_summary = attempts[0].get("attempt_summary")
+    a1_payload = _json_bytes(a1_summary)
+    if _hash(a1_payload) != A1_DURABLE_SUMMARY_SHA256:
+        raise RuntimeError("planned Task 7 history changed the A1 predecessor")
+    return {
+        SUMMARY_NAME: a1_payload,
+        "manifest.csv": _manifest_bytes(output, a1_payload, a1_summary),
+    }
+
+
 def _target_state(output: Path, payloads: dict[str, bytes]) -> dict[str, str]:
     states = {}
+    predecessors = _history_predecessors(output, payloads)
     for name in TARGETS:
         path = output / name
         if not os.path.lexists(path):
@@ -1138,7 +1320,7 @@ def _target_state(output: Path, payloads: dict[str, bytes]) -> dict[str, str]:
             raise RuntimeError(f"unsafe Task 7 target: {name}")
         elif path.read_bytes() == payloads[name]:
             states[name] = "expected"
-        elif name == "manifest.csv" and path.read_bytes() == _task6_manifest(output):
+        elif name in predecessors and path.read_bytes() == predecessors[name]:
             states[name] = "predecessor"
         else:
             raise RuntimeError(f"unregistered Task 7 target predecessor: {name}")
@@ -1195,6 +1377,10 @@ def _commit(output: Path, txn: Path, payloads: dict[str, bytes]) -> None:
         except FileExistsError:
             _check_file(output / SUMMARY_NAME, payloads[SUMMARY_NAME], "concurrent summary")
         _fsync(output)
+    elif states[SUMMARY_NAME] == "predecessor":
+        os.replace(root / SUMMARY_NAME, output / SUMMARY_NAME)
+        os.link(output / SUMMARY_NAME, root / SUMMARY_NAME, follow_symlinks=False)
+        _fsync(output)
     _publication_boundary("summary-commit-after")
     _publication_boundary("manifest-commit-before")
     if states["manifest.csv"] != "expected":
@@ -1228,12 +1414,13 @@ def _cleanup(txn: Path, payloads: dict[str, bytes], output: Path) -> None:
     _fsync(tomb.parent)
 
 
-def publish(run_dir: Path = DEFAULT_RUN_DIR, output: Path = OUTPUT) -> None:
+def publish(run_dir: Path = DEFAULT_RUN_DIR, output: Path = OUTPUT,
+            *, execution_capture: Path | None = None) -> None:
     run_dir = _safe_under_repo(Path(run_dir), require_exists=True, require_tmp=True)
     output = _safe_under_repo(Path(output), require_exists=True)
     if output.is_symlink() or not output.is_dir():
         raise RuntimeError("durable output directory is unsafe")
-    payloads, _ = _planned(run_dir, output)
+    payloads, _ = _planned(run_dir, output, execution_capture)
     with _lock(output):
         txn = transaction_dir(output)
         tomb = _tombstone(output, payloads)
@@ -1241,7 +1428,7 @@ def publish(run_dir: Path = DEFAULT_RUN_DIR, output: Path = OUTPUT) -> None:
             raise RuntimeError("Task 7 cleanup tombstone requires audit")
         if not os.path.lexists(txn):
             try:
-                verify_only(run_dir, output)
+                verify_only(run_dir, output, execution_capture=execution_capture)
             except RuntimeError:
                 pass
             else:
@@ -1249,11 +1436,54 @@ def publish(run_dir: Path = DEFAULT_RUN_DIR, output: Path = OUTPUT) -> None:
             _birth(txn, payloads, output)
         _commit(output, txn, payloads)
         _cleanup(txn, payloads, output)
-    verify_only(run_dir, output)
+    verify_only(run_dir, output, execution_capture=execution_capture)
 
 
-def validate_durable_summary(summary: object, run_dir: Path | None = None) -> dict[str, object]:
-    if not isinstance(summary, dict) or summary.get("summary_schema") != "steady53_fig519_reactor_ic_counterfactual_summary_v1":
+def validate_durable_summary(summary: object, run_dir: Path | None = None,
+                             *, execution_capture: Path | None = None) -> dict[str, object]:
+    if not isinstance(summary, dict):
+        raise RuntimeError("Task 7 summary schema is invalid")
+    if summary.get("summary_schema") == (
+            "steady53_fig519_reactor_ic_counterfactual_history_v2"):
+        if any(summary.get(key) is not False for key in
+               ("paper_reproduced", "author_initial_state_identified", "formal_promotion")):
+            raise RuntimeError("Task 7 history makes a forbidden promotion")
+        attempts = summary.get("attempts")
+        if (summary.get("history_mode") != "append_only_attempts" or
+                summary.get("attempt_count") != 2 or not isinstance(attempts, list) or
+                [item.get("attempt_id") for item in attempts] !=
+                ["20260831_A1", "20260901_A2"] or
+                summary.get("latest_attempt_id") != "20260901_A2" or
+                summary.get("total_formal_command_invocation_count") != 2 or
+                summary.get("total_run_steady53_case_call_count") != 1 or
+                summary.get("total_retry_count") != 0):
+            raise RuntimeError("Task 7 append-only attempt history is invalid")
+        a1 = attempts[0]
+        a1_summary = a1.get("attempt_summary")
+        if (a1.get("source_summary_sha256") != A1_DURABLE_SUMMARY_SHA256 or
+                _hash(_json_bytes(a1_summary)) != A1_DURABLE_SUMMARY_SHA256):
+            raise RuntimeError("Task 7 A1 attempt history changed")
+        validate_durable_summary(a1_summary, run_dir=A1_RUN_DIR)
+        a2 = attempts[1]
+        a2_summary = a2.get("attempt_summary")
+        validate_durable_summary(a2_summary, run_dir=A2_RUN_DIR)
+        capture = _safe_under_repo(execution_capture or A2_EXECUTION_CAPTURE,
+                                   require_exists=True, require_tmp=True)
+        execution = _verified_a2_execution(capture, A2_RUN_DIR)
+        if (a2.get("execution_record") != execution or
+                a2.get("execution_record_sha256") != _hash(_json_bytes(execution))):
+            raise RuntimeError("Task 7 A2 execution record changed")
+        analysis = a2_summary["analysis"]
+        if (summary.get("latest_scientific_conclusion") != analysis["conclusion"] or
+                analysis.get("falsification_question_answered") is not True):
+            raise RuntimeError("Task 7 latest conclusion is not bound to A2")
+        if run_dir is not None:
+            selected = _safe_under_repo(Path(run_dir), require_exists=True, require_tmp=True)
+            if selected not in {A1_RUN_DIR.resolve(), A2_RUN_DIR.resolve()}:
+                raise RuntimeError("Task 7 history verifier selected an unknown attempt")
+        _external_rows(summary)
+        return summary
+    if summary.get("summary_schema") != "steady53_fig519_reactor_ic_counterfactual_summary_v1":
         raise RuntimeError("Task 7 summary schema is invalid")
     if any(summary.get(key) is not False for key in
            ("paper_reproduced", "author_initial_state_identified", "formal_promotion")):
@@ -1286,18 +1516,33 @@ def expected_manifest_from_output(output: Path) -> bytes:
     return _manifest_bytes(output, summary_payload, summary)
 
 
-def verify_only(run_dir: Path = DEFAULT_RUN_DIR, output: Path = OUTPUT) -> None:
+def verify_only(run_dir: Path = DEFAULT_RUN_DIR, output: Path = OUTPUT,
+                *, execution_capture: Path | None = None) -> None:
     run_dir = _safe_under_repo(Path(run_dir), require_exists=True, require_tmp=True)
     output = _safe_under_repo(Path(output), require_exists=True)
     summary_path = _regular_file(output / SUMMARY_NAME)
     summary = json.loads(summary_path.read_text())
-    validate_durable_summary(summary, run_dir=run_dir)
-    recomputed = analyze(run_dir)
-    if summary["analysis"] != recomputed:
-        raise RuntimeError("durable analysis differs from recomputation")
-    analysis_path = _regular_file(run_dir / "analysis.json", require_tmp=True)
-    if analysis_path.read_bytes() != _json_bytes(recomputed):
-        raise RuntimeError("external analysis JSON differs from recomputation")
+    validate_durable_summary(summary, run_dir=run_dir,
+                             execution_capture=execution_capture)
+    if summary.get("summary_schema") == (
+            "steady53_fig519_reactor_ic_counterfactual_history_v2"):
+        indexed = {item["attempt_id"]: item["attempt_summary"]
+                   for item in summary["attempts"]}
+        for attempt_id, attempt_dir in (("20260831_A1", A1_RUN_DIR),
+                                        ("20260901_A2", A2_RUN_DIR)):
+            recomputed = analyze(attempt_dir)
+            if indexed[attempt_id]["analysis"] != recomputed:
+                raise RuntimeError(f"durable {attempt_id} analysis differs from recomputation")
+            analysis_path = _regular_file(attempt_dir / "analysis.json", require_tmp=True)
+            if analysis_path.read_bytes() != _json_bytes(recomputed):
+                raise RuntimeError(f"external {attempt_id} analysis differs from recomputation")
+    else:
+        recomputed = analyze(run_dir)
+        if summary["analysis"] != recomputed:
+            raise RuntimeError("durable analysis differs from recomputation")
+        analysis_path = _regular_file(run_dir / "analysis.json", require_tmp=True)
+        if analysis_path.read_bytes() != _json_bytes(recomputed):
+            raise RuntimeError("external analysis JSON differs from recomputation")
     if _regular_file(output / "manifest.csv").read_bytes() != _manifest_bytes(
             output, summary_path.read_bytes(), summary):
         raise RuntimeError("Task 7 unified manifest mismatch")

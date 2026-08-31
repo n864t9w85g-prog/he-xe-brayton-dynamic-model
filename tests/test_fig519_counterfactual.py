@@ -19,12 +19,16 @@ from pathlib import Path
 from unittest import mock
 
 from tests import analyze_fig519_counterfactual as subject
+from tests import prepare_fig519_reactor_ic_a2 as a2_capture
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DURABLE = ROOT / "data/provenance/steady53/fig5_19"
 MATLAB = Path("/Applications/MATLAB_R2025a.app/bin/matlab")
 MATLAB_COLD_START_TIMEOUT_S = 300
+A1 = ROOT / "tmp/fig519_reactor_ic_20260831_A1"
+A2 = ROOT / "tmp/fig519_reactor_ic_20260901_A2"
+CAPTURE = ROOT / "tmp/fig519_reactor_ic_20260901_A2_command_capture"
 
 
 def _sha(path: Path) -> str:
@@ -423,6 +427,114 @@ class Figure519CounterfactualTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stdout)
         self.assertIn("FIG519_REACTOR_IC_COUNTERFACTUAL=numerical_or_physical_gate_failed",
                       completed.stdout)
+
+    def test_a2_publication_appends_attempt_without_overwriting_a1(self):
+        self.assertTrue(A1.is_dir() and A2.is_dir() and CAPTURE.is_dir())
+        a2_capture.verify_execution(CAPTURE, A2)
+        a1_before = {path.relative_to(A1).as_posix():
+                     (_sha(path), path.stat().st_mtime_ns)
+                     for path in A1.rglob("*") if path.is_file()}
+        published = json.loads((DURABLE / subject.SUMMARY_NAME).read_text())
+        original_summary = (published["attempts"][0]["attempt_summary"]
+                            if published.get("summary_schema") ==
+                            "steady53_fig519_reactor_ic_counterfactual_history_v2"
+                            else published)
+        original_summary_bytes = subject._json_bytes(original_summary)
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = Path(work) / "fig5_19"
+            shutil.copytree(DURABLE, output)
+            (output / subject.SUMMARY_NAME).write_bytes(original_summary_bytes)
+            (output / "manifest.csv").write_bytes(subject._manifest_bytes(
+                output, original_summary_bytes, original_summary))
+            subject.publish(A2, output, execution_capture=CAPTURE)
+            subject.verify_only(A2, output, execution_capture=CAPTURE)
+            subject.verify_only(A1, output, execution_capture=CAPTURE)
+            summary = json.loads((output / subject.SUMMARY_NAME).read_text())
+            self.assertEqual(
+                summary["summary_schema"],
+                "steady53_fig519_reactor_ic_counterfactual_history_v2",
+            )
+            self.assertEqual(summary["attempt_count"], 2)
+            self.assertEqual([item["attempt_id"] for item in summary["attempts"]],
+                             ["20260831_A1", "20260901_A2"])
+            self.assertEqual(summary["attempts"][0]["attempt_summary"], original_summary)
+            self.assertEqual(summary["attempts"][0]["source_summary_sha256"],
+                             hashlib.sha256(original_summary_bytes).hexdigest())
+            a2_attempt = summary["attempts"][1]
+            self.assertEqual(a2_attempt["attempt_summary"]["analysis"]["conclusion"],
+                             "reactor_ic_alone_falsified")
+            self.assertEqual(a2_attempt["execution_record"]["formal_process_exit_code"], 0)
+            self.assertEqual(a2_attempt["execution_record"]["formal_command_invocation_count"], 1)
+            self.assertEqual(a2_attempt["execution_record"]["run_steady53_case_call_count"], 1)
+            self.assertEqual(a2_attempt["execution_record"]["retry_count"], 0)
+            self.assertEqual(summary["latest_attempt_id"], "20260901_A2")
+            self.assertEqual(summary["latest_scientific_conclusion"],
+                             "reactor_ic_alone_falsified")
+            self.assertFalse(summary["paper_reproduced"])
+            self.assertFalse(summary["author_initial_state_identified"])
+            self.assertFalse(summary["formal_promotion"])
+            with (output / "manifest.csv").open(newline="") as handle:
+                rows = {row["path"]: row for row in csv.DictReader(handle)}
+            expected = {
+                "@external/reactor_ic_a1_candidate.slx",
+                "@external/reactor_ic_a1_patch_audit.json",
+                "@external/reactor_ic_a1_invocation_failure.json",
+                "@external/reactor_ic_a1_analysis.json",
+                "@external/reactor_ic_a2_candidate.slx",
+                "@external/reactor_ic_a2_patch_audit.json",
+                "@external/reactor_ic_a2_raw_result.mat",
+                "@external/reactor_ic_a2_run_status.json",
+                "@external/reactor_ic_a2_candidate_curves.csv",
+                "@external/reactor_ic_a2_reference_curves.csv",
+                "@external/reactor_ic_a2_analysis.json",
+                "@external/reactor_ic_a2_execution_record.json",
+                "@external/reactor_ic_a2_stdout.log",
+                "@external/reactor_ic_a2_stderr.log",
+            }
+            self.assertTrue(expected.issubset(rows))
+            self.assertTrue(all(rows[name]["storage"] == "external_tmp_not_copied"
+                                for name in expected))
+            before_verify = {path.relative_to(output).as_posix():
+                             (path.read_bytes(), path.stat().st_mtime_ns)
+                             for path in output.rglob("*") if path.is_file()}
+            subject.verify_only(A2, output, execution_capture=CAPTURE)
+            self.assertEqual(before_verify,
+                             {path.relative_to(output).as_posix():
+                              (path.read_bytes(), path.stat().st_mtime_ns)
+                              for path in output.rglob("*") if path.is_file()})
+        self.assertEqual(a1_before,
+                         {path.relative_to(A1).as_posix():
+                          (_sha(path), path.stat().st_mtime_ns)
+                          for path in A1.rglob("*") if path.is_file()})
+
+    def test_a2_append_recovers_after_summary_commit_before_manifest(self):
+        published = json.loads((DURABLE / subject.SUMMARY_NAME).read_text())
+        a1_summary = published["attempts"][0]["attempt_summary"]
+        a1_payload = subject._json_bytes(a1_summary)
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as work:
+            output = Path(work) / "fig5_19"
+            shutil.copytree(DURABLE, output)
+            (output / subject.SUMMARY_NAME).write_bytes(a1_payload)
+            predecessor_manifest = subject._manifest_bytes(
+                output, a1_payload, a1_summary)
+            (output / "manifest.csv").write_bytes(predecessor_manifest)
+
+            def interrupt(point: str) -> None:
+                if point == "manifest-commit-before":
+                    raise OSError("injected A2 append interruption")
+
+            with mock.patch.object(subject, "_publication_boundary", interrupt):
+                with self.assertRaises(OSError):
+                    subject.publish(A2, output, execution_capture=CAPTURE)
+            interrupted = json.loads((output / subject.SUMMARY_NAME).read_text())
+            self.assertEqual(interrupted["summary_schema"],
+                             "steady53_fig519_reactor_ic_counterfactual_history_v2")
+            self.assertEqual((output / "manifest.csv").read_bytes(), predecessor_manifest)
+            self.assertTrue(subject.transaction_dir(output).is_dir())
+
+            subject.publish(A2, output, execution_capture=CAPTURE)
+            subject.verify_only(A2, output, execution_capture=CAPTURE)
+            self.assertFalse(subject.transaction_dir(output).exists())
 
 
 if __name__ == "__main__":

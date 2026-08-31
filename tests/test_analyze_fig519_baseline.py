@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 from tests import analyze_fig519_baseline as subject
+from tests import analyze_fig519_counterfactual as counterfactual_analyzer
 from tests import digitize_fig519 as digitizer
 
 
@@ -309,18 +310,8 @@ class Figure519BaselineTests(unittest.TestCase):
         if counterfactual.is_file():
             expected_paths.add("reactor_ic_counterfactual.json")
             summary = json.loads(counterfactual.read_text())
-            locator_names = {
-                "candidate_slx": "@external/reactor_ic_candidate.slx",
-                "patch_audit": "@external/reactor_ic_patch_audit.json",
-                "raw_result": "@external/reactor_ic_raw_result.mat",
-                "run_status": "@external/reactor_ic_run_status.json",
-                "candidate_curves": "@external/reactor_ic_candidate_curves.csv",
-                "reference_curves": "@external/reactor_ic_reference_curves.csv",
-                "invocation_failure_status": "@external/reactor_ic_invocation_failure.json",
-                "analysis": "@external/reactor_ic_analysis.json",
-            }
-            expected_paths.update(locator_names[item["identity"]]
-                                  for item in summary["external_artifacts"])
+            expected_paths.update(
+                name for name, _ in counterfactual_analyzer._external_rows(summary))
         self.assertEqual({row["path"] for row in rows}, expected_paths)
         self.assertEqual(len(rows), len(expected_paths))
 
