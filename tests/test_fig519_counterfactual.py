@@ -24,6 +24,7 @@ from tests import analyze_fig519_counterfactual as subject
 ROOT = Path(__file__).resolve().parents[1]
 DURABLE = ROOT / "data/provenance/steady53/fig5_19"
 MATLAB = Path("/Applications/MATLAB_R2025a.app/bin/matlab")
+MATLAB_COLD_START_TIMEOUT_S = 300
 
 
 def _sha(path: Path) -> str:
@@ -330,7 +331,7 @@ class Figure519CounterfactualTests(unittest.TestCase):
             [str(MATLAB), "-batch",
              "addpath('tests'); run_fig519_reactor_ic_counterfactual('__fig519_test_write_exclusive__')"],
             cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            timeout=60,
+            timeout=MATLAB_COLD_START_TIMEOUT_S,
         )
         self.assertEqual(completed.returncode, 0, completed.stdout)
         self.assertIn("FIG519_EXCLUSIVE_WRITE_TEST=PASS", completed.stdout)
@@ -346,7 +347,7 @@ class Figure519CounterfactualTests(unittest.TestCase):
             completed = subprocess.run(
                 [str(MATLAB), "-batch", command], cwd=ROOT,
                 text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                timeout=180,
+                timeout=MATLAB_COLD_START_TIMEOUT_S,
             )
             self.assertEqual(completed.returncode, 0, completed.stdout)
             audit = json.loads((run_dir / "patch_audit.json").read_text())
