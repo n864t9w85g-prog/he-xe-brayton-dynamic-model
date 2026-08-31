@@ -25,6 +25,9 @@ class Figure519InitializationPublicationTests(unittest.TestCase):
         audit = output / "initialization_audit.json"
         if audit.exists():
             audit.unlink()
+        counterfactual = output / "reactor_ic_counterfactual.json"
+        if counterfactual.exists():
+            counterfactual.unlink()
         # Rebuild the exact Task 5 predecessor even when the durable fixture
         # has already advanced to the Task 6 layer.
         old_contract = subject.baseline._json_bytes(subject.baseline._contract())

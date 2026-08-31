@@ -803,6 +803,12 @@ def manifest_bytes_with_external(output: Path, entries: dict[str, bytes],
 
 
 def _unified_manifest(output: Path, baseline: dict[str, bytes], generated: dict[str, bytes]) -> bytes:
+    if os.path.lexists(output / "reactor_ic_counterfactual.json"):
+        try:
+            from tests import analyze_fig519_counterfactual as counterfactual
+        except ModuleNotFoundError:  # pragma: no cover - direct CLI path
+            import analyze_fig519_counterfactual as counterfactual
+        return counterfactual.expected_manifest_from_output(output)
     paper_bytes = {name: (output / name).read_bytes() for name in paper.ARTIFACT_NAMES}
     entries = dict(paper_bytes)
     entries.update({f"{paper.BASELINE_LAYER_DIR}/{name}": payload for name, payload in baseline.items()})
