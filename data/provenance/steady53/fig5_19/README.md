@@ -7,3 +7,12 @@ At each fixed time it uses the literal pixel calibrations in `provenance.json`, 
 Limitations: the early trace is nearly vertical and scan-limited; t=10 s is a proxy for the authors' t0, not an asserted original sampling instant. There is no smoothing, time shifting, model-guided choice, fitted correction, or formal promotion. `paper_reproduced = false`; `formal_promotion = false`.
 
 `manifest.csv` is nonrecursive and intentionally excludes itself; it records hashes for every other durable artifact in this directory.
+
+The evidence-ranked phase report is `docs/steady53_fig519_progress_20260831.md`.
+Its current single-variable result is:
+
+result_enum = reactor_ic_alone_falsified
+paper_reproduced = false
+formal_promotion = false
+
+The result is bounded to the reactor-power-initial-condition candidate. It does not identify the authors' full initial-state vector and does not authorize a formal-model change or a second counterfactual.
