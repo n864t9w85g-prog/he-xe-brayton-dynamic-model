@@ -1,0 +1,21 @@
+{
+  "A_exchange_m2": "m^2",
+  "A_rad_m2": "m^2",
+  "C_eff_proxy_J_K": "J/K",
+  "G_effective_W_K": "W/K",
+  "M_rad_kg": "kg",
+  "Q_NaK_W": "W",
+  "T_sink_K": "K",
+  "Twall_K": "K",
+  "Twall_condition_K": "K",
+  "UA_W_K": "W/K",
+  "cp_proxy_J_kgK": "J/(kg*K)",
+  "epsilon": "1",
+  "exchange_residual_W": "W",
+  "h_W_m2K": "W/(m^2*K)",
+  "kappa_kg_m2": "kg/m^2",
+  "m_dot_NaK_kg_s": "kg/s",
+  "mass_margin_kg": "kg",
+  "radiation_residual_W": "W",
+  "tau_predicted_s": "s"
+}

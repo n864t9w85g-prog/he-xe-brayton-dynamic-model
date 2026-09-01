@@ -1,0 +1,3193 @@
+{
+  "attempt_count": 2,
+  "attempts": [
+    {
+      "attempt_id": "20260831_A1",
+      "attempt_summary": {
+        "analysis": {
+          "analysis_schema": "steady53_fig519_reactor_ic_counterfactual_analysis_v1",
+          "attempted_runner_sha256": "42f447ae2ddfd6829b037548c2dd7d0af7d0a38aef779ee898cd30bf2ebd109b",
+          "author_initial_state_identified": false,
+          "candidate_value_W": 3186507.937,
+          "candidate_value_identity": "figure_5_19_digitized_t10_proxy_not_author_t0",
+          "circular_reproduction_counterfactual": true,
+          "conclusion": "numerical_or_physical_gate_failed",
+          "counterfactual_question": "Can the full four-power transient be explained by changing the reactor power state alone?",
+          "curves": {},
+          "direction_gate": {
+            "all_four_panels_match": false,
+            "panels": {}
+          },
+          "direction_rule": {
+            "candidate_threshold_declared_before_experiment": true,
+            "classification": "rise if delta>allowance; fall if delta<-allowance; otherwise flat",
+            "compression": "collapse consecutive identical non-flat directions",
+            "flat_handling": "discard_before_compression",
+            "input": "successive fixed digitized/model samples in increasing time",
+            "threshold": "panel_power_allowance_kW"
+          },
+          "falsification_question_answered": false,
+          "formal_command_invocation_count": 1,
+          "formal_promotion": false,
+          "gate_failure_class": "pre_simulation_infrastructure",
+          "gate_failure_enum_semantic_note": "The required enum name is broader than this observed failure. The actual subclass is pre_simulation_infrastructure; no numerical integration or model-physics gate was evaluated.",
+          "nonflat_gate": {
+            "all_required_nonflat": false,
+            "signals": {}
+          },
+          "nonflat_rule": {
+            "declared_before_candidate_result": true,
+            "formula": "candidate peak-to-peak > ratio * unmodified reference peak-to-peak noise",
+            "ratio": 10.0
+          },
+          "numerical_or_physical_gate_passed": false,
+          "paper_reproduced": false,
+          "post_fix_runner_executed_in_formal_attempt": false,
+          "post_fix_runner_sha256": "5183aa8e0add0ecc409e420ba88723639f5f53c37d42cc8a8288f0c9e186eece",
+          "retry_count": 0,
+          "run_steady53_case_call_count": 0
+        },
+        "author_initial_state_identified": false,
+        "experiment_evidence_kind": "pre_simulation_failure_stub_not_raw_output",
+        "external_artifacts": [
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260831_A1/candidate.slx",
+            "bytes": 617389,
+            "identity": "candidate_slx",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260831_A1/candidate.slx",
+            "sha256": "957273d1efcdfea35831dbf81bcd09085c6b4d178f7a8fcc7f1f62bcbecbd24e",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260831_A1/patch_audit.json",
+            "bytes": 38942,
+            "identity": "patch_audit",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260831_A1/patch_audit.json",
+            "sha256": "a576ee9a95a35dcc52ebe41c5bd7e69937370a75c5b985744612f6fdbf733507",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260831_A1/run/invocation_failure.json",
+            "bytes": 3052,
+            "identity": "invocation_failure_status",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260831_A1/run/invocation_failure.json",
+            "sha256": "7c9906e3dd283624aac3ad7a6bb75de926dd5301eb1501a0c5a1178a3c733554",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260831_A1/analysis.json",
+            "bytes": 2007,
+            "identity": "analysis",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260831_A1/analysis.json",
+            "sha256": "9a6cfd2e3bf2315b0b1bb731a5e5be9fd3200787e5632e313e8619b8583d4948",
+            "storage": "external_tmp_not_copied"
+          }
+        ],
+        "external_storage_note": "candidate/patch/failure status/analysis remain in tmp and are not copied to durable publication; no raw or curve output exists",
+        "formal_promotion": false,
+        "paper_reproduced": false,
+        "patch_audit": {
+          "author_initial_state_identified": false,
+          "candidate_absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260831_A1/candidate.slx",
+          "candidate_repository_relative_path": "tmp/fig519_reactor_ic_20260831_A1/candidate.slx",
+          "candidate_sha256": "957273d1efcdfea35831dbf81bcd09085c6b4d178f7a8fcc7f1f62bcbecbd24e",
+          "candidate_value_W": 3186507.937,
+          "candidate_value_identity": "figure_5_19_digitized_t10_proxy_not_author_t0",
+          "changed_blocks": [
+            "reactor/Integrator6"
+          ],
+          "changed_parameters": [
+            "InitialCondition"
+          ],
+          "circular_counterfactual": true,
+          "counterfactual_question": "Can the full four-power transient be explained by changing the reactor power state alone?",
+          "formal_promotion": false,
+          "mat_files": [
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "hexe_compressor_lookup.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "radiator_table.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "turbine_table1.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+              "after_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "before_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "name": "turbine_table2.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+              "unchanged": true
+            }
+          ],
+          "paper_point": {
+            "conversion": "1000*power_kW",
+            "is_author_t0": false,
+            "limitation": "digitized t=10 proxy; not an author t0 value",
+            "panel_id": "a",
+            "power_kW": 3186.507937,
+            "time_s": 10
+          },
+          "paper_reproduced": false,
+          "patch_schema": "steady53_fig519_reactor_ic_counterfactual_patch_v1",
+          "property_files": [
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "HeXe_property_simulink.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+              "after_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "before_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "name": "Lithium_property_simulink.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+              "unchanged": true
+            }
+          ],
+          "protected_files": [
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/HeXe_property_simulink.m",
+              "repository_relative_path": "HeXe_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/Lithium_property_simulink.m",
+              "after_sha256": "f0c2aad44e8701212e924371fe027d7b3814a32cd5df3a32f8a0ccf09abb7f1c",
+              "before_sha256": "f0c2aad44e8701212e924371fe027d7b3814a32cd5df3a32f8a0ccf09abb7f1c",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/Lithium_property_simulink.m",
+              "repository_relative_path": "Lithium_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/final_steady_24a.slx",
+              "after_sha256": "a93cd94b6c5a0c941fe9eed40d8aea779019cbdb26fe2558df65f7c81c9dc159",
+              "before_sha256": "a93cd94b6c5a0c941fe9eed40d8aea779019cbdb26fe2558df65f7c81c9dc159",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/final_steady_24a.slx",
+              "repository_relative_path": "final_steady_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/hexe_compressor_lookup.mat",
+              "repository_relative_path": "hexe_compressor_lookup.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/paper54_constants.m",
+              "after_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "before_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/paper54_constants.m",
+              "repository_relative_path": "paper54_constants.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/radiator_table.mat",
+              "repository_relative_path": "radiator_table.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/start.m",
+              "after_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "before_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/start.m",
+              "repository_relative_path": "start.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/sys_param_rad_fixed.m",
+              "after_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "before_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/sys_param_rad_fixed.m",
+              "repository_relative_path": "sys_param_rad_fixed.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+              "after_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "before_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+              "after_sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790",
+              "before_sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+              "after_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+              "before_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_steady_24a.slx",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+              "after_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "before_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+              "after_sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017",
+              "before_sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+              "after_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "before_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+              "after_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "before_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+              "after_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "before_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table1.mat",
+              "repository_relative_path": "turbine_table1.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table2.mat",
+              "after_sha256": "cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33",
+              "before_sha256": "cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table2.mat",
+              "repository_relative_path": "turbine_table2.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/HeXe_property_simulink.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/Lithium_property_simulink.m",
+              "after_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "before_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/Lithium_property_simulink.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+              "after_sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790",
+              "before_sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/final_dynamic_24a.slx",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+              "after_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+              "before_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/final_steady_24a.slx",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/hexe_compressor_lookup.mat",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/paper54_constants.m",
+              "after_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "before_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/paper54_constants.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/radiator_table.mat",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/run_steady53.m",
+              "after_sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017",
+              "before_sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/run_steady53.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/start.m",
+              "after_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "before_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/start.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/sys_param_rad_fixed.m",
+              "after_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "before_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/sys_param_rad_fixed.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table1.mat",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table2.mat",
+              "after_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "before_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table2.mat",
+              "repository_relative_path": "",
+              "unchanged": true
+            }
+          ],
+          "protected_manifest_sha256": "33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64",
+          "runtime_dependencies": [
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "HeXe_property_simulink.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+              "after_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "before_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "name": "Lithium_property_simulink.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "hexe_compressor_lookup.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "radiator_table.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "turbine_table1.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+              "after_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "before_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "name": "turbine_table2.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/paper54_constants.m",
+              "after_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "before_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "name": "paper54_constants.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/paper54_constants.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m",
+              "after_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "before_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "name": "sys_param_rad_fixed.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/start.m",
+              "after_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "before_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "name": "start.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/start.m",
+              "unchanged": true
+            }
+          ],
+          "semantic_snapshot": {
+            "candidate": {
+              "block_count": 1233,
+              "block_fingerprint": "c2a231697c9e982b43e3dacb13af08aa732f01e147da328781a048ef225b91f5",
+              "edge_count": 975,
+              "edge_fingerprint": "62baefb01731419d7b0379f3f11ae06657168dfb867297aeccc3f525dd5a5762"
+            },
+            "source": {
+              "block_count": 1233,
+              "block_fingerprint": "c2a231697c9e982b43e3dacb13af08aa732f01e147da328781a048ef225b91f5",
+              "edge_count": 975,
+              "edge_fingerprint": "62baefb01731419d7b0379f3f11ae06657168dfb867297aeccc3f525dd5a5762"
+            },
+            "unchanged": true
+          },
+          "solver_contract": {
+            "parameter_count": 37,
+            "parameters": [
+              {
+                "name": "StartTime",
+                "value": "0.0"
+              },
+              {
+                "name": "StopTime",
+                "value": "14000"
+              },
+              {
+                "name": "SolverName",
+                "value": "ode15s"
+              },
+              {
+                "name": "SolverType",
+                "value": "Variable-step"
+              },
+              {
+                "name": "FixedStep",
+                "value": "auto"
+              },
+              {
+                "name": "MaxStep",
+                "value": "auto"
+              },
+              {
+                "name": "MinStep",
+                "value": "auto"
+              },
+              {
+                "name": "InitialStep",
+                "value": "auto"
+              },
+              {
+                "name": "MaxOrder",
+                "value": "5"
+              },
+              {
+                "name": "RelTol",
+                "value": "1e-3"
+              },
+              {
+                "name": "AbsTol",
+                "value": "auto"
+              },
+              {
+                "name": "AutoScaleAbsTol",
+                "value": "on"
+              },
+              {
+                "name": "Refine",
+                "value": "1"
+              },
+              {
+                "name": "NumberNewtonIterations",
+                "value": "1"
+              },
+              {
+                "name": "ShapePreserveControl",
+                "value": "DisableAll"
+              },
+              {
+                "name": "ZeroCrossControl",
+                "value": "UseLocalSettings"
+              },
+              {
+                "name": "ZeroCrossAlgorithm",
+                "value": "Nonadaptive"
+              },
+              {
+                "name": "ZcThreshold",
+                "value": "auto"
+              },
+              {
+                "name": "ConsecutiveZCsStepRelTol",
+                "value": "10*128*eps"
+              },
+              {
+                "name": "MaxConsecutiveZCs",
+                "value": "1000"
+              },
+              {
+                "name": "MaxZcPerStep",
+                "value": "2"
+              },
+              {
+                "name": "MaxZcBracketingIterations",
+                "value": "10"
+              },
+              {
+                "name": "EnableFixedStepZeroCrossing",
+                "value": "off"
+              },
+              {
+                "name": "MinStepSizeMsg",
+                "value": "warning"
+              },
+              {
+                "name": "SolverPrmCheckMsg",
+                "value": "none"
+              },
+              {
+                "name": "AlgebraicLoopMsg",
+                "value": "warning"
+              },
+              {
+                "name": "ArtificialAlgebraicLoopMsg",
+                "value": "warning"
+              },
+              {
+                "name": "ConsistencyChecking",
+                "value": "none"
+              },
+              {
+                "name": "DaesscMode",
+                "value": "auto"
+              },
+              {
+                "name": "ODENIntegrationMethod",
+                "value": "ode3"
+              },
+              {
+                "name": "ExtrapolationOrder",
+                "value": "4"
+              },
+              {
+                "name": "StateRefinementMethod",
+                "value": "solver-interpolation"
+              },
+              {
+                "name": "SolverJacobianMethodControl",
+                "value": "auto"
+              },
+              {
+                "name": "SolverResetMethod",
+                "value": "Fast"
+              },
+              {
+                "name": "DecoupledContinuousIntegration",
+                "value": "off"
+              },
+              {
+                "name": "UseModelRefSolver",
+                "value": "off"
+              },
+              {
+                "name": "EnableMultiTasking",
+                "value": "off"
+              }
+            ],
+            "unchanged": true
+          },
+          "source_absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+          "source_hash_unchanged": true,
+          "source_repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+          "source_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+          "source_sha256_after": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+          "state_count": 40,
+          "state_initial_conditions": [
+            {
+              "candidate_expression": "1458.2400006378589",
+              "path": "IHX/IHX_region_1/T_c1_average_Integrator",
+              "source_expression": "1458.2400006378589",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1522.8762873625776",
+              "path": "IHX/IHX_region_1/T_c2_out_Integrator",
+              "source_expression": "1522.8762873625776",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1566.8123914550606",
+              "path": "IHX/IHX_region_1/T_h1_average_Integrator",
+              "source_expression": "1566.8123914550606",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1544.6784341826062",
+              "path": "IHX/IHX_region_1/T_h2_out_Integrator",
+              "source_expression": "1544.6784341826062",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1555.9547816852855",
+              "path": "IHX/IHX_region_1/T_wall_Integrator",
+              "source_expression": "1555.9547816852855",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1245.8184669844006",
+              "path": "IHX/IHX_region_2/T_c1_average_Integrator",
+              "source_expression": "1245.8184669844006",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1393.6037139151003",
+              "path": "IHX/IHX_region_2/T_c2_out_Integrator",
+              "source_expression": "1393.6037139151003",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1494.0696022025936",
+              "path": "IHX/IHX_region_2/T_h1_average_Integrator",
+              "source_expression": "1494.0696022025936",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1443.4607702226581",
+              "path": "IHX/IHX_region_2/T_h2_out_Integrator",
+              "source_expression": "1443.4607702226581",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1469.2436410947309",
+              "path": "IHX/IHX_region_2/T_wall_Integrator",
+              "source_expression": "1469.2436410947309",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "55090",
+              "path": "TAC/rotor/N_rpm_Integrator",
+              "source_expression": "55090",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "545.7329915378557",
+              "path": "precooler/precooler_1/T_c1_average_Integrator",
+              "source_expression": "545.7329915378557",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "611.57676479754946",
+              "path": "precooler/precooler_1/T_c2_out_Integrator",
+              "source_expression": "611.57676479754946",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "594.86709308142633",
+              "path": "precooler/precooler_1/T_h1_average_Integrator",
+              "source_expression": "594.86709308142633",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "528.91021598735142",
+              "path": "precooler/precooler_1/T_h2_out_Integrator",
+              "source_expression": "528.91021598735142",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "546.44198026309198",
+              "path": "precooler/precooler_1/T_wall_Integrator",
+              "source_expression": "546.44198026309198",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "418.75053506849412",
+              "path": "precooler/precooler_2/T_c1_average_Integrator",
+              "source_expression": "418.75053506849412",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "479.88921827813124",
+              "path": "precooler/precooler_2/T_c2_out_Integrator",
+              "source_expression": "479.88921827813124",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "465.7869648085188",
+              "path": "precooler/precooler_2/T_h1_average_Integrator",
+              "source_expression": "465.7869648085188",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "402.66371363139297",
+              "path": "precooler/precooler_2/T_h2_out_Integrator",
+              "source_expression": "402.66371363139297",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "419.42925508558875",
+              "path": "precooler/precooler_2/T_wall_Integrator",
+              "source_expression": "419.42925508558875",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "509563538.35378009",
+              "path": "reactor/Integrator",
+              "source_expression": "509563538.35378009",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1144297134.5374382",
+              "path": "reactor/Integrator1",
+              "source_expression": "1144297134.5374382",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "278405927.94625711",
+              "path": "reactor/Integrator2",
+              "source_expression": "278405927.94625711",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "222870449.79609099",
+              "path": "reactor/Integrator3",
+              "source_expression": "222870449.79609099",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "15570422.720039152",
+              "path": "reactor/Integrator4",
+              "source_expression": "15570422.720039152",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1144144.4343794831",
+              "path": "reactor/Integrator5",
+              "source_expression": "1144144.4343794831",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "3186507.9369999999",
+              "path": "reactor/Integrator6",
+              "source_expression": "2660960.9141046703",
+              "unchanged": false
+            },
+            {
+              "candidate_expression": "1721.8648882133552",
+              "path": "reactor/Integrator7",
+              "source_expression": "1721.8648882133552",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "973.10015023326082",
+              "path": "recuperator/MannRegion_1/T_c1_average_Integrator",
+              "source_expression": "973.10015023326082",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1098.0332200511998",
+              "path": "recuperator/MannRegion_1/T_c2_out_Integrator",
+              "source_expression": "1098.0332200511998",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1035.4335921350307",
+              "path": "recuperator/MannRegion_1/T_h1_average_Integrator",
+              "source_expression": "1035.4335921350307",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "910.48054303365655",
+              "path": "recuperator/MannRegion_1/T_h2_out_Integrator",
+              "source_expression": "910.48054303365655",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1004.3258841003104",
+              "path": "recuperator/MannRegion_1/T_wall_Integrator",
+              "source_expression": "1004.3258841003104",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "723.37593583663499",
+              "path": "recuperator/MannRegion_2/T_c1_average_Integrator",
+              "source_expression": "723.37593583663499",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "848.16708041554273",
+              "path": "recuperator/MannRegion_2/T_c2_out_Integrator",
+              "source_expression": "848.16708041554273",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "785.65225660536589",
+              "path": "recuperator/MannRegion_2/T_h1_average_Integrator",
+              "source_expression": "785.65225660536589",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "660.82397017724622",
+              "path": "recuperator/MannRegion_2/T_h2_out_Integrator",
+              "source_expression": "660.82397017724622",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "754.57305466037838",
+              "path": "recuperator/MannRegion_2/T_wall_Integrator",
+              "source_expression": "754.57305466037838",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "416.60796744255316",
+              "path": "rediator/T_rad_Integrator",
+              "source_expression": "416.60796744255316",
+              "unchanged": true
+            }
+          ]
+        },
+        "run_status": {
+          "attempted_runner_line": "file = fopen(filePath, \"x\", \"n\", \"UTF-8\");",
+          "attempted_runner_repository_path": "tests/run_fig519_reactor_ic_counterfactual.m",
+          "attempted_runner_sha256": "42f447ae2ddfd6829b037548c2dd7d0af7d0a38aef779ee898cd30bf2ebd109b",
+          "author_initial_state_identified": false,
+          "candidate_curve_output": null,
+          "candidate_repository_path": "tmp/fig519_reactor_ic_20260831_A1/candidate.slx",
+          "candidate_sha256": "957273d1efcdfea35831dbf81bcd09085c6b4d178f7a8fcc7f1f62bcbecbd24e",
+          "command": "test ! -e tmp/fig519_reactor_ic_20260831_A1 && /Applications/MATLAB_R2025a.app/bin/matlab -batch \"addpath('tests','tests/steady53'); runDir=fullfile(pwd,'tmp','fig519_reactor_ic_20260831_A1'); create_fig519_reactor_ic_candidate(runDir); run_fig519_reactor_ic_counterfactual(runDir)\"",
+          "command_completion_time": "not captured by the yielded PTY result",
+          "conclusion": "numerical_or_physical_gate_failed",
+          "enum_semantic_note": "The required enum name is broader than this observed failure. The actual subclass is pre_simulation_infrastructure; no numerical integration or model-physics gate was evaluated.",
+          "error_id": "MATLAB:badpermission_mx",
+          "error_id_evidence": "The original batch report did not print an identifier; the same R2025a fopen(filePath,'x','n','UTF-8') operation was immediately reproduced in a no-model probe and returned MATLAB:badpermission_mx.",
+          "error_report": "错误使用 fopen\n权限无效。\n\n出错 run_fig519_reactor_ic_counterfactual>writeExclusiveText (第 344 行)\nfile = fopen(filePath, \"x\", \"n\", \"UTF-8\");\n       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n出错 run_fig519_reactor_ic_counterfactual (第 38 行)\nwriteExclusiveText(fullfile(runPath, \"experiment_started.json\"), ...\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+          "experiment_status": "pre_call_wrapper_failure",
+          "failure_point": "after run directory creation and before experiment_started.json creation",
+          "failure_schema": "steady53_fig519_reactor_ic_pre_simulation_failure_v1",
+          "failure_stub": true,
+          "falsification_question_answered": false,
+          "formal_command_invocation_count": 1,
+          "formal_promotion": false,
+          "gate_failure_class": "pre_simulation_infrastructure",
+          "not_raw_simulation_output": true,
+          "paper_reproduced": false,
+          "patch_audit_repository_path": "tmp/fig519_reactor_ic_20260831_A1/patch_audit.json",
+          "patch_audit_sha256": "a576ee9a95a35dcc52ebe41c5bd7e69937370a75c5b985744612f6fdbf733507",
+          "process_exit_code": 1,
+          "raw_simulation_output": null,
+          "rerun_forbidden_without_new_human_approval": true,
+          "retry_count": 0,
+          "run_directory_created_local_time": "2026-09-01T00:06:56+08:00",
+          "run_directory_state_at_failure": {
+            "entries": [],
+            "exists": true,
+            "is_directory": true,
+            "is_symlink": false
+          },
+          "run_steady53_case_call_count": 0,
+          "source_repository_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+          "source_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
+        },
+        "summary_schema": "steady53_fig519_reactor_ic_counterfactual_summary_v1"
+      },
+      "source_summary_sha256": "fbd294ecabe7ffc04b90e1ffc5198335f099fc46ba718cd4f8c57b4b75230950"
+    },
+    {
+      "attempt_id": "20260901_A2",
+      "attempt_summary": {
+        "analysis": {
+          "analysis_schema": "steady53_fig519_reactor_ic_counterfactual_analysis_v1",
+          "attempted_runner_sha256": "5183aa8e0add0ecc409e420ba88723639f5f53c37d42cc8a8288f0c9e186eece",
+          "author_initial_state_identified": false,
+          "candidate_value_W": 3186507.937,
+          "candidate_value_identity": "figure_5_19_digitized_t10_proxy_not_author_t0",
+          "circular_reproduction_counterfactual": true,
+          "conclusion": "reactor_ic_alone_falsified",
+          "counterfactual_question": "Can the full four-power transient be explained by changing the reactor power state alone?",
+          "curves": {
+            "compressor": {
+              "candidate_metrics": {
+                "end_W": 1220910.7244991409,
+                "peak_W": 1220911.488881245,
+                "peak_direction": "rise",
+                "peak_time_s": 22.322351022216385,
+                "peak_to_peak_W": 1.4177304091863334,
+                "samples": 175,
+                "start_W": 1220910.8429325472,
+                "units": "W",
+                "valley_W": 1220910.0711508358,
+                "valley_direction": "fall",
+                "valley_time_s": 6.924705669135155
+              },
+              "paper_comparison": {
+                "candidate_direction_sequence": [],
+                "direction_sequence_match": false,
+                "end_error_kW": 9.410734420416247,
+                "max_abs_error_kW": 56.91144452014305,
+                "paper_direction_sequence": [
+                  "fall",
+                  "rise"
+                ],
+                "paper_points": 15,
+                "peak_time_s": 22.322351022216385,
+                "rmse_kW": 29.450068481857393,
+                "squared_error_contribution_kW2": 13009.598003791354,
+                "start_error_kW": -17.08967821508736,
+                "valley_time_s": 6.924705669135155
+              },
+              "reference_change": {
+                "candidate_peak_to_peak_W": 1.4177304091863334,
+                "end_change_W": 0.07199681713245809,
+                "max_abs_change_W": 0.7834632333833724,
+                "nonflat": false,
+                "nonflat_threshold_W": 2.2659989586099982,
+                "reference_peak_to_peak_noise_W": 0.22659989586099982,
+                "rmse_change_W": 0.17112842433790756,
+                "start_change_W": 0.0
+              }
+            },
+            "electrical_historical_metric": {
+              "candidate_metrics": {
+                "end_W": 1000159.1328736112,
+                "peak_W": 1000200.0274476926,
+                "peak_direction": "rise",
+                "peak_time_s": 6.924705669135155,
+                "peak_to_peak_W": 41.32689207617659,
+                "samples": 175,
+                "start_W": 1000158.891742201,
+                "units": "W",
+                "valley_W": 1000158.7005556164,
+                "valley_direction": "fall",
+                "valley_time_s": 88.11043279952686
+              },
+              "paper_comparison": {
+                "candidate_direction_sequence": [],
+                "direction_sequence_match": false,
+                "end_error_kW": -0.5105259840058807,
+                "max_abs_error_kW": 102.20549327250512,
+                "paper_direction_sequence": [
+                  "rise",
+                  "fall"
+                ],
+                "paper_points": 15,
+                "peak_time_s": 6.924705669135155,
+                "rmse_kW": 30.138464676731513,
+                "squared_error_contribution_kW2": 13624.905796058896,
+                "start_error_kW": 102.20549327250512,
+                "valley_time_s": 88.11043279952686
+              },
+              "reference_change": {
+                "candidate_peak_to_peak_W": 41.32689207617659,
+                "end_change_W": -0.0681769874645397,
+                "max_abs_change_W": 41.146185746067204,
+                "nonflat": true,
+                "nonflat_threshold_W": 3.7356287927832454,
+                "reference_peak_to_peak_noise_W": 0.37356287927832454,
+                "rmse_change_W": 8.51446442775056,
+                "start_change_W": 0.0
+              }
+            },
+            "electrical_paper_eta": {
+              "candidate_metrics": {
+                "end_W": 1015421.540311145,
+                "peak_W": 1015463.0589355711,
+                "peak_direction": "rise",
+                "peak_time_s": 6.924705669135155,
+                "peak_to_peak_W": 41.95753958448768,
+                "samples": 175,
+                "start_W": 1015421.2955000747,
+                "units": "W",
+                "valley_W": 1015421.1013959866,
+                "valley_direction": "fall",
+                "valley_time_s": 88.11043279952686
+              },
+              "paper_comparison": {
+                "candidate_direction_sequence": [],
+                "direction_sequence_match": false,
+                "end_error_kW": 14.75188121154099,
+                "max_abs_error_kW": 117.46847191240272,
+                "paper_direction_sequence": [
+                  "rise",
+                  "fall"
+                ],
+                "paper_points": 15,
+                "peak_time_s": 6.924705669135155,
+                "rmse_kW": 34.55500454745297,
+                "squared_error_contribution_kW2": 17910.725089117426,
+                "start_error_kW": 117.46847191240272,
+                "valley_time_s": 88.11043279952686
+              },
+              "reference_change": {
+                "candidate_peak_to_peak_W": 41.95753958448768,
+                "end_change_W": -0.06921736686490476,
+                "max_abs_change_W": 41.77407567948103,
+                "nonflat": true,
+                "nonflat_threshold_W": 3.7926344096194953,
+                "reference_peak_to_peak_noise_W": 0.3792634409619495,
+                "rmse_change_W": 8.64439497673653,
+                "start_change_W": 0.0
+              }
+            },
+            "reactor": {
+              "candidate_metrics": {
+                "end_W": 2660960.8657651017,
+                "peak_W": 3186507.937,
+                "peak_direction": "flat",
+                "peak_time_s": 0.0,
+                "peak_to_peak_W": 525773.1738694292,
+                "samples": 175,
+                "start_W": 3186507.937,
+                "units": "W",
+                "valley_W": 2660734.7631305708,
+                "valley_direction": "fall",
+                "valley_time_s": 16.150588661729692
+              },
+              "paper_comparison": {
+                "candidate_direction_sequence": [],
+                "direction_sequence_match": false,
+                "end_error_kW": -5.705804337794234,
+                "max_abs_error_kW": 525.7363733734537,
+                "paper_direction_sequence": [
+                  "fall"
+                ],
+                "paper_points": 15,
+                "peak_time_s": 0.0,
+                "rmse_kW": 237.6560876219371,
+                "squared_error_contribution_kW2": 847206.2397564878,
+                "start_error_kW": -525.7363733734537,
+                "valley_time_s": 16.150588661729692
+              },
+              "reference_change": {
+                "candidate_peak_to_peak_W": 525773.1738694292,
+                "end_change_W": -0.055754346773028374,
+                "max_abs_change_W": 525547.0228953296,
+                "nonflat": true,
+                "nonflat_threshold_W": 0.5141158541664481,
+                "reference_peak_to_peak_noise_W": 0.05141158541664481,
+                "rmse_change_W": 78261.95646587611,
+                "start_change_W": 525547.0228953296
+              }
+            },
+            "turbine": {
+              "candidate_metrics": {
+                "end_W": 2257055.1533880644,
+                "peak_W": 2257096.8659830512,
+                "peak_direction": "rise",
+                "peak_time_s": 6.924705669135155,
+                "peak_to_peak_W": 42.23831869335845,
+                "samples": 175,
+                "start_W": 2257055.022014256,
+                "units": "W",
+                "valley_W": 2257054.627664358,
+                "valley_direction": "fall",
+                "valley_time_s": 85.40695519968457
+              },
+              "paper_comparison": {
+                "candidate_direction_sequence": [],
+                "direction_sequence_match": false,
+                "end_error_kW": 44.86506388117232,
+                "max_abs_error_kW": 126.51501683838478,
+                "paper_direction_sequence": [
+                  "rise"
+                ],
+                "paper_points": 15,
+                "peak_time_s": 6.924705669135155,
+                "rmse_kW": 63.97522843651207,
+                "squared_error_contribution_kW2": 61392.447802558534,
+                "start_error_kW": 126.51501683838478,
+                "valley_time_s": 85.40695519968457
+              },
+              "reference_change": {
+                "candidate_peak_to_peak_W": 42.23831869335845,
+                "end_change_W": 0.001366850920021534,
+                "max_abs_change_W": 41.843144602607936,
+                "nonflat": true,
+                "nonflat_threshold_W": 1.609319536946714,
+                "reference_peak_to_peak_noise_W": 0.1609319536946714,
+                "rmse_change_W": 8.807450038910998,
+                "start_change_W": 0.0
+              }
+            }
+          },
+          "direction_gate": {
+            "all_four_panels_match": false,
+            "panels": {
+              "a": {
+                "candidate_sequence": [],
+                "match": false,
+                "paper_sequence": [
+                  "fall"
+                ],
+                "signal": "reactor"
+              },
+              "b": {
+                "candidate_sequence": [],
+                "match": false,
+                "paper_sequence": [
+                  "rise"
+                ],
+                "signal": "turbine"
+              },
+              "c": {
+                "candidate_sequence": [],
+                "match": false,
+                "paper_sequence": [
+                  "fall",
+                  "rise"
+                ],
+                "signal": "compressor"
+              },
+              "d": {
+                "candidate_sequence": [],
+                "match": false,
+                "paper_sequence": [
+                  "rise",
+                  "fall"
+                ],
+                "signal": "electrical_paper_eta"
+              }
+            }
+          },
+          "direction_rule": {
+            "candidate_threshold_declared_before_experiment": true,
+            "classification": "rise if delta>allowance; fall if delta<-allowance; otherwise flat",
+            "compression": "collapse consecutive identical non-flat directions",
+            "flat_handling": "discard_before_compression",
+            "input": "successive fixed digitized/model samples in increasing time",
+            "threshold": "panel_power_allowance_kW"
+          },
+          "falsification_question_answered": true,
+          "formal_command_invocation_count": 1,
+          "formal_promotion": false,
+          "gate_failure_class": null,
+          "gate_failure_enum_semantic_note": null,
+          "nonflat_gate": {
+            "all_required_nonflat": false,
+            "signals": {
+              "compressor": false,
+              "electrical_paper_eta": true,
+              "reactor": true,
+              "turbine": true
+            }
+          },
+          "nonflat_rule": {
+            "declared_before_candidate_result": true,
+            "formula": "candidate peak-to-peak > ratio * unmodified reference peak-to-peak noise",
+            "ratio": 10.0
+          },
+          "numerical_or_physical_gate_passed": true,
+          "paper_reproduced": false,
+          "post_fix_runner_executed_in_formal_attempt": true,
+          "post_fix_runner_sha256": "5183aa8e0add0ecc409e420ba88723639f5f53c37d42cc8a8288f0c9e186eece",
+          "retry_count": 0,
+          "run_steady53_case_call_count": 1
+        },
+        "author_initial_state_identified": false,
+        "experiment_evidence_kind": "completed_runner_status_and_raw_output",
+        "external_artifacts": [
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/candidate.slx",
+            "bytes": 617389,
+            "identity": "candidate_slx",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/candidate.slx",
+            "sha256": "1b142a979b4891c833e8625161b1cc75342064326124679458e2d6436f670511",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/patch_audit.json",
+            "bytes": 38942,
+            "identity": "patch_audit",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/patch_audit.json",
+            "sha256": "aad41b70e3bc931ea1b769489d99d87cd52750f6f0a9eaa1b3b97d73ed0e580e",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/raw_result.mat",
+            "bytes": 305328,
+            "identity": "raw_result",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/raw_result.mat",
+            "sha256": "8a14e233c16d986cfbae8d83853e02f2794b9f2866b5a21553fe18dd4364bcfc",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/run_status.json",
+            "bytes": 44480,
+            "identity": "run_status",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/run_status.json",
+            "sha256": "87f8135081ed1292580814b29cd7f75087937a81a1a14e71701a5b1779e1ccb1",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/candidate_curves.csv",
+            "bytes": 12547,
+            "identity": "candidate_curves",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/candidate_curves.csv",
+            "sha256": "0ce17a5f0616117f70cd606f419e1fd117b8df5bc30fb98d47b4aee9b6022cd5",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/reference_curves.csv",
+            "bytes": 11657,
+            "identity": "reference_curves",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/reference_curves.csv",
+            "sha256": "2b84c50e605724c7792cb263ab48ce4d302c0d1a0e1c73e828d91be7e7813a50",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/analysis.json",
+            "bytes": 9683,
+            "identity": "analysis",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/analysis.json",
+            "sha256": "2575ec31a01ab04f55f273b02e3b74cc5d4c7476321bec5eafbc9b7f9f0c7c96",
+            "storage": "external_tmp_not_copied"
+          }
+        ],
+        "external_storage_note": "candidate/raw/CSV/run audit remain in tmp and are not copied to durable publication",
+        "formal_promotion": false,
+        "paper_reproduced": false,
+        "patch_audit": {
+          "author_initial_state_identified": false,
+          "candidate_absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/candidate.slx",
+          "candidate_repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/candidate.slx",
+          "candidate_sha256": "1b142a979b4891c833e8625161b1cc75342064326124679458e2d6436f670511",
+          "candidate_value_W": 3186507.937,
+          "candidate_value_identity": "figure_5_19_digitized_t10_proxy_not_author_t0",
+          "changed_blocks": [
+            "reactor/Integrator6"
+          ],
+          "changed_parameters": [
+            "InitialCondition"
+          ],
+          "circular_counterfactual": true,
+          "counterfactual_question": "Can the full four-power transient be explained by changing the reactor power state alone?",
+          "formal_promotion": false,
+          "mat_files": [
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "hexe_compressor_lookup.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "radiator_table.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "turbine_table1.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+              "after_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "before_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "name": "turbine_table2.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+              "unchanged": true
+            }
+          ],
+          "paper_point": {
+            "conversion": "1000*power_kW",
+            "is_author_t0": false,
+            "limitation": "digitized t=10 proxy; not an author t0 value",
+            "panel_id": "a",
+            "power_kW": 3186.507937,
+            "time_s": 10
+          },
+          "paper_reproduced": false,
+          "patch_schema": "steady53_fig519_reactor_ic_counterfactual_patch_v1",
+          "property_files": [
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "HeXe_property_simulink.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+              "after_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "before_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "name": "Lithium_property_simulink.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+              "unchanged": true
+            }
+          ],
+          "protected_files": [
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/HeXe_property_simulink.m",
+              "repository_relative_path": "HeXe_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/Lithium_property_simulink.m",
+              "after_sha256": "f0c2aad44e8701212e924371fe027d7b3814a32cd5df3a32f8a0ccf09abb7f1c",
+              "before_sha256": "f0c2aad44e8701212e924371fe027d7b3814a32cd5df3a32f8a0ccf09abb7f1c",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/Lithium_property_simulink.m",
+              "repository_relative_path": "Lithium_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/final_steady_24a.slx",
+              "after_sha256": "a93cd94b6c5a0c941fe9eed40d8aea779019cbdb26fe2558df65f7c81c9dc159",
+              "before_sha256": "a93cd94b6c5a0c941fe9eed40d8aea779019cbdb26fe2558df65f7c81c9dc159",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/final_steady_24a.slx",
+              "repository_relative_path": "final_steady_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/hexe_compressor_lookup.mat",
+              "repository_relative_path": "hexe_compressor_lookup.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/paper54_constants.m",
+              "after_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "before_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/paper54_constants.m",
+              "repository_relative_path": "paper54_constants.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/radiator_table.mat",
+              "repository_relative_path": "radiator_table.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/start.m",
+              "after_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "before_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/start.m",
+              "repository_relative_path": "start.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/sys_param_rad_fixed.m",
+              "after_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "before_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/sys_param_rad_fixed.m",
+              "repository_relative_path": "sys_param_rad_fixed.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+              "after_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "before_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+              "after_sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790",
+              "before_sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+              "after_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+              "before_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_steady_24a.slx",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+              "after_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "before_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+              "after_sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017",
+              "before_sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+              "after_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "before_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+              "after_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "before_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+              "after_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "before_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+              "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table1.mat",
+              "repository_relative_path": "turbine_table1.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table2.mat",
+              "after_sha256": "cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33",
+              "before_sha256": "cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table2.mat",
+              "repository_relative_path": "turbine_table2.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/HeXe_property_simulink.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/Lithium_property_simulink.m",
+              "after_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "before_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/Lithium_property_simulink.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+              "after_sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790",
+              "before_sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/final_dynamic_24a.slx",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+              "after_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+              "before_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/final_steady_24a.slx",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/hexe_compressor_lookup.mat",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/paper54_constants.m",
+              "after_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "before_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/paper54_constants.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/radiator_table.mat",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/run_steady53.m",
+              "after_sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017",
+              "before_sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/run_steady53.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/start.m",
+              "after_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "before_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/start.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/sys_param_rad_fixed.m",
+              "after_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "before_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/sys_param_rad_fixed.m",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table1.mat",
+              "repository_relative_path": "",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table2.mat",
+              "after_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "before_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table2.mat",
+              "repository_relative_path": "",
+              "unchanged": true
+            }
+          ],
+          "protected_manifest_sha256": "33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64",
+          "runtime_dependencies": [
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+              "after_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "before_sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+              "name": "HeXe_property_simulink.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+              "after_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "before_sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+              "name": "Lithium_property_simulink.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+              "after_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "before_sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+              "name": "hexe_compressor_lookup.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+              "after_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "before_sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+              "name": "radiator_table.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+              "after_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "before_sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+              "name": "turbine_table1.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+              "after_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "before_sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+              "name": "turbine_table2.mat",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/paper54_constants.m",
+              "after_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "before_sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+              "name": "paper54_constants.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/paper54_constants.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m",
+              "after_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "before_sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+              "name": "sys_param_rad_fixed.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m",
+              "unchanged": true
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/start.m",
+              "after_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "before_sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+              "name": "start.m",
+              "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/start.m",
+              "unchanged": true
+            }
+          ],
+          "semantic_snapshot": {
+            "candidate": {
+              "block_count": 1233,
+              "block_fingerprint": "c2a231697c9e982b43e3dacb13af08aa732f01e147da328781a048ef225b91f5",
+              "edge_count": 975,
+              "edge_fingerprint": "62baefb01731419d7b0379f3f11ae06657168dfb867297aeccc3f525dd5a5762"
+            },
+            "source": {
+              "block_count": 1233,
+              "block_fingerprint": "c2a231697c9e982b43e3dacb13af08aa732f01e147da328781a048ef225b91f5",
+              "edge_count": 975,
+              "edge_fingerprint": "62baefb01731419d7b0379f3f11ae06657168dfb867297aeccc3f525dd5a5762"
+            },
+            "unchanged": true
+          },
+          "solver_contract": {
+            "parameter_count": 37,
+            "parameters": [
+              {
+                "name": "StartTime",
+                "value": "0.0"
+              },
+              {
+                "name": "StopTime",
+                "value": "14000"
+              },
+              {
+                "name": "SolverName",
+                "value": "ode15s"
+              },
+              {
+                "name": "SolverType",
+                "value": "Variable-step"
+              },
+              {
+                "name": "FixedStep",
+                "value": "auto"
+              },
+              {
+                "name": "MaxStep",
+                "value": "auto"
+              },
+              {
+                "name": "MinStep",
+                "value": "auto"
+              },
+              {
+                "name": "InitialStep",
+                "value": "auto"
+              },
+              {
+                "name": "MaxOrder",
+                "value": "5"
+              },
+              {
+                "name": "RelTol",
+                "value": "1e-3"
+              },
+              {
+                "name": "AbsTol",
+                "value": "auto"
+              },
+              {
+                "name": "AutoScaleAbsTol",
+                "value": "on"
+              },
+              {
+                "name": "Refine",
+                "value": "1"
+              },
+              {
+                "name": "NumberNewtonIterations",
+                "value": "1"
+              },
+              {
+                "name": "ShapePreserveControl",
+                "value": "DisableAll"
+              },
+              {
+                "name": "ZeroCrossControl",
+                "value": "UseLocalSettings"
+              },
+              {
+                "name": "ZeroCrossAlgorithm",
+                "value": "Nonadaptive"
+              },
+              {
+                "name": "ZcThreshold",
+                "value": "auto"
+              },
+              {
+                "name": "ConsecutiveZCsStepRelTol",
+                "value": "10*128*eps"
+              },
+              {
+                "name": "MaxConsecutiveZCs",
+                "value": "1000"
+              },
+              {
+                "name": "MaxZcPerStep",
+                "value": "2"
+              },
+              {
+                "name": "MaxZcBracketingIterations",
+                "value": "10"
+              },
+              {
+                "name": "EnableFixedStepZeroCrossing",
+                "value": "off"
+              },
+              {
+                "name": "MinStepSizeMsg",
+                "value": "warning"
+              },
+              {
+                "name": "SolverPrmCheckMsg",
+                "value": "none"
+              },
+              {
+                "name": "AlgebraicLoopMsg",
+                "value": "warning"
+              },
+              {
+                "name": "ArtificialAlgebraicLoopMsg",
+                "value": "warning"
+              },
+              {
+                "name": "ConsistencyChecking",
+                "value": "none"
+              },
+              {
+                "name": "DaesscMode",
+                "value": "auto"
+              },
+              {
+                "name": "ODENIntegrationMethod",
+                "value": "ode3"
+              },
+              {
+                "name": "ExtrapolationOrder",
+                "value": "4"
+              },
+              {
+                "name": "StateRefinementMethod",
+                "value": "solver-interpolation"
+              },
+              {
+                "name": "SolverJacobianMethodControl",
+                "value": "auto"
+              },
+              {
+                "name": "SolverResetMethod",
+                "value": "Fast"
+              },
+              {
+                "name": "DecoupledContinuousIntegration",
+                "value": "off"
+              },
+              {
+                "name": "UseModelRefSolver",
+                "value": "off"
+              },
+              {
+                "name": "EnableMultiTasking",
+                "value": "off"
+              }
+            ],
+            "unchanged": true
+          },
+          "source_absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+          "source_hash_unchanged": true,
+          "source_repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+          "source_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+          "source_sha256_after": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+          "state_count": 40,
+          "state_initial_conditions": [
+            {
+              "candidate_expression": "1458.2400006378589",
+              "path": "IHX/IHX_region_1/T_c1_average_Integrator",
+              "source_expression": "1458.2400006378589",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1522.8762873625776",
+              "path": "IHX/IHX_region_1/T_c2_out_Integrator",
+              "source_expression": "1522.8762873625776",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1566.8123914550606",
+              "path": "IHX/IHX_region_1/T_h1_average_Integrator",
+              "source_expression": "1566.8123914550606",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1544.6784341826062",
+              "path": "IHX/IHX_region_1/T_h2_out_Integrator",
+              "source_expression": "1544.6784341826062",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1555.9547816852855",
+              "path": "IHX/IHX_region_1/T_wall_Integrator",
+              "source_expression": "1555.9547816852855",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1245.8184669844006",
+              "path": "IHX/IHX_region_2/T_c1_average_Integrator",
+              "source_expression": "1245.8184669844006",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1393.6037139151003",
+              "path": "IHX/IHX_region_2/T_c2_out_Integrator",
+              "source_expression": "1393.6037139151003",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1494.0696022025936",
+              "path": "IHX/IHX_region_2/T_h1_average_Integrator",
+              "source_expression": "1494.0696022025936",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1443.4607702226581",
+              "path": "IHX/IHX_region_2/T_h2_out_Integrator",
+              "source_expression": "1443.4607702226581",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1469.2436410947309",
+              "path": "IHX/IHX_region_2/T_wall_Integrator",
+              "source_expression": "1469.2436410947309",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "55090",
+              "path": "TAC/rotor/N_rpm_Integrator",
+              "source_expression": "55090",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "545.7329915378557",
+              "path": "precooler/precooler_1/T_c1_average_Integrator",
+              "source_expression": "545.7329915378557",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "611.57676479754946",
+              "path": "precooler/precooler_1/T_c2_out_Integrator",
+              "source_expression": "611.57676479754946",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "594.86709308142633",
+              "path": "precooler/precooler_1/T_h1_average_Integrator",
+              "source_expression": "594.86709308142633",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "528.91021598735142",
+              "path": "precooler/precooler_1/T_h2_out_Integrator",
+              "source_expression": "528.91021598735142",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "546.44198026309198",
+              "path": "precooler/precooler_1/T_wall_Integrator",
+              "source_expression": "546.44198026309198",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "418.75053506849412",
+              "path": "precooler/precooler_2/T_c1_average_Integrator",
+              "source_expression": "418.75053506849412",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "479.88921827813124",
+              "path": "precooler/precooler_2/T_c2_out_Integrator",
+              "source_expression": "479.88921827813124",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "465.7869648085188",
+              "path": "precooler/precooler_2/T_h1_average_Integrator",
+              "source_expression": "465.7869648085188",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "402.66371363139297",
+              "path": "precooler/precooler_2/T_h2_out_Integrator",
+              "source_expression": "402.66371363139297",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "419.42925508558875",
+              "path": "precooler/precooler_2/T_wall_Integrator",
+              "source_expression": "419.42925508558875",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "509563538.35378009",
+              "path": "reactor/Integrator",
+              "source_expression": "509563538.35378009",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1144297134.5374382",
+              "path": "reactor/Integrator1",
+              "source_expression": "1144297134.5374382",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "278405927.94625711",
+              "path": "reactor/Integrator2",
+              "source_expression": "278405927.94625711",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "222870449.79609099",
+              "path": "reactor/Integrator3",
+              "source_expression": "222870449.79609099",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "15570422.720039152",
+              "path": "reactor/Integrator4",
+              "source_expression": "15570422.720039152",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1144144.4343794831",
+              "path": "reactor/Integrator5",
+              "source_expression": "1144144.4343794831",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "3186507.9369999999",
+              "path": "reactor/Integrator6",
+              "source_expression": "2660960.9141046703",
+              "unchanged": false
+            },
+            {
+              "candidate_expression": "1721.8648882133552",
+              "path": "reactor/Integrator7",
+              "source_expression": "1721.8648882133552",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "973.10015023326082",
+              "path": "recuperator/MannRegion_1/T_c1_average_Integrator",
+              "source_expression": "973.10015023326082",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1098.0332200511998",
+              "path": "recuperator/MannRegion_1/T_c2_out_Integrator",
+              "source_expression": "1098.0332200511998",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1035.4335921350307",
+              "path": "recuperator/MannRegion_1/T_h1_average_Integrator",
+              "source_expression": "1035.4335921350307",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "910.48054303365655",
+              "path": "recuperator/MannRegion_1/T_h2_out_Integrator",
+              "source_expression": "910.48054303365655",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "1004.3258841003104",
+              "path": "recuperator/MannRegion_1/T_wall_Integrator",
+              "source_expression": "1004.3258841003104",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "723.37593583663499",
+              "path": "recuperator/MannRegion_2/T_c1_average_Integrator",
+              "source_expression": "723.37593583663499",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "848.16708041554273",
+              "path": "recuperator/MannRegion_2/T_c2_out_Integrator",
+              "source_expression": "848.16708041554273",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "785.65225660536589",
+              "path": "recuperator/MannRegion_2/T_h1_average_Integrator",
+              "source_expression": "785.65225660536589",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "660.82397017724622",
+              "path": "recuperator/MannRegion_2/T_h2_out_Integrator",
+              "source_expression": "660.82397017724622",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "754.57305466037838",
+              "path": "recuperator/MannRegion_2/T_wall_Integrator",
+              "source_expression": "754.57305466037838",
+              "unchanged": true
+            },
+            {
+              "candidate_expression": "416.60796744255316",
+              "path": "rediator/T_rad_Integrator",
+              "source_expression": "416.60796744255316",
+              "unchanged": true
+            }
+          ]
+        },
+        "run_status": {
+          "artifacts": [
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/candidate.slx",
+              "bytes": 617389,
+              "identity": "candidate_slx",
+              "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/candidate.slx",
+              "sha256": "1b142a979b4891c833e8625161b1cc75342064326124679458e2d6436f670511",
+              "storage": "external_tmp_not_copied"
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/patch_audit.json",
+              "bytes": 38942,
+              "identity": "patch_audit",
+              "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/patch_audit.json",
+              "sha256": "aad41b70e3bc931ea1b769489d99d87cd52750f6f0a9eaa1b3b97d73ed0e580e",
+              "storage": "external_tmp_not_copied"
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/raw_result.mat",
+              "bytes": 305328,
+              "identity": "raw_result",
+              "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/raw_result.mat",
+              "sha256": "8a14e233c16d986cfbae8d83853e02f2794b9f2866b5a21553fe18dd4364bcfc",
+              "storage": "external_tmp_not_copied"
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/reference_curves.csv",
+              "bytes": 11657,
+              "identity": "reference_curves",
+              "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/reference_curves.csv",
+              "sha256": "2b84c50e605724c7792cb263ab48ce4d302c0d1a0e1c73e828d91be7e7813a50",
+              "storage": "external_tmp_not_copied"
+            },
+            {
+              "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/candidate_curves.csv",
+              "bytes": 12547,
+              "identity": "candidate_curves",
+              "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/candidate_curves.csv",
+              "sha256": "0ce17a5f0616117f70cd606f419e1fd117b8df5bc30fb98d47b4aee9b6022cd5",
+              "storage": "external_tmp_not_copied"
+            }
+          ],
+          "author_initial_state_identified": false,
+          "candidate_error_id": "",
+          "candidate_error_report": "",
+          "candidate_final_time_s": 500,
+          "candidate_success": true,
+          "completed_at_utc": "2026-08-31T17:37:08.982Z",
+          "experiment_status": "completed_success",
+          "formal_promotion": false,
+          "identity_after": {
+            "candidate_sha256": "1b142a979b4891c833e8625161b1cc75342064326124679458e2d6436f670511",
+            "mat_files": [
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+                "name": "hexe_compressor_lookup.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+                "name": "radiator_table.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+                "name": "turbine_table1.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+                "name": "turbine_table2.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+                "sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38"
+              }
+            ],
+            "property_files": [
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+                "name": "HeXe_property_simulink.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+                "name": "Lithium_property_simulink.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+                "sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f"
+              }
+            ],
+            "protected_files": [
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/HeXe_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/HeXe_property_simulink.m",
+                "repository_relative_path": "HeXe_property_simulink.m",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/Lithium_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/Lithium_property_simulink.m",
+                "repository_relative_path": "Lithium_property_simulink.m",
+                "sha256": "f0c2aad44e8701212e924371fe027d7b3814a32cd5df3a32f8a0ccf09abb7f1c"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/final_steady_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/final_steady_24a.slx",
+                "repository_relative_path": "final_steady_24a.slx",
+                "sha256": "a93cd94b6c5a0c941fe9eed40d8aea779019cbdb26fe2558df65f7c81c9dc159"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/hexe_compressor_lookup.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/hexe_compressor_lookup.mat",
+                "repository_relative_path": "hexe_compressor_lookup.mat",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/paper54_constants.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/paper54_constants.m",
+                "repository_relative_path": "paper54_constants.m",
+                "sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/radiator_table.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/radiator_table.mat",
+                "repository_relative_path": "radiator_table.mat",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/start.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/start.m",
+                "repository_relative_path": "start.m",
+                "sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/sys_param_rad_fixed.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/sys_param_rad_fixed.m",
+                "repository_relative_path": "sys_param_rad_fixed.m",
+                "sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+                "sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+                "sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_steady_24a.slx",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+                "sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+                "sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+                "sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+                "sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+                "sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+                "sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table1.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table1.mat",
+                "repository_relative_path": "turbine_table1.mat",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table2.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table2.mat",
+                "repository_relative_path": "turbine_table2.mat",
+                "sha256": "cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/HeXe_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/HeXe_property_simulink.m",
+                "repository_relative_path": "",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/Lithium_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/Lithium_property_simulink.m",
+                "repository_relative_path": "",
+                "sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/final_dynamic_24a.slx",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+                "sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/final_steady_24a.slx",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+                "sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/hexe_compressor_lookup.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/hexe_compressor_lookup.mat",
+                "repository_relative_path": "",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/paper54_constants.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/paper54_constants.m",
+                "repository_relative_path": "",
+                "sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/radiator_table.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/radiator_table.mat",
+                "repository_relative_path": "",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/run_steady53.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/run_steady53.m",
+                "repository_relative_path": "",
+                "sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/start.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/start.m",
+                "repository_relative_path": "",
+                "sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/sys_param_rad_fixed.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/sys_param_rad_fixed.m",
+                "repository_relative_path": "",
+                "sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table1.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table1.mat",
+                "repository_relative_path": "",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table2.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table2.mat",
+                "repository_relative_path": "",
+                "sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38"
+              }
+            ],
+            "runtime_dependencies": [
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+                "name": "HeXe_property_simulink.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+                "name": "Lithium_property_simulink.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+                "sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+                "name": "hexe_compressor_lookup.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+                "name": "radiator_table.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+                "name": "turbine_table1.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+                "name": "turbine_table2.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+                "sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/paper54_constants.m",
+                "name": "paper54_constants.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/paper54_constants.m",
+                "sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m",
+                "name": "sys_param_rad_fixed.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m",
+                "sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/start.m",
+                "name": "start.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/start.m",
+                "sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec"
+              }
+            ],
+            "source_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
+          },
+          "identity_before": {
+            "candidate_sha256": "1b142a979b4891c833e8625161b1cc75342064326124679458e2d6436f670511",
+            "mat_files": [
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+                "name": "hexe_compressor_lookup.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+                "name": "radiator_table.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+                "name": "turbine_table1.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+                "name": "turbine_table2.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+                "sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38"
+              }
+            ],
+            "property_files": [
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+                "name": "HeXe_property_simulink.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+                "name": "Lithium_property_simulink.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+                "sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f"
+              }
+            ],
+            "protected_files": [
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/HeXe_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/HeXe_property_simulink.m",
+                "repository_relative_path": "HeXe_property_simulink.m",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/Lithium_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/Lithium_property_simulink.m",
+                "repository_relative_path": "Lithium_property_simulink.m",
+                "sha256": "f0c2aad44e8701212e924371fe027d7b3814a32cd5df3a32f8a0ccf09abb7f1c"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/final_steady_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/final_steady_24a.slx",
+                "repository_relative_path": "final_steady_24a.slx",
+                "sha256": "a93cd94b6c5a0c941fe9eed40d8aea779019cbdb26fe2558df65f7c81c9dc159"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/hexe_compressor_lookup.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/hexe_compressor_lookup.mat",
+                "repository_relative_path": "hexe_compressor_lookup.mat",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/paper54_constants.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/paper54_constants.m",
+                "repository_relative_path": "paper54_constants.m",
+                "sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/radiator_table.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/radiator_table.mat",
+                "repository_relative_path": "radiator_table.mat",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/start.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/start.m",
+                "repository_relative_path": "start.m",
+                "sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/sys_param_rad_fixed.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/sys_param_rad_fixed.m",
+                "repository_relative_path": "sys_param_rad_fixed.m",
+                "sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/HeXe_property_simulink.m",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/Lithium_property_simulink.m",
+                "sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/final_dynamic_24a.slx",
+                "sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/final_steady_24a.slx",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+                "sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/hexe_compressor_lookup.mat",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/paper54_constants.m",
+                "sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/radiator_table.mat",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/run_steady53.m",
+                "sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/start.m",
+                "sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/sys_param_rad_fixed.m",
+                "sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/turbine_table1.mat",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+                "repository_relative_path": "tmp/steady53_curves_20260828/source_f8bcd83/turbine_table2.mat",
+                "sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table1.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table1.mat",
+                "repository_relative_path": "turbine_table1.mat",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table2.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/turbine_table2.mat",
+                "repository_relative_path": "turbine_table2.mat",
+                "sha256": "cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/HeXe_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/HeXe_property_simulink.m",
+                "repository_relative_path": "",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/Lithium_property_simulink.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/Lithium_property_simulink.m",
+                "repository_relative_path": "",
+                "sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/final_dynamic_24a.slx",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
+                "sha256": "2bed798bcd3d32c15b7771907e8cd5452aa4171a0b87335af7c8769ed6987790"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/final_steady_24a.slx",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+                "sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/hexe_compressor_lookup.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/hexe_compressor_lookup.mat",
+                "repository_relative_path": "",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/paper54_constants.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/paper54_constants.m",
+                "repository_relative_path": "",
+                "sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/radiator_table.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/radiator_table.mat",
+                "repository_relative_path": "",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/run_steady53.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/run_steady53.m",
+                "repository_relative_path": "",
+                "sha256": "90ad7b254695f62655b46000be76960f226db8862fe37b19d47cb4cb7d8cb017"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/start.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/start.m",
+                "repository_relative_path": "",
+                "sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/sys_param_rad_fixed.m",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/sys_param_rad_fixed.m",
+                "repository_relative_path": "",
+                "sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table1.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table1.mat",
+                "repository_relative_path": "",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table2.mat",
+                "name": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型_副本/turbine_table2.mat",
+                "repository_relative_path": "",
+                "sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38"
+              }
+            ],
+            "runtime_dependencies": [
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+                "name": "HeXe_property_simulink.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/HeXe_property_simulink.m",
+                "sha256": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+                "name": "Lithium_property_simulink.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/Lithium_property_simulink.m",
+                "sha256": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+                "name": "hexe_compressor_lookup.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/hexe_compressor_lookup.mat",
+                "sha256": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+                "name": "radiator_table.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/radiator_table.mat",
+                "sha256": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+                "name": "turbine_table1.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table1.mat",
+                "sha256": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+                "name": "turbine_table2.mat",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/turbine_table2.mat",
+                "sha256": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/paper54_constants.m",
+                "name": "paper54_constants.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/paper54_constants.m",
+                "sha256": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m",
+                "name": "sys_param_rad_fixed.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/sys_param_rad_fixed.m",
+                "sha256": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b"
+              },
+              {
+                "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/data/provenance/baselines/f8bcd83/runtime/start.m",
+                "name": "start.m",
+                "repository_relative_path": "data/provenance/baselines/f8bcd83/runtime/start.m",
+                "sha256": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec"
+              }
+            ],
+            "source_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
+          },
+          "identity_unchanged": true,
+          "paper_reproduced": false,
+          "rerun_forbidden": true,
+          "retry_count": 0,
+          "run_schema": "steady53_fig519_reactor_ic_counterfactual_run_v1",
+          "run_steady53_case_call_count": 1,
+          "runner_exception_id": "",
+          "runner_exception_report": "",
+          "started_at_utc": "2026-08-31T17:36:50.606Z"
+        },
+        "summary_schema": "steady53_fig519_reactor_ic_counterfactual_summary_v1"
+      },
+      "execution_record": {
+        "a2_artifacts": {
+          "candidate.slx": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/candidate.slx",
+            "bytes": 617389,
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/candidate.slx",
+            "root_relative_path": "candidate.slx",
+            "sha256": "1b142a979b4891c833e8625161b1cc75342064326124679458e2d6436f670511",
+            "storage": "external_tmp_not_copied"
+          },
+          "patch_audit.json": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/patch_audit.json",
+            "bytes": 38942,
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/patch_audit.json",
+            "root_relative_path": "patch_audit.json",
+            "sha256": "aad41b70e3bc931ea1b769489d99d87cd52750f6f0a9eaa1b3b97d73ed0e580e",
+            "storage": "external_tmp_not_copied"
+          },
+          "run/candidate_curves.csv": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/candidate_curves.csv",
+            "bytes": 12547,
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/candidate_curves.csv",
+            "root_relative_path": "run/candidate_curves.csv",
+            "sha256": "0ce17a5f0616117f70cd606f419e1fd117b8df5bc30fb98d47b4aee9b6022cd5",
+            "storage": "external_tmp_not_copied"
+          },
+          "run/experiment_started.json": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/experiment_started.json",
+            "bytes": 216,
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/experiment_started.json",
+            "root_relative_path": "run/experiment_started.json",
+            "sha256": "50d916248b99ddefb259e4c11928c9db3e5005496669393e9359f135439606cd",
+            "storage": "external_tmp_not_copied"
+          },
+          "run/raw_result.mat": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/raw_result.mat",
+            "bytes": 305328,
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/raw_result.mat",
+            "root_relative_path": "run/raw_result.mat",
+            "sha256": "8a14e233c16d986cfbae8d83853e02f2794b9f2866b5a21553fe18dd4364bcfc",
+            "storage": "external_tmp_not_copied"
+          },
+          "run/reference_curves.csv": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/reference_curves.csv",
+            "bytes": 11657,
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/reference_curves.csv",
+            "root_relative_path": "run/reference_curves.csv",
+            "sha256": "2b84c50e605724c7792cb263ab48ce4d302c0d1a0e1c73e828d91be7e7813a50",
+            "storage": "external_tmp_not_copied"
+          },
+          "run/run_status.json": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2/run/run_status.json",
+            "bytes": 44480,
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2/run/run_status.json",
+            "root_relative_path": "run/run_status.json",
+            "sha256": "87f8135081ed1292580814b29cd7f75087937a81a1a14e71701a5b1779e1ccb1",
+            "storage": "external_tmp_not_copied"
+          }
+        },
+        "attempt_id": "20260901_A2",
+        "attempted_runner_sha256": "5183aa8e0add0ecc409e420ba88723639f5f53c37d42cc8a8288f0c9e186eece",
+        "author_initial_state_identified": false,
+        "candidate_final_time_s": 500,
+        "candidate_generator_sha256": "cf1df586beec5366a1349660803a574866ed7ff48dcc96b6fb66fa5465900ddf",
+        "candidate_success": true,
+        "candidate_value_W": 3186507.937,
+        "candidate_value_identity": "figure_5_19_digitized_t10_proxy_not_author_t0",
+        "capture_artifacts": [
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/SHA256SUMS",
+            "bytes": 251,
+            "name": "SHA256SUMS",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/SHA256SUMS",
+            "root_relative_path": "SHA256SUMS",
+            "sha256": "ab07034e00213736af7c46ff7d76e4b045dfd00f67c34580fa0e96a2e15218fa",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/attempted_runner.m",
+            "bytes": 16658,
+            "name": "attempted_runner.m",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/attempted_runner.m",
+            "root_relative_path": "attempted_runner.m",
+            "sha256": "5183aa8e0add0ecc409e420ba88723639f5f53c37d42cc8a8288f0c9e186eece",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/candidate_generator.m",
+            "bytes": 23419,
+            "name": "candidate_generator.m",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/candidate_generator.m",
+            "root_relative_path": "candidate_generator.m",
+            "sha256": "cf1df586beec5366a1349660803a574866ed7ff48dcc96b6fb66fa5465900ddf",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/command.txt",
+            "bytes": 346,
+            "name": "command.txt",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/command.txt",
+            "root_relative_path": "command.txt",
+            "sha256": "67b60ab7780e80197aad005f186d28d10daf3c2961cdaf3d4559973a971b0e8f",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/command_completed_at_utc.txt",
+            "bytes": 28,
+            "name": "command_completed_at_utc.txt",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/command_completed_at_utc.txt",
+            "root_relative_path": "command_completed_at_utc.txt",
+            "sha256": "9bea87c1e2a56919f9fe8da88918d22c237fed70e2a9f9d4b935ef6b3ddfe280",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/command_started_at_utc.txt",
+            "bytes": 28,
+            "name": "command_started_at_utc.txt",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/command_started_at_utc.txt",
+            "root_relative_path": "command_started_at_utc.txt",
+            "sha256": "a81f6bb481e4a995f47dc1fe859a3978b070e21948ed082c95e810f68de5afb7",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/formal_command_invocation_count.txt",
+            "bytes": 2,
+            "name": "formal_command_invocation_count.txt",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/formal_command_invocation_count.txt",
+            "root_relative_path": "formal_command_invocation_count.txt",
+            "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/formal_exit_code.txt",
+            "bytes": 2,
+            "name": "formal_exit_code.txt",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/formal_exit_code.txt",
+            "root_relative_path": "formal_exit_code.txt",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/preflight_status.json",
+            "bytes": 34331,
+            "name": "preflight_status.json",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/preflight_status.json",
+            "root_relative_path": "preflight_status.json",
+            "sha256": "0e169024191e0d213a0ffab16bf702440485f7d9875e1896db8a2b5e6fa8aa0f",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/retry_count.txt",
+            "bytes": 2,
+            "name": "retry_count.txt",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/retry_count.txt",
+            "root_relative_path": "retry_count.txt",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/stderr.log",
+            "bytes": 98,
+            "name": "stderr.log",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/stderr.log",
+            "root_relative_path": "stderr.log",
+            "sha256": "5dead1446a90f7251d3d7afc4ec9408579a814a29cf560ed1e98a74b83d16e2b",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/stdout.log",
+            "bytes": 1660,
+            "name": "stdout.log",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/stdout.log",
+            "root_relative_path": "stdout.log",
+            "sha256": "753b9aef43f9e8fd2fa3f8709150f5a9e09b58f286d3c60062c0ea2ee5d53842",
+            "storage": "external_tmp_not_copied"
+          },
+          {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tmp/fig519_reactor_ic_20260901_A2_command_capture/timestamp_recorder_failure.json",
+            "bytes": 738,
+            "name": "timestamp_recorder_failure.json",
+            "repository_relative_path": "tmp/fig519_reactor_ic_20260901_A2_command_capture/timestamp_recorder_failure.json",
+            "root_relative_path": "timestamp_recorder_failure.json",
+            "sha256": "aaac748332b16becb3d472361e324c028c175887678f50d0511b207161e8b31a",
+            "storage": "external_tmp_not_copied"
+          }
+        ],
+        "changed_blocks": [
+          "reactor/Integrator6"
+        ],
+        "changed_parameters": [
+          "InitialCondition"
+        ],
+        "command_completed_at_utc": "2026-08-31T17:37:43.837671Z",
+        "command_started_at_utc": "2026-08-31T17:35:51.334870Z",
+        "execution_schema": "steady53_fig519_reactor_ic_a2_execution_v1",
+        "formal_command": "python3 tests/prepare_fig519_reactor_ic_a2.py --verify-only && test ! -e tmp/fig519_reactor_ic_20260901_A2 && /Applications/MATLAB_R2025a.app/bin/matlab -batch \"addpath('tests','tests/steady53'); runDir=fullfile(pwd,'tmp','fig519_reactor_ic_20260901_A2'); create_fig519_reactor_ic_candidate(runDir); run_fig519_reactor_ic_counterfactual(runDir)\"",
+        "formal_command_invocation_count": 1,
+        "formal_command_sha256": "67b60ab7780e80197aad005f186d28d10daf3c2961cdaf3d4559973a971b0e8f",
+        "formal_process_exit_code": 0,
+        "formal_promotion": false,
+        "paper_reproduced": false,
+        "rerun_forbidden": true,
+        "retry_count": 0,
+        "run_steady53_case_call_count": 1,
+        "runner_completed_at_utc": "2026-08-31T17:37:08.982Z",
+        "runner_started_at_utc": "2026-08-31T17:36:50.606Z",
+        "runner_status": "completed_success",
+        "source_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+        "timestamp_quality": "filesystem_birthtime_fallback_not_wrapper_timestamp",
+        "wrapper_timestamp_recorder_error": {
+          "available_program": "/bin/date",
+          "failure_schema": "steady53_fig519_a2_wrapper_timestamp_recorder_failure_v1",
+          "fallback_completion_source": "APFS birth time of exit_code.txt written after command return",
+          "fallback_is_exact_wrapper_timestamp": false,
+          "fallback_start_source": "APFS birth time of stdout.log redirection target",
+          "formal_command_affected": false,
+          "formal_command_exit_code_preserved": true,
+          "formal_stdout_or_stderr": false,
+          "missing_program": "/usr/bin/date",
+          "raw_completed_at_file_bytes": 0,
+          "raw_empty_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "raw_started_at_file_bytes": 0,
+          "retry_performed": false,
+          "scope": "outer_wrapper_timestamp_capture_only"
+        }
+      },
+      "execution_record_sha256": "1d74e719518dd66fe1ce434c78afdfcda0603ab87c0e955beccd91964fbded38",
+      "runtime_helper_post_hoc_evidence": {
+        "additional_uncaptured_command_dependency": {
+          "commit_tree_identity_continuity_claimed": false,
+          "observed_effect": "preflight verifier printed READY before MATLAB launch",
+          "repository_relative_path": "tests/prepare_fig519_reactor_ic_a2.py",
+          "status": "not_contemporaneously_captured_and_changed_after_execution"
+        },
+        "all_specified_commits_and_current_identical": true,
+        "attempt_id": "20260901_A2",
+        "author_initial_state_identified": false,
+        "contemporaneously_captured_before_execution": false,
+        "evidence_class": "post_hoc_git_inference",
+        "evidence_schema": "steady53_fig519_a2_runtime_helpers_post_hoc_git_v1",
+        "execution_record_modified": false,
+        "files": {
+          "tests/steady53/reset_steady53_property_warning_state.m": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tests/steady53/reset_steady53_property_warning_state.m",
+            "all_specified_commits_and_current_identical": true,
+            "current_sha256": "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0",
+            "first_relevant_git_commit": "e813320a30178e2ea5b9708f0526a0f993516df2",
+            "last_relevant_git_commit": "9f881fe4e4316e0f198d70188f37d625aeb07861",
+            "repository_relative_path": "tests/steady53/reset_steady53_property_warning_state.m",
+            "specified_commit_trees": [
+              {
+                "commit": "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a",
+                "sha256": "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0"
+              },
+              {
+                "commit": "abcb12530509223c753d6b5055e2eb65f45d58d7",
+                "sha256": "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0"
+              },
+              {
+                "commit": "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9",
+                "sha256": "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0"
+              }
+            ]
+          },
+          "tests/steady53/run_steady53_case.m": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tests/steady53/run_steady53_case.m",
+            "all_specified_commits_and_current_identical": true,
+            "current_sha256": "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42",
+            "first_relevant_git_commit": "e813320a30178e2ea5b9708f0526a0f993516df2",
+            "last_relevant_git_commit": "0b93df3541d91a7fbd5dcf719220653d56047c4d",
+            "repository_relative_path": "tests/steady53/run_steady53_case.m",
+            "specified_commit_trees": [
+              {
+                "commit": "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a",
+                "sha256": "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42"
+              },
+              {
+                "commit": "abcb12530509223c753d6b5055e2eb65f45d58d7",
+                "sha256": "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42"
+              },
+              {
+                "commit": "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9",
+                "sha256": "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42"
+              }
+            ]
+          },
+          "tests/steady53/steady53_signal_manifest.m": {
+            "absolute_path": "/Users/ikunsredemptionmac/Downloads/不接入转子稳态模型/tests/steady53/steady53_signal_manifest.m",
+            "all_specified_commits_and_current_identical": true,
+            "current_sha256": "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd",
+            "first_relevant_git_commit": "e813320a30178e2ea5b9708f0526a0f993516df2",
+            "last_relevant_git_commit": "9f881fe4e4316e0f198d70188f37d625aeb07861",
+            "repository_relative_path": "tests/steady53/steady53_signal_manifest.m",
+            "specified_commit_trees": [
+              {
+                "commit": "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a",
+                "sha256": "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd"
+              },
+              {
+                "commit": "abcb12530509223c753d6b5055e2eb65f45d58d7",
+                "sha256": "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd"
+              },
+              {
+                "commit": "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9",
+                "sha256": "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd"
+              }
+            ]
+          }
+        },
+        "formal_promotion": false,
+        "interpretation": "the three runtime-helper git trees and current worktree agree, but neither that agreement nor the observed preflight output proves all exact execution-time worktree bytes",
+        "limitation": "cannot exclude execution-time uncommitted modifications that were later reverted",
+        "paper_reproduced": false,
+        "raw_or_candidate_modified": false,
+        "specified_commit_order": [
+          "bf66dc6d68c4ddc6ffe44801e1a526e541ff845a",
+          "abcb12530509223c753d6b5055e2eb65f45d58d7",
+          "d2f1abc1bd218dc12a1c78c8d2bc686bd06d86c9"
+        ]
+      }
+    }
+  ],
+  "author_initial_state_identified": false,
+  "formal_promotion": false,
+  "history_mode": "append_only_attempts",
+  "latest_attempt_id": "20260901_A2",
+  "latest_scientific_conclusion": "reactor_ic_alone_falsified",
+  "paper_reproduced": false,
+  "reproducibility_limitations": [
+    {
+      "attempt_id": "20260901_A2",
+      "evidence_class": "post_hoc_git_inference",
+      "limitation": "cannot exclude execution-time uncommitted modifications that were later reverted",
+      "summary_location": "attempts[1].runtime_helper_post_hoc_evidence"
+    }
+  ],
+  "summary_schema": "steady53_fig519_reactor_ic_counterfactual_history_v2",
+  "total_formal_command_invocation_count": 2,
+  "total_retry_count": 0,
+  "total_run_steady53_case_call_count": 1
+}

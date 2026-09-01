@@ -1,0 +1,20 @@
+{
+  "eligible_candidate_ids": [
+    "T300_fd1p45_one__conservative_source",
+    "T300_fd1p45_one__optimistic_source",
+    "T300_fd1p45_two__legacy_transfer",
+    "T300_fd1p45_two__conservative_source",
+    "T300_fd1p45_two__optimistic_source",
+    "P95_WG_fd1p45_two__legacy_transfer",
+    "P95_WG_fd1p45_two__conservative_source",
+    "P95_WG_fd1p45_two__optimistic_source",
+    "APG_fd1p00_two__legacy_transfer",
+    "APG_fd1p00_two__conservative_source",
+    "APG_fd1p00_two__optimistic_source"
+  ],
+  "eligible_count": 11,
+  "fixed_role_count": 12,
+  "formal_promotion": false,
+  "paper_reproduced": false,
+  "replacement_allowed": false
+}

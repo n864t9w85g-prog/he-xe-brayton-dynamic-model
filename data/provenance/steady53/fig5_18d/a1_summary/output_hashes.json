@@ -1,0 +1,19 @@
+{
+  "offline_screen/offline_96.csv": "85a4a293fb485b056a18c9f7d1c8678da5d6b6be7fc3e90c00ba737e3568bd91",
+  "offline_screen/offline_rejection_log.csv": "02192fec31a866091061fd774fd849ed809ccf904d9c7b9a5f29d48554bd2208",
+  "representatives/APG_fd1p00_two__conservative_source/parameter_manifest.json": "3dd280cb73d11fc5ddf13d63e0b662d0bfb90156b74552f7580d8f22fcd25f8e",
+  "representatives/APG_fd1p00_two__legacy_transfer/parameter_manifest.json": "d53dff519cbf712d3f590d037c09d0c2c6a189c26ac6b5ded53b887a57c6bae5",
+  "representatives/APG_fd1p00_two__optimistic_source/parameter_manifest.json": "03e8af11765a71e9a9cdf07c5a28c627ec7311241c0e695c40b9da90c87b2d27",
+  "representatives/P95_WG_fd1p45_two__conservative_source/parameter_manifest.json": "dd6d77d1acb72a2128ebe518ab515a02d3a33cf273a437055670875c5609df3e",
+  "representatives/P95_WG_fd1p45_two__legacy_transfer/parameter_manifest.json": "ef877873d0905627e044c6c7fa476faea3465a00741131c80eb304d926ca1b46",
+  "representatives/P95_WG_fd1p45_two__optimistic_source/parameter_manifest.json": "704f6eeea3bdcdc562072cbca5efb55fd406832bc7795c441ba34bdefb54c5fb",
+  "representatives/T300_fd1p45_one__conservative_source/parameter_manifest.json": "831b912cc1e2e3e55e7aa4473e2d265cdf626b33cc498bcdb31553aef83ae1e9",
+  "representatives/T300_fd1p45_one__optimistic_source/parameter_manifest.json": "56751250407c0076e87228246164afa9e96d8efc03e798f2419db0533d5aaf5d",
+  "representatives/T300_fd1p45_two__conservative_source/parameter_manifest.json": "fbd49c53cd9193c290dc12834925646754dfe5452e0678ced76444d4b819c968",
+  "representatives/T300_fd1p45_two__legacy_transfer/parameter_manifest.json": "42dc437c772fa1c41df05aeee6825fedea75192391c7a4bac796e9c8a37713f0",
+  "representatives/T300_fd1p45_two__optimistic_source/parameter_manifest.json": "a348214506fd94a033fe691bacfdc95a4e399ef2a7733e1f1c9130fec035acd0",
+  "representatives/representative_matrix.csv": "e8f5483f818a775f6ba3b291677ba7665fe61e7675ba93bdab48b4e63e70e5d8",
+  "representatives/selection.json": "67b276437d4d99e9f9ac299aa4c693371c40c1c9ca717b3c2c56afc755c54f91",
+  "source_contract/source_contract.json": "440d71b5acb37498cd95c0b0c56d4c65c1c8a814cb9ccebb55bafe86be3de5f0",
+  "source_contract/unit_contract.json": "e64d74514b13671294b966daae693e92672dd1986e85dd35965110d5dc832016"
+}

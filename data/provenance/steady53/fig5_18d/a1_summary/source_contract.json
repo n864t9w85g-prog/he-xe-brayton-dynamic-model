@@ -1,0 +1,18 @@
+{
+  "baseline_path": "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+  "baseline_sha256": "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+  "curve_evidence_hashes": {
+    "tmp/steady53_curves_20260828/radiator_scan_points.csv": "6aed804bf1ac57832055dab34483bdcb25567a5b902e5b3c6b85cb7129e8849b",
+    "tmp/steady53_curves_20260828/radiator_scan_provenance.json": "fe35a863731ff5394095f5d268a988cb45120a1382db9fd53bc0599e8f98e0cd"
+  },
+  "formal_promotion": false,
+  "paper_reproduced": false,
+  "protected_count": 34,
+  "protected_manifest": "tmp/tp7d213f64_7fad_4bfa_b722_0771b21d9640/protected_after.csv",
+  "protected_manifest_mode": "historical_manifest_identity_only",
+  "source_hashes": {
+    "sources/NASA-TM-2007-215003-Juhasz-2007.pdf": "2f1a8b19be7deea95a43e6d30468e234e48e9955eed1dc5005b0efa3119fd732",
+    "sources/NASA-TM-2008-215420-Juhasz-2008.pdf": "eb332a4e13d75406c47f72d698f11e10708d1f230041aecdda591a86fae7e10f",
+    "空间锂冷堆He-Xe布雷顿循环发电系统优化设计与运行特性分析_徐驰.pdf": "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "artifact": "paper-only digitization of Figure 5.19",
+  "figure": "5.19",
+  "fixed_times_s": [
+    10,
+    15,
+    20,
+    30,
+    40,
+    50,
+    75,
+    100,
+    150,
+    200,
+    230,
+    300,
+    400,
+    450,
+    495
+  ],
+  "formal_promotion": false,
+  "grayscale_threshold": 120,
+  "limitations": "scan-limited early near-vertical traces; t=10 is a proxy, not author t0",
+  "panels": [
+    {
+      "panel_id": "a",
+      "power_allowance_kW": 25.0,
+      "x_pair": [
+        179,
+        503,
+        0.0,
+        500.0
+      ],
+      "y_pair": [
+        341,
+        593,
+        3750.0,
+        1750.0
+      ]
+    },
+    {
+      "panel_id": "b",
+      "power_allowance_kW": 6.0,
+      "x_pair": [
+        555,
+        880,
+        0.0,
+        500.0
+      ],
+      "y_pair": [
+        338,
+        580,
+        2300.0,
+        1800.0
+      ]
+    },
+    {
+      "panel_id": "c",
+      "power_allowance_kW": 3.0,
+      "x_pair": [
+        179,
+        503,
+        0.0,
+        500.0
+      ],
+      "y_pair": [
+        675,
+        925,
+        1350.0,
+        1100.0
+      ]
+    },
+    {
+      "panel_id": "d",
+      "power_allowance_kW": 8.0,
+      "x_pair": [
+        555,
+        881,
+        0.0,
+        500.0
+      ],
+      "y_pair": [
+        701,
+        925,
+        1100.0,
+        600.0
+      ]
+    }
+  ],
+  "paper_reproduced": false,
+  "pdf_page": 106,
+  "printed_page": 91,
+  "prohibitions": "no smoothing; no time shifting; no model-guided selection; no model file read; no fitted correction",
+  "rejections": "reject empty columns, axis-border groups, and groups jumping over 80 px",
+  "source_page": "source_page_106.png",
+  "source_page_sha256": "770d193eaca80742ef5ece0ef5ba6d0bc20ad7aaa8ca2ac9b60a4799d1f0a1e2",
+  "source_pdf_sha256": "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a",
+  "time_allowance_s": 3,
+  "trace_rule": "for each panel, process t=495 backward; form contiguous dark-pixel y groups; select center nearest accepted later-time center; uppermost center breaks ties",
+  "x_neighborhood": "x-1 through x+1 (width 3)"
+}

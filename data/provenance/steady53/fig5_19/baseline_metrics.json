@@ -1,0 +1,158 @@
+{
+  "comparisons": {
+    "compressor": {
+      "comparison_units": {
+        "model": "W",
+        "paper": "kW"
+      },
+      "end_error_kW": 9.410895056198342,
+      "max_abs_error_kW": 56.91085443587167,
+      "paper_points": 15,
+      "rmse_kW": 29.449898542545878,
+      "squared_error_contribution_kW2": 13009.447862493686,
+      "start_error_kW": -17.08914739888337,
+      "window_s": [
+        0.0,
+        500.0
+      ]
+    },
+    "electrical_paper_eta": {
+      "comparison_units": {
+        "model": "W",
+        "paper": "kW"
+      },
+      "end_error_kW": 14.751569485526147,
+      "max_abs_error_kW": 117.43021982505581,
+      "paper_points": 15,
+      "rmse_kW": 34.54364589385944,
+      "squared_error_contribution_kW2": 17898.952074605284,
+      "start_error_kW": 117.43021982505581,
+      "window_s": [
+        0.0,
+        500.0
+      ]
+    },
+    "reactor": {
+      "comparison_units": {
+        "model": "W",
+        "paper": "kW"
+      },
+      "end_error_kW": -5.705799276071048,
+      "max_abs_error_kW": 525.5470545422186,
+      "paper_points": 15,
+      "rmse_kW": 237.55100653524295,
+      "squared_error_contribution_kW2": 846457.2105886056,
+      "start_error_kW": -525.5470545422186,
+      "window_s": [
+        0.0,
+        500.0
+      ]
+    },
+    "turbine": {
+      "comparison_units": {
+        "model": "W",
+        "paper": "kW"
+      },
+      "end_error_kW": 44.86490642918443,
+      "max_abs_error_kW": 126.47651491239776,
+      "paper_points": 15,
+      "rmse_kW": 63.9636463094873,
+      "squared_error_contribution_kW2": 61370.220738077835,
+      "start_error_kW": 126.47651491239776,
+      "window_s": [
+        0.0,
+        500.0
+      ]
+    }
+  },
+  "figure": "5.19",
+  "final_definition_gap_kW": 15.262408641749294,
+  "final_time_s": 14000.0,
+  "formal_promotion": false,
+  "hashes": {
+    "baseline_source_sha256": {
+      "baseline.mat": "18975fc912ed2af87f325769d4be9ab54f4ad0c091f925e4cda5df497aa55698",
+      "baseline_P_sw.csv": "288a9b031d31f8168517ea30d06f712d72c4d1dc31fd911f0a266aaa3023999f",
+      "baseline_WT_sw.csv": "28b852e9b997af51a860905e53da096821ddfbdd310857d16e9df0761ca2ab23",
+      "baseline_Wc_sw.csv": "f44a9bca2c006780f287e4f3a7199f63d26348cc18ad261d4ad89570b0e9ad5c"
+    },
+    "model_baseline_sha256": {
+      "baseline.mat": "18975fc912ed2af87f325769d4be9ab54f4ad0c091f925e4cda5df497aa55698",
+      "baseline_P_sw.csv": "288a9b031d31f8168517ea30d06f712d72c4d1dc31fd911f0a266aaa3023999f",
+      "baseline_WT_sw.csv": "28b852e9b997af51a860905e53da096821ddfbdd310857d16e9df0761ca2ab23",
+      "baseline_Wc_sw.csv": "f44a9bca2c006780f287e4f3a7199f63d26348cc18ad261d4ad89570b0e9ad5c"
+    },
+    "paper_pdf_sha256": "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a",
+    "paper_source_page_sha256": "770d193eaca80742ef5ece0ef5ba6d0bc20ad7aaa8ca2ac9b60a4799d1f0a1e2"
+  },
+  "historical_metric_eta": 0.96527,
+  "paper_eta": 0.98,
+  "paper_reproduced": false,
+  "signals": {
+    "compressor": {
+      "end_W": 1220910.64088278,
+      "peak_W": 1220910.89508201,
+      "peak_direction": "fall",
+      "peak_time_s": 494.582420271114,
+      "peak_to_peak_W": 0.25419922987930477,
+      "samples": 156,
+      "start_W": 1220910.84293255,
+      "units": "W",
+      "valley_W": 1220910.64088278,
+      "valley_direction": "fall",
+      "valley_time_s": 14000.0
+    },
+    "electrical_historical_metric": {
+      "end_W": 1000159.2117869208,
+      "peak_W": 1000159.2117869208,
+      "peak_direction": "rise",
+      "peak_time_s": 14000.0,
+      "peak_to_peak_W": 0.4018803380895406,
+      "samples": 156,
+      "start_W": 1000158.891742202,
+      "units": "W",
+      "valley_W": 1000158.8099065827,
+      "valley_direction": "rise",
+      "valley_time_s": 494.582420271114
+    },
+    "electrical_paper_eta": {
+      "end_W": 1015421.6204286701,
+      "peak_W": 1015421.6204286701,
+      "peak_direction": "rise",
+      "peak_time_s": 14000.0,
+      "peak_to_peak_W": 0.4080130235524848,
+      "samples": 156,
+      "start_W": 1015421.2955000756,
+      "units": "W",
+      "valley_W": 1015421.2124156465,
+      "valley_direction": "rise",
+      "valley_time_s": 494.582420271114
+    },
+    "reactor": {
+      "end_W": 2660960.94045113,
+      "peak_W": 2660960.94045113,
+      "peak_direction": "rise",
+      "peak_time_s": 14000.0,
+      "peak_to_peak_W": 0.12718208972364664,
+      "samples": 156,
+      "start_W": 2660960.91410467,
+      "units": "W",
+      "valley_W": 2660960.81326904,
+      "valley_direction": "rise",
+      "valley_time_s": 280.0
+    },
+    "turbine": {
+      "end_W": 2257055.15152428,
+      "peak_W": 2257055.15152428,
+      "peak_direction": "rise",
+      "peak_time_s": 14000.0,
+      "peak_to_peak_W": 0.1621405901387334,
+      "samples": 156,
+      "start_W": 2257055.02201426,
+      "units": "W",
+      "valley_W": 2257054.98938369,
+      "valley_direction": "rise",
+      "valley_time_s": 494.582420271114
+    }
+  }
+}
