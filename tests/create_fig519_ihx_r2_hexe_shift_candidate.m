@@ -35,6 +35,7 @@ formalBefore = formalIdentities(repoRoot);
 
 createDirectoryExclusive(runDir);
 runIdentity = pathIdentity(runDir, "directory");
+testHook = activateTestCapability(runDir, runIdentity);
 stagingDir = createPrivateStagingDirectory(runDir);
 stagingIdentity = pathIdentity(stagingDir, "directory");
 stagingCandidatePath = fullfile(stagingDir, "candidate.slx");
@@ -43,7 +44,8 @@ copyFileExclusive(sourcePath, stagingCandidatePath)
 stagingCandidateIdentity = pathIdentity(stagingCandidatePath, "file");
 assertSameIdentity(runIdentity, runDir, "run directory");
 assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
-if sha256File(stagingCandidatePath) ~= sourceHashBefore
+if sha256File(stagingCandidatePath, stagingCandidateIdentity, testHook) ~= ...
+        sourceHashBefore
     error("fig519a3:CopyHashMismatch", ...
         "The candidate copy is not byte-identical before the API edit.");
 end
@@ -80,10 +82,13 @@ Simulink.fileGenControl("set", "CacheFolder", cacheFolder, ...
 activeFileGeneration = Simulink.fileGenControl("getConfig");
 assertFileGeneration(activeFileGeneration, cacheFolder, codegenFolder, ...
     runDir, fileGenerationRootIdentity, cacheIdentity, codegenIdentity);
-injectFailure("after_environment_setup", stagingDir);
+injectFailure(testHook, "after_environment_setup", stagingDir);
 
 assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
 load_system(sourcePath);
 assertLoadedFile(sourceModel, sourcePath);
 assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
@@ -91,19 +96,36 @@ assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
     codegenIdentity);
-injectFailure("after_source_load");
+injectFailure(testHook, "after_source_load");
 sourceStates = stateSnapshot(sourceModel);
 sourceSolver = solverSnapshot(sourceModel);
 sourceSemantic = semanticSnapshot(sourceModel);
 sourceWorkspace = modelWorkspaceSnapshot(sourceModel);
 closeWithoutSaving(sourceModel);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
+injectFailure(testHook, "after_source_close", runDir);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
 
 assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
 load_system(stagingCandidatePath);
 assertLoadedFile(model, stagingCandidatePath);
 assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
+injectFailure(testHook, "after_candidate_load", runDir);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
 averageTarget = model + "/IHX/IHX_region_2/T_c1_average_Integrator";
 outletTarget = model + "/IHX/IHX_region_2/T_c2_out_Integrator";
 oldAverageK = numericInitialCondition(averageTarget);
@@ -135,28 +157,43 @@ set_param(averageTarget, "InitialCondition", num2str(newAverageK, "%.17g"));
 set_param(outletTarget, "InitialCondition", num2str(newOutletK, "%.17g"));
 assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
 save_system(model, stagingCandidatePath);
 assertSameIdentity(runIdentity, runDir, "run directory");
 assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
 stagingCandidateIdentity = pathIdentity(stagingCandidatePath, "file");
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
 closeWithoutSaving(model);
-injectFailure("after_candidate_save", stagingCandidatePath, sourcePath);
+injectFailure(testHook, "after_candidate_save", stagingCandidatePath);
 
 % Reopen the persisted bytes, perform the only diagram update, and audit
 % without saving again so compilation side effects cannot enter candidate.slx.
 assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
 load_system(stagingCandidatePath);
 assertLoadedFile(model, stagingCandidatePath);
 assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
 set_param(model, "SimulationCommand", "update")
 assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
     codegenIdentity);
-injectFailure("after_update");
+injectFailure(testHook, "after_update");
 
 candidateStates = stateSnapshot(model);
 candidateSolver = solverSnapshot(model);
@@ -206,7 +243,7 @@ restoreFileGeneration(oldFileGeneration);
 assertFileGenerationRestored(oldFileGeneration);
 restoreBaseWorkspace(baseSnapshot);
 
-injectFailure("before_candidate_publish", candidatePath);
+injectFailure(testHook, "before_candidate_publish", candidatePath);
 moveFileExclusive(stagingCandidatePath, candidatePath)
 candidateIdentity = pathIdentity(candidatePath, "file");
 if candidateIdentity.file_key ~= stagingCandidateIdentity.file_key
@@ -215,6 +252,8 @@ if candidateIdentity.file_key ~= stagingCandidateIdentity.file_key
 end
 assertSameIdentity(runIdentity, runDir, "run directory");
 assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
+assertPublishedIdentities(runIdentity, runDir, candidateIdentity, candidatePath);
+injectFailure(testHook, "after_candidate_publish", candidatePath);
 
 sourceHashAfter = sha256File(sourcePath);
 runtimeAfter = runtimeIdentities(runtimeDir, repoRoot);
@@ -228,7 +267,10 @@ if sourceHashAfter ~= expectedSourceHash || sourceHashAfter ~= sourceHashBefore
         "Candidate generation changed the immutable source model.");
 end
 assertRegularFile(candidatePath, "candidate model");
-candidateHash = sha256File(candidatePath);
+candidateHash = sha256File(candidatePath, candidateIdentity, testHook);
+assertPublishedIdentities(runIdentity, runDir, candidateIdentity, candidatePath);
+injectFailure(testHook, "after_candidate_hash", candidatePath);
+assertPublishedIdentities(runIdentity, runDir, candidateIdentity, candidatePath);
 
 runtimeRecords = beforeAfterRecords(runtimeBefore, runtimeAfter);
 protectedRecords = beforeAfterRecords(protectedBefore, protectedAfter);
@@ -253,8 +295,18 @@ auditPath = fullfile(runDir, "patch_audit.json");
 auditChannel = openFileExclusive(auditPath);
 auditChannelCleanup = onCleanup(@() closeChannel(auditChannel));
 assertRegularFile(auditPath, "patch audit");
-injectFailure("after_audit_open", runDir, stagingDir);
-artifacts = artifactAudit(runDir, candidatePath, auditPath);
+auditIdentity = pathIdentity(auditPath, "file");
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
+injectFailure(testHook, "after_audit_open", runDir, stagingDir, ...
+    candidatePath, auditPath);
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
+injectFailure(testHook, "before_artifact_walk", candidatePath, auditPath);
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
+artifacts = artifactAudit(runDir, candidatePath, auditPath, ...
+    runIdentity, candidateIdentity, auditIdentity);
 fileGenerationSettings = struct( ...
     "cache_folder", canonicalPath(activeFileGeneration.CacheFolder), ...
     "codegen_folder", canonicalPath(activeFileGeneration.CodeGenFolder), ...
@@ -280,6 +332,10 @@ audit = struct( ...
         relativeToRepo(candidatePath, repoRoot), ...
     "candidate_absolute_path", canonicalPath(candidatePath), ...
     "candidate_sha256", candidateHash, ...
+    "publication_identity", struct( ...
+        "run_directory_file_key", runIdentity.file_key, ...
+        "candidate_file_key", candidateIdentity.file_key, ...
+        "audit_file_key", auditIdentity.file_key), ...
     "anchor_K", anchorK, ...
     "delta_T_K", deltaTK, ...
     "old_gap_K", oldGapK, ...
@@ -312,23 +368,45 @@ audit = struct( ...
     "formal_promotion", false);
 
 auditText = string(jsonencode(audit, PrettyPrint=true)) + newline;
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
 writeOpenChannel(auditChannel, auditText);
-injectFailure("after_audit_write");
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
+injectFailure(testHook, "after_audit_write");
 auditChannel.force(true);
 auditChannel.close();
 clear auditChannelCleanup
 assertRegularFile(auditPath, "patch audit");
 expectedAuditHash = sha256Text(auditText);
-persistedAuditHash = sha256File(auditPath);
+persistedAuditHash = sha256File(auditPath, auditIdentity);
 if persistedAuditHash ~= expectedAuditHash
     error("fig519a3:AuditPersistenceMismatch", ...
         "The exclusively written patch audit did not persist exactly " + ...
         "(expected SHA256 %s, got %s).", ...
         expectedAuditHash, persistedAuditHash);
 end
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
+finalCandidateHash = sha256File(candidatePath, candidateIdentity);
+if finalCandidateHash ~= candidateHash
+    error("fig519a3:FinalCandidateHashChanged", ...
+        "Final candidate bytes no longer match persisted evidence.");
+end
 restoreCallerState(sourceModel, model, oldFileGeneration, baseSnapshot, ...
     oldFolder, oldPath);
 clear callerCleanup
+injectFailure(testHook, "before_return", candidatePath, auditPath);
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
+finalCandidateHash = sha256File(candidatePath, candidateIdentity);
+finalAuditHash = sha256File(auditPath, auditIdentity);
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
+if finalCandidateHash ~= candidateHash || finalAuditHash ~= expectedAuditHash
+    error("fig519a3:FinalPublicationHashChanged", ...
+        "Final published bytes no longer match returned audit evidence.");
+end
 end
 
 function repoRoot = validateRepoRoot(repoRoot)
@@ -718,8 +796,24 @@ if numel(before) ~= numel(after) || ~isequal(before, after)
 end
 end
 
-function artifacts = artifactAudit(runDir, candidatePath, auditPath)
+function artifacts = artifactAudit(runDir, candidatePath, auditPath, ...
+        runIdentity, candidateIdentity, auditIdentity)
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
 [files, directories] = walkArtifactTree(runDir, runDir);
+candidateRelative = lexicalRelative(candidatePath, runDir);
+auditRelative = lexicalRelative(auditPath, runDir);
+candidateRows = files(string({files.repository_relative_path}) == ...
+    candidateRelative);
+auditRows = files(string({files.repository_relative_path}) == auditRelative);
+if numel(candidateRows) ~= 1 || ...
+        candidateRows.file_key ~= candidateIdentity.file_key || ...
+        numel(auditRows) ~= 1 || auditRows.file_key ~= auditIdentity.file_key
+    error("fig519a3:ArtifactIdentityMismatch", ...
+        "Artifact inventory did not retain published file identities.");
+end
+assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+    candidatePath, auditIdentity, auditPath);
 artifacts = struct( ...
     "candidate_regular_file", isRegularFile(candidatePath), ...
     "candidate_symlink", isSymbolicLink(candidatePath), ...
@@ -1022,8 +1116,8 @@ try
     end
     java.nio.file.Files.delete(nioPath(sourcePath));
 catch exception
-    if isfile(candidatePath) || isfolder(candidatePath) || ...
-            isSymbolicLink(candidatePath)
+    if isa(exception.ExceptionObject, ...
+            "java.nio.file.FileAlreadyExistsException")
         error("fig519a3:CandidateExists", ...
             "Refusing to overwrite public candidate '%s'.", candidatePath);
     end
@@ -1096,17 +1190,22 @@ for attempt = 1:16
     stagingDir = fullfile(runDir, ".fig519a3-stage-" + ...
         string(char(java.util.UUID.randomUUID)));
     try
-        createDirectoryExclusive(stagingDir);
         permissions = java.nio.file.attribute.PosixFilePermissions.fromString( ...
             "rwx------");
-        java.nio.file.Files.setPosixFilePermissions(nioPath(stagingDir), permissions);
+        attributes = javaArray("java.nio.file.attribute.FileAttribute", 1);
+        attributes(1) = ...
+            java.nio.file.attribute.PosixFilePermissions.asFileAttribute( ...
+            permissions);
+        java.nio.file.Files.createDirectory(nioPath(stagingDir), attributes);
         assertSameIdentity(pathIdentity(stagingDir, "directory"), stagingDir, ...
             "private staging directory");
         return
     catch exception
-        if ~strcmp(exception.identifier, "fig519a3:RunDirExists")
-            rethrow(exception)
+        if isa(exception.ExceptionObject, ...
+                "java.nio.file.FileAlreadyExistsException")
+            continue
         end
+        rethrow(exception)
     end
 end
 error("fig519a3:StagingCreationFailed", ...
@@ -1154,22 +1253,68 @@ assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
 assertSameIdentity(candidateIdentity, candidatePath, "staging candidate");
 end
 
-function injectFailure(point, varargin)
+function assertPublishedIdentities(runIdentity, runDir, candidateIdentity, ...
+        candidatePath)
+assertSameIdentity(runIdentity, runDir, "run directory");
+assertSameIdentity(candidateIdentity, candidatePath, "published candidate");
+end
+
+function assertPublicationIdentities(runIdentity, runDir, ...
+        candidateIdentity, candidatePath, auditIdentity, auditPath)
+assertPublishedIdentities(runIdentity, runDir, candidateIdentity, candidatePath);
+assertSameIdentity(auditIdentity, auditPath, "patch audit");
+end
+
+function hook = activateTestCapability(runDir, runIdentity)
+hook = struct("enabled", false);
 key = "fig519a3_test_failure_point";
 if ~isappdata(0, key)
     return
 end
-hook = getappdata(0, key);
-if (isstring(hook) || ischar(hook)) && string(hook) == string(point)
-    error("fig519a3:InjectedFailure", ...
-        "Deterministic zero-simulation test failure at %s.", point);
+candidate = getappdata(0, key);
+required = ["point", "action", "capability_path", "capability_token", ...
+    "capability_file_key", "run_parent", "run_parent_file_key"];
+if ~isstruct(candidate) || ~all(isfield(candidate, required))
+    return
 end
-if ~isstruct(hook) || ~isfield(hook, "point") || ...
+try
+    parentIdentity = pathIdentity(candidate.run_parent, "directory");
+    capabilityIdentity = pathIdentity(candidate.capability_path, "file");
+catch
+    return
+end
+if parentIdentity.file_key ~= string(candidate.run_parent_file_key) || ...
+        capabilityIdentity.file_key ~= string(candidate.capability_file_key) || ...
+        ~isContainedLexically(runDir, candidate.run_parent) || ...
+        ~isContainedLexically(candidate.capability_path, candidate.run_parent) || ...
+        strtrim(string(fileread(candidate.capability_path))) ~= ...
+        string(candidate.capability_token)
+    return
+end
+assertSameIdentity(runIdentity, runDir, "test-hook run directory");
+rmappdata(0, key);
+hook = candidate;
+hook.enabled = true;
+hook.run_dir = string(runDir);
+hook.run_identity = runIdentity;
+hook.run_parent_identity = parentIdentity;
+hook.capability_identity = capabilityIdentity;
+end
+
+function injectFailure(hook, point, varargin)
+if ~isstruct(hook) || ~isfield(hook, "enabled") || ~hook.enabled || ...
         string(hook.point) ~= string(point)
     return
 end
+assertTestHookCapability(hook);
+for index = 1:numel(varargin)
+    assertTestHookTarget(hook, string(varargin{index}));
+end
 action = string(hook.action);
 switch action
+    case "fail"
+        error("fig519a3:InjectedFailure", ...
+            "Deterministic zero-simulation test failure at %s.", point);
     case "replace_staging_directory"
         original = string(varargin{1});
         displaced = original + ".replaced-" + ...
@@ -1189,30 +1334,72 @@ switch action
         java.nio.file.Files.createSymbolicLink(nioPath(linkPath), ...
             nioPath(string(varargin{2})), ...
             javaArray("java.nio.file.attribute.FileAttribute", 0));
+    case "replace_public_candidate"
+        replaceFileForTest(string(varargin{1}));
+    case "replace_audit_file"
+        replaceFileForTest(string(varargin{4}));
+    case "redirect_filegen"
+        redirectRoot = fullfile(hook.run_dir, "hook-filegen-redirect");
+        createDirectoryExclusive(redirectRoot);
+        redirectCache = fullfile(redirectRoot, "cache");
+        redirectCodegen = fullfile(redirectRoot, "codegen");
+        createDirectoryExclusive(redirectCache);
+        createDirectoryExclusive(redirectCodegen);
+        Simulink.fileGenControl("set", "CacheFolder", redirectCache, ...
+            "CodeGenFolder", redirectCodegen, "createDir", false);
     otherwise
         error("fig519a3:InvalidTestHook", ...
             "The zero-simulation test hook action is not allowlisted.");
 end
 end
 
-function injectHashReplacement(filePath)
-key = "fig519a3_test_failure_point";
-if ~isappdata(0, key)
-    return
-end
-hook = getappdata(0, key);
-if ~isstruct(hook) || ~isfield(hook, "point") || ...
+function injectHashReplacement(hook, filePath)
+if ~isstruct(hook) || ~isfield(hook, "enabled") || ~hook.enabled || ...
         string(hook.point) ~= "during_hash" || ...
         string(hook.action) ~= "replace_hashed_candidate" || ...
         ~endsWith(string(filePath), "candidate.slx")
     return
 end
+assertTestHookCapability(hook);
+assertTestHookTarget(hook, filePath);
 displaced = string(filePath) + ".replaced-" + ...
     string(char(java.util.UUID.randomUUID));
 moveFileExclusive(filePath, displaced);
 channel = openFileExclusive(filePath);
 writeOpenChannel(channel, "replacement");
 channel.close();
+end
+
+function replaceFileForTest(filePath)
+displaced = string(filePath) + ".replaced-" + ...
+    string(char(java.util.UUID.randomUUID));
+moveFileExclusive(filePath, displaced);
+channel = openFileExclusive(filePath);
+writeOpenChannel(channel, "replacement");
+channel.close();
+end
+
+function assertTestHookCapability(hook)
+assertSameIdentity(hook.run_parent_identity, hook.run_parent, ...
+    "test-hook run parent");
+assertSameIdentity(hook.capability_identity, hook.capability_path, ...
+    "test-hook capability file");
+assertSameIdentity(hook.run_identity, hook.run_dir, ...
+    "test-hook run directory");
+if strtrim(string(fileread(hook.capability_path))) ~= ...
+        string(hook.capability_token)
+    error("fig519a3:TestCapabilityChanged", ...
+        "The one-use test capability token changed.");
+end
+end
+
+function assertTestHookTarget(hook, target)
+if ~(isContainedLexically(target, hook.run_dir) || ...
+        string(nioPath(target).toAbsolutePath().normalize().toString()) == ...
+        string(nioPath(hook.run_dir).toAbsolutePath().normalize().toString()))
+    error("fig519a3:TestHookTargetOutsideRun", ...
+        "Test hooks may target only the capability-bound owned run.");
+end
 end
 
 function javaPath = nioPath(pathValue)
@@ -1225,14 +1412,23 @@ options = javaArray("java.nio.file.LinkOption", 1);
 options(1) = java.nio.file.LinkOption.NOFOLLOW_LINKS;
 end
 
-function hash = sha256File(filePath)
+function hash = sha256File(filePath, expectedIdentity, testHook)
+arguments
+    filePath
+    expectedIdentity = struct.empty
+    testHook = struct("enabled", false)
+end
 before = pathIdentity(filePath, "file");
+if ~isempty(expectedIdentity)
+    assertSameIdentity(expectedIdentity, filePath, "hash target");
+    before = expectedIdentity;
+end
 options = javaArray("java.nio.file.OpenOption", 2);
 options(1) = java.nio.file.StandardOpenOption.READ;
 options(2) = java.nio.file.LinkOption.NOFOLLOW_LINKS;
 channel = java.nio.file.Files.newByteChannel(nioPath(filePath), options);
 cleanup = onCleanup(@() closeChannel(channel));
-injectHashReplacement(filePath);
+injectHashReplacement(testHook, filePath);
 digest = java.security.MessageDigest.getInstance("SHA-256");
 buffer = java.nio.ByteBuffer.allocate(1024 * 1024);
 while true

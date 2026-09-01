@@ -23,6 +23,10 @@ callerBefore = callerState();
 
 audit = create_fig519_ihx_r2_hexe_shift_candidate(outputDir, repo);
 verifyCallerState(testCase, callerBefore);
+stagingItems = dir(fullfile(outputDir, ".fig519a3-stage-*"));
+verifyEqual(testCase, numel(stagingItems), 1);
+verifyEqual(testCase, posixMode(fullfile(stagingItems(1).folder, ...
+    stagingItems(1).name)), "rwx------");
 
 expectedSchema = "steady53_fig519_ihx_r2_hexe_shift_candidate_v1";
 verifyEqual(testCase, string(audit.patch_schema), expectedSchema);
@@ -83,6 +87,10 @@ candidatePath = fullfile(outputDir, "candidate.slx");
 auditPath = fullfile(outputDir, "patch_audit.json");
 verifyTrue(testCase, isRegularFile(candidatePath));
 verifyTrue(testCase, isRegularFile(auditPath));
+verifyEqual(testCase, string(audit.publication_identity.candidate_file_key), ...
+    fileIdentity(candidatePath));
+verifyEqual(testCase, string(audit.publication_identity.audit_file_key), ...
+    fileIdentity(auditPath));
 verifyFalse(testCase, isfile(fullfile(outputDir, "raw_result.mat")));
 verifyFalse(testCase, isfolder(fullfile(outputDir, "run")));
 verifyFalse(testCase, isfile(fullfile(outputDir, "experiment_started.json")));
@@ -96,6 +104,15 @@ verifyEqual(testCase, decoded.changed_state_count, 2);
 verifyEqual(testCase, decoded.unchanged_state_count, 38);
 verifyEqual(testCase, decoded.state_count, 40);
 verifyEqual(testCase, decoded.update_diagram_count, 1);
+verifyEqual(testCase, ...
+    string(decoded.publication_identity.run_directory_file_key), ...
+    string(audit.publication_identity.run_directory_file_key));
+verifyEqual(testCase, ...
+    string(decoded.publication_identity.candidate_file_key), ...
+    string(audit.publication_identity.candidate_file_key));
+verifyEqual(testCase, ...
+    string(decoded.publication_identity.audit_file_key), ...
+    string(audit.publication_identity.audit_file_key));
 verifyEqual(testCase, string(decoded.formal_identity_schema), ...
     "repository_root_formal_identity_v1");
 verifyTrue(testCase, all([decoded.formal_files.unchanged]));
@@ -136,11 +153,34 @@ cleanupOwnedOutput(owner, tmpRoot);
 verifyTrue(testCase, isfolder(owner.path));
 verifyTrue(testCase, isfile(replacementSentinel));
 verifyEqual(testCase, fileIdentity(owner.path), replacementIdentity);
-rmdir(owner.path, "s");
 displacedOwner = owner;
 displacedOwner.path = displaced;
 displacedOwner.token_path = fullfile(displaced, ".fig519a3-test-owner");
 cleanupOwnedOutput(displacedOwner, tmpRoot);
+end
+
+function testCleanupRetainsOwnedNonemptyAndFinalBoundaryReplacement(testCase)
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+owner = createOwnedTestSandbox(tmpRoot);
+ownedOutput = fullfile(owner.path, "candidate-output");
+mkdir(ownedOutput);
+writelines("owned", fullfile(ownedOutput, "owned.txt"));
+cleanupOwnedOutput(owner, tmpRoot);
+verifyTrue(testCase, isfolder(owner.path));
+verifyTrue(testCase, isfile(fullfile(ownedOutput, "owned.txt")));
+
+boundary = @() replaceAtCleanupBoundary(owner.path);
+cleanupOwnedOutput(owner, tmpRoot, boundary);
+verifyTrue(testCase, isfolder(owner.path));
+verifyTrue(testCase, isfile(fullfile(owner.path, "replacement.txt")));
+end
+
+function replaceAtCleanupBoundary(pathValue)
+displaced = pathValue + "-owned-before-boundary";
+movefile(pathValue, displaced);
+mkdir(pathValue);
+writelines("replacement", fullfile(pathValue, "replacement.txt"));
 end
 
 function testInjectedFailuresRestoreCallerState(testCase)
@@ -154,7 +194,8 @@ for index = 1:numel(points)
     cleanup = onCleanup(@() cleanupOwnedOutput(owner, tmpRoot));
     outputDir = fullfile(owner.path, "candidate-output");
     state = callerState();
-    setappdata(0, "fig519a3_test_failure_point", points(index));
+    installTestHook(owner, struct("point", points(index), ...
+        "action", "fail"));
     hookCleanup = onCleanup(@() clearFailureHook());
     verifyError(testCase, ...
         @() create_fig519_ihx_r2_hexe_shift_candidate(outputDir, repo), ...
@@ -165,6 +206,22 @@ for index = 1:numel(points)
     clear cleanup
     cleanupOwnedOutput(owner, tmpRoot);
 end
+end
+
+function testStaleAmbientHookWithoutCapabilityIsIgnored(testCase)
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+owner = createOwnedTestSandbox(tmpRoot);
+cleanup = onCleanup(@() cleanupOwnedOutput(owner, tmpRoot));
+outputDir = fullfile(owner.path, "candidate-output");
+setappdata(0, "fig519a3_test_failure_point", ...
+    struct("point", "after_environment_setup", "action", "fail", ...
+    "capability_token", "stale-or-foreign"));
+hookCleanup = onCleanup(@() clearFailureHook());
+audit = create_fig519_ihx_r2_hexe_shift_candidate(outputDir, repo);
+verifyEqual(testCase, string(audit.attempt_id), "20260901_A3");
+clear hookCleanup
+clearFailureHook();
 end
 
 function testFiniteReplacementAndSymlinkAttacksAreDetected(testCase)
@@ -178,13 +235,29 @@ cases = [ ...
     struct("point", "before_candidate_publish", "action", ...
         "install_public_candidate", "error", "fig519a3:CandidateExists"); ...
     struct("point", "after_audit_open", "action", ...
-        "install_symlink_directory", "error", "fig519a3:UnsafeArtifact")];
+        "install_symlink_directory", "error", "fig519a3:UnsafeArtifact"); ...
+    struct("point", "after_candidate_publish", "action", ...
+        "replace_public_candidate", "error", "fig519a3:PathIdentityChanged"); ...
+    struct("point", "after_candidate_hash", "action", ...
+        "replace_public_candidate", "error", "fig519a3:PathIdentityChanged"); ...
+    struct("point", "after_audit_open", "action", ...
+        "replace_audit_file", "error", "fig519a3:PathIdentityChanged"); ...
+    struct("point", "before_artifact_walk", "action", ...
+        "replace_public_candidate", "error", "fig519a3:PathIdentityChanged"); ...
+    struct("point", "before_return", "action", ...
+        "replace_public_candidate", "error", "fig519a3:PathIdentityChanged"); ...
+    struct("point", "after_source_close", "action", ...
+        "redirect_filegen", ...
+        "error", "fig519a3:FileGenerationConfigurationMismatch"); ...
+    struct("point", "after_candidate_load", "action", ...
+        "redirect_filegen", ...
+        "error", "fig519a3:FileGenerationConfigurationMismatch")];
 for index = 1:numel(cases)
     owner = createOwnedTestSandbox(tmpRoot);
     cleanup = onCleanup(@() cleanupOwnedOutput(owner, tmpRoot));
     outputDir = fullfile(owner.path, "candidate-output");
     state = callerState();
-    setappdata(0, "fig519a3_test_failure_point", cases(index));
+    installTestHook(owner, cases(index));
     hookCleanup = onCleanup(@() clearFailureHook());
     verifyError(testCase, ...
         @() create_fig519_ihx_r2_hexe_shift_candidate(outputDir, repo), ...
@@ -220,6 +293,14 @@ switch action
         javaPath = java.nio.file.Paths.get(char(fullfile(outputDir, ...
             "injected-symlink-directory")), javaArray("java.lang.String", 0));
         present = java.nio.file.Files.isSymbolicLink(javaPath);
+    case "replace_public_candidate"
+        present = isfile(fullfile(outputDir, "candidate.slx")) && ...
+            ~isempty(dir(fullfile(outputDir, "candidate.slx.replaced-*")));
+    case "replace_audit_file"
+        present = isfile(fullfile(outputDir, "patch_audit.json")) && ...
+            ~isempty(dir(fullfile(outputDir, "patch_audit.json.replaced-*")));
+    case "redirect_filegen"
+        present = isfolder(fullfile(outputDir, "hook-filegen-redirect"));
     otherwise
         present = false;
 end
@@ -304,7 +385,12 @@ writelines(owner.token, owner.token_path);
 owner.file_key = fileIdentity(owner.path);
 end
 
-function cleanupOwnedOutput(owner, tmpRoot)
+function cleanupOwnedOutput(owner, tmpRoot, boundaryHook)
+arguments
+    owner
+    tmpRoot
+    boundaryHook = []
+end
 outputDir = string(owner.path);
 if ~isfolder(outputDir)
     return
@@ -320,13 +406,19 @@ if canonicalOutput == canonicalTmp || ...
         ~isfile(owner.token_path) || ...
         strtrim(string(fileread(owner.token_path))) ~= string(owner.token) || ...
         ~treeMatchesOwnedInventory(outputDir)
+    fprintf(2, "Retained untrusted A3 test output: %s\n", outputDir);
     return
 end
-rmdir(outputDir, "s");
+if ~isempty(boundaryHook)
+    boundaryHook();
+end
+fprintf(2, "Retained nonempty A3 test output for external cleanup: %s\n", ...
+    outputDir);
 end
 
 function tf = treeMatchesOwnedInventory(root)
 items = dir(fullfile(root, "**", "*"));
+items = items(~ismember({items.name}, {'.', '..'}));
 tf = true;
 for index = 1:numel(items)
     candidate = fullfile(items(index).folder, items(index).name);
@@ -403,6 +495,22 @@ function clearFailureHook()
 if isappdata(0, "fig519a3_test_failure_point")
     rmappdata(0, "fig519a3_test_failure_point");
 end
+end
+
+function installTestHook(owner, hook)
+hook.capability_path = owner.token_path;
+hook.capability_token = owner.token;
+hook.capability_file_key = fileIdentity(owner.token_path);
+hook.run_parent = owner.path;
+hook.run_parent_file_key = owner.file_key;
+setappdata(0, "fig519a3_test_failure_point", hook);
+end
+
+function mode = posixMode(pathValue)
+permissions = java.nio.file.Files.getPosixFilePermissions( ...
+    java.nio.file.Paths.get(char(pathValue), javaArray("java.lang.String", 0)), ...
+    javaArray("java.nio.file.LinkOption", 0));
+mode = string(java.nio.file.attribute.PosixFilePermissions.toString(permissions));
 end
 
 function output = canonicalPath(pathValue)

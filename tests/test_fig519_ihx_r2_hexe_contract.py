@@ -20,11 +20,22 @@ def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
     lowered = source.lower()
     direct_patterns = {
         "simulation call": r"(?<![a-z0-9_])sim\s*\(",
+        "simulation function handle": r"@\s*sim\b",
+        "batch simulation API": (
+            r"(?<![a-z0-9_])(?:parsim|batchsim)\s*\(|"
+            r"\bsimulink\.multisim(?:\.[a-z0-9_]+)*\.simulate\s*\("
+        ),
         "subprocess primitive": (
             r"(?<![a-z0-9_])(?:system|unix|dos|perl|pyrun|pyrunfile)\s*\("
         ),
         "dynamic execution primitive": (
             r"(?<![a-z0-9_])(?:eval|feval|str2func|builtin)\s*\("
+        ),
+        "Java Runtime execution": (
+            r"\bjava\.lang\.runtime(?:\.getruntime\s*\(\))?\.exec\s*\("
+        ),
+        "Python subprocess execution": (
+            r"\bpy\.subprocess\.(?:run|popen|call|check_call|check_output)\s*\("
         ),
         "generic XML API": r"\b(?:xml[a-z0-9_]*|matlab\.io\.xml(?:\.[a-z0-9_]+)+)\s*\(",
         "generic ZIP API": r"\b(?:zip|unzip|java\.util\.zip(?:\.[a-z0-9_]+)+)\s*\(",
@@ -84,6 +95,13 @@ def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
     if "simulink.blockdiagram." in collapsed_literals:
         findings.append("concatenated BlockDiagram method string")
 
+    for call in re.findall(r"set_param\s*\([^;]*?\)", source, re.I | re.S):
+        normalized = re.sub(r"[\s\"'+]", "", call.lower())
+        if "simulationcommand" in normalized and normalized != (
+            "set_param(model,simulationcommand,update)"
+        ):
+            findings.append("non-update SimulationCommand")
+
     evalin_calls = len(re.findall(r"(?<![a-z0-9_])evalin\s*\(", lowered))
     allowed_startup = len(
         re.findall(
@@ -113,6 +131,15 @@ MALICIOUS_DYNAMIC_EXECUTION = {
     "split zip class": 'javaObject("java.util." + "zip.ZipFile", path)',
     "split XML": 'readstruct(path, "File" + "Type", "x" + "ml")',
     "split BlockDiagram": 'feval("Simulink.Block" + "Diagram.modify", model)',
+    "function handle sim": 'runner = @sim; runner(model)',
+    "parallel sim": 'parsim(inputs)',
+    "rapid accelerator batch": 'simulink.multisim.DesignStudy.simulate(inputs)',
+    "single quoted start": "set_param(model, 'SimulationCommand', 'start')",
+    "split simulation start": (
+        'set_param(model, "Simulation" + "Command", "st" + "art")'
+    ),
+    "java runtime exec": 'java.lang.Runtime.getRuntime().exec("tool")',
+    "python subprocess": 'py.subprocess.run(args)',
 }
 
 
@@ -208,6 +235,15 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             source,
             r"(?i)\b(?:system|unix|dos|perl|pyrun|str2func|builtin|eval|feval)\s*\(",
         )
+        simulation_commands = re.findall(
+            r"set_param\s*\([^;]+?[\"']SimulationCommand[\"'][^;]+?\)",
+            source,
+            re.IGNORECASE | re.DOTALL,
+        )
+        self.assertEqual(
+            simulation_commands,
+            ['set_param(model, "SimulationCommand", "update")'],
+        )
 
     def test_a3_candidate_generator_freezes_counts_flags_and_candidate_only_save(self):
         source = self._generator_source()
@@ -245,6 +281,11 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             '"replace_staging_directory"',
             '"install_public_candidate"',
             '"install_symlink_directory"',
+            "activateTestCapability",
+            '"capability_file_key"',
+            '"run_parent_file_key"',
+            "PosixFilePermissions.asFileAttribute",
+            "FileAlreadyExistsException",
         ):
             with self.subTest(literal=literal):
                 self.assertIn(literal, source)
