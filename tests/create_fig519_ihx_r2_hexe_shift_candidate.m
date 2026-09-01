@@ -66,7 +66,7 @@ if bdIsLoaded(sourceModel) || bdIsLoaded(model)
     error("fig519a3:ModelAlreadyLoaded", ...
         "Source or candidate model is already loaded; refusing unsaved state.");
 end
-callerCleanup = onCleanup(@() restoreCallerState(sourceModel, model, ...
+callerCleanup = onCleanup(@() restoreCallerStateOnCleanup(sourceModel, model, ...
     oldFileGeneration, baseSnapshot, oldFolder, oldPath, testHook));
 assertRunBinding(runBinding, runIdentity);
 cd(runDir);
@@ -487,9 +487,15 @@ if componentCount < 2
 end
 os = py.importlib.import_module("os");
 fds = cell(componentCount, 1);
+constructionState = containers.Map("KeyType", "char", "ValueType", "any");
+constructionState("enabled") = true;
+constructionState("fds") = fds;
+ancestorConstructionCleanup = onCleanup(@() ...
+    closeAncestorConstructionFds(os, constructionState));
 records = repmat(struct("path", "", "identity", struct(), ...
     "posix_identity", struct()), componentCount, 1);
 fds{1} = openPathDirectoryNoFollow(os, tmpRoot);
+constructionState("fds") = fds;
 records(1) = struct("path", string(tmpRoot), ...
     "identity", pathIdentity(tmpRoot, "directory"), ...
     "posix_identity", posixFdIdentity(os, fds{1}));
@@ -503,6 +509,7 @@ for index = 1:(componentCount - 1)
     currentPath = fullfile(currentPath, component);
     fds{index + 1} = openRelativeDirectoryNoFollow( ...
         os, fds{index}, component);
+    constructionState("fds") = fds;
     records(index + 1) = struct("path", currentPath, ...
         "identity", pathIdentity(currentPath, "directory"), ...
         "posix_identity", posixFdIdentity(os, fds{index + 1}));
@@ -513,6 +520,20 @@ binding = struct("os", os, "ancestor_fds", {fds}, ...
     "run_path", string(runDir), ...
     "approved_canonical_run", string(runDir), ...
     "run_posix_identity", struct.empty);
+constructionState("enabled") = false;
+clear ancestorConstructionCleanup
+end
+
+function closeAncestorConstructionFds(os, state)
+if ~isKey(state, "enabled") || ~logical(state("enabled"))
+    return
+end
+fds = state("fds");
+for index = 1:numel(fds)
+    if ~isempty(fds{index})
+        closePythonFd(os, fds{index});
+    end
+end
 end
 
 function [runIdentity, binding] = createBoundRunDirectory(binding)
@@ -541,7 +562,6 @@ binding.run_posix_identity = posixFdIdentity(binding.os, runFd);
 runIdentity = pathIdentity(binding.run_path, "directory");
 assertRunBinding(binding, runIdentity);
 clear runFdCleanup
-closePythonFd(binding.os, runFd);
 end
 
 function assertRunBinding(binding, runIdentity)
@@ -1075,6 +1095,17 @@ if canonicalPath(pwd) ~= canonicalPath(folder)
 end
 if string(path) ~= string(matlabPath)
     errors(end + 1, 1) = "validation: MATLAB path mismatch"; %#ok<AGROW>
+end
+end
+
+function restoreCallerStateOnCleanup(sourceModel, model, fileGeneration, ...
+        baseSnapshot, folder, matlabPath, testHook)
+errors = restoreCallerState(sourceModel, model, fileGeneration, ...
+    baseSnapshot, folder, matlabPath, testHook);
+if ~isempty(errors)
+    warning("fig519a3:CallerStateCleanupFailed", ...
+        "Caller-state onCleanup restoration reported: %s", ...
+        strjoin(errors, " | "));
 end
 end
 
@@ -1650,7 +1681,10 @@ end
 function closePythonFd(os, fd)
 try
     os.close(fd);
-catch
+catch exception
+    warning("fig519a3:FileDescriptorCloseFailed", ...
+        "Failed to close a bound Python file descriptor (%s): %s", ...
+        string(exception.identifier), string(exception.message));
 end
 end
 

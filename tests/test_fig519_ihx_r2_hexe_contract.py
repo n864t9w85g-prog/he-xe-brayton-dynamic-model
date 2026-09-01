@@ -102,6 +102,14 @@ def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
     if "simulink.blockdiagram." in collapsed_literals:
         findings.append("concatenated BlockDiagram method string")
 
+    allowed_python_import = 'py.importlib.import_module("os")'
+    for call in _matlab_calls(source, "py.importlib.import_module"):
+        normalized = re.sub(r"\s+|\.\.\.", "", call.lower())
+        if normalized != allowed_python_import:
+            findings.append("non-allowlisted dynamic Python import")
+    if "matlab" in collapsed_literals and "-batch" in collapsed_literals:
+        findings.append("foreign MATLAB batch process payload")
+
     allowed_set_param = {
         'set_param(averagetarget,"initialcondition",'
         'num2str(newaveragek,"%.17g"))',
@@ -190,6 +198,10 @@ MALICIOUS_DYNAMIC_EXECUTION = {
         'java.lang.ProcessBuilder("unzip", "candidate.slx").start()'
     ),
     "python os process": 'py.os.system("unzip candidate.slx")',
+    "dynamic Python import and MATLAB batch sim": (
+        'py.importlib.import_module("sub"+"process").run('
+        '["matlab","-batch","s"+"im(model)"])'
+    ),
 }
 
 
@@ -296,6 +308,15 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         self.assertEqual(
             simulation_commands,
             ['set_param(model, "SimulationCommand", "update")'],
+        )
+        self.assertIn(
+            "ancestorConstructionCleanup = onCleanup", source
+        )
+        self.assertIn("restoreCallerStateOnCleanup", source)
+        self.assertIn("fig519a3:FileDescriptorCloseFailed", source)
+        self.assertNotRegex(
+            source,
+            r"clear\s+runFdCleanup\s*\n\s*closePythonFd",
         )
 
     def test_real_generator_set_param_calls_match_the_exact_literal_allowlist(self):
@@ -562,10 +583,13 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             "os.unlink",
             "os.rmdir",
             '"retained_untrusted"',
+            '"fig519a3_current_process_cleanup_snapshot_v1"',
         ):
             with self.subTest(literal=literal):
                 self.assertIn(literal, source)
         self.assertNotRegex(source, r"(?i)\brmdir\s*\([^\n]*[\"']s[\"']")
+        self.assertNotRegex(source, r"(?i)\btempname\s*\(")
+        self.assertNotIn("claimOwnedTestSandbox", source)
 
 
 if __name__ == "__main__":

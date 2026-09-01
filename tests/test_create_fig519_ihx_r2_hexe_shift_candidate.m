@@ -139,18 +139,25 @@ verifyFalse(testCase, contains(lower(generatorSource), "run_steady53_case"));
 verifyFalse(testCase, contains(lower(generatorSource), ...
     '"simulationcommand", "start"'));
 verifyFalse(testCase, contains(lower(generatorSource), "sim("));
+finalOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
+verifyEqual(testCase, string(cleanupOwnedOutput( ...
+    finalOwner, tmpRoot).status), "deleted");
+clear cleanup
 end
 
 function testCleanupPreservesReplacementDirectory(testCase)
 repo = string(fileparts(fileparts(mfilename("fullpath"))));
 tmpRoot = fullfile(repo, "tmp");
 owner = createOwnedTestSandbox(tmpRoot);
+owner = finalizeOwnedTestSandbox(owner, tmpRoot);
 displaced = owner.path + "-displaced";
 movefile(owner.path, displaced);
-mkdir(owner.path);
+replacementOwner = createOwnedTestSandbox(tmpRoot, ...
+    directChildName(owner.path, tmpRoot));
 replacementIdentity = fileIdentity(owner.path);
 replacementSentinel = fullfile(owner.path, "replacement.txt");
 writelines("replacement", replacementSentinel);
+replacementOwner = finalizeOwnedTestSandbox(replacementOwner, tmpRoot);
 cleanupOwnedOutput(owner, tmpRoot);
 verifyTrue(testCase, isfolder(owner.path));
 verifyTrue(testCase, isfile(replacementSentinel));
@@ -159,7 +166,6 @@ displacedOwner = owner;
 displacedOwner.path = displaced;
 displacedOwner.token_path = fullfile(displaced, ".fig519a3-test-owner");
 cleanupOwnedOutput(displacedOwner, tmpRoot);
-replacementOwner = claimOwnedTestSandbox(owner.path, tmpRoot);
 cleanupOwnedOutput(replacementOwner, tmpRoot);
 end
 
@@ -170,9 +176,41 @@ owner = createOwnedTestSandbox(tmpRoot);
 ownedOutput = fullfile(owner.path, "candidate-output");
 mkdir(ownedOutput);
 writelines("owned", fullfile(ownedOutput, "owned.txt"));
+owner = finalizeOwnedTestSandbox(owner, tmpRoot);
 result = cleanupOwnedOutput(owner, tmpRoot);
 verifyEqual(testCase, string(result.status), "deleted");
 verifyFalse(testCase, isfolder(owner.path));
+end
+
+function testMissingCleanupSnapshotIsNeverDeleted(testCase)
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+owner = createOwnedTestSandbox(tmpRoot);
+writelines("owned", fullfile(owner.path, "owned.txt"));
+result = cleanupOwnedOutput(owner, tmpRoot);
+verifyEqual(testCase, string(result.status), "retained_untrusted");
+verifyEqual(testCase, string(result.reason), ...
+    "fig519a3test:CleanupSnapshotRequired");
+verifyTrue(testCase, isfile(fullfile(owner.path, "owned.txt")));
+finalOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
+verifyEqual(testCase, string(cleanupOwnedOutput( ...
+    finalOwner, tmpRoot).status), "deleted");
+end
+
+function testOwnedSandboxCreationRefusesExactCollision(testCase)
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+rootName = "tp-collision-" + string(char(java.util.UUID.randomUUID));
+owner = createOwnedTestSandbox(tmpRoot, rootName);
+verifyEqual(testCase, posixMode(owner.path), "rwx------");
+writelines("collision", fullfile(owner.path, "collision.txt"));
+verifyError(testCase, @() createOwnedTestSandbox(tmpRoot, rootName), ...
+    "fig519a3test:OwnerExists");
+verifyEqual(testCase, strtrim(string(fileread( ...
+    fullfile(owner.path, "collision.txt")))), "collision");
+finalOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
+verifyEqual(testCase, string(cleanupOwnedOutput( ...
+    finalOwner, tmpRoot).status), "deleted");
 end
 
 function testRecordedCleanupSnapshotRejectsLateInventory(testCase)
@@ -181,12 +219,12 @@ tmpRoot = fullfile(repo, "tmp");
 owner = createOwnedTestSandbox(tmpRoot);
 cleanup = onCleanup(@() cleanupOwnedOutput(owner, tmpRoot));
 writelines("replacement", fullfile(owner.path, "replacement.txt"));
-replacementOwner = recordOwnedOutputSnapshot(owner, tmpRoot);
+replacementOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
 writelines("late", fullfile(owner.path, "late.txt"));
 result = cleanupOwnedOutput(replacementOwner, tmpRoot);
 verifyEqual(testCase, string(result.status), "retained_untrusted");
 verifyTrue(testCase, isfile(fullfile(owner.path, "late.txt")));
-currentOwner = recordOwnedOutputSnapshot(owner, tmpRoot);
+currentOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
 verifyEqual(testCase, string(cleanupOwnedOutput( ...
     currentOwner, tmpRoot).status), "deleted");
 clear cleanup
@@ -198,6 +236,7 @@ tmpRoot = fullfile(repo, "tmp");
 owner = createOwnedTestSandbox(tmpRoot);
 cleanup = onCleanup(@() cleanupOwnedOutput(owner, tmpRoot));
 writelines("owned", fullfile(owner.path, "owned.txt"));
+owner = finalizeOwnedTestSandbox(owner, tmpRoot);
 foreignOwner = owner;
 foreignOwner.schema = "foreign_owner";
 result = cleanupOwnedOutput(foreignOwner, tmpRoot);
@@ -205,6 +244,7 @@ verifyEqual(testCase, string(result.status), "retained_untrusted");
 verifyTrue(testCase, isfile(fullfile(owner.path, "owned.txt")));
 verifyEqual(testCase, string(cleanupOwnedOutput(owner, tmpRoot).status), ...
     "deleted");
+clear cleanup
 end
 
 function testCleanupDeletesSymlinkWithoutFollowingExternalTarget(testCase)
@@ -221,6 +261,8 @@ java.nio.file.Files.createSymbolicLink(nioPath(linkPath), ...
     nioPath(externalOwner.path), ...
     javaArray("java.nio.file.attribute.FileAttribute", 0));
 
+owner = finalizeOwnedTestSandbox(owner, tmpRoot);
+externalOwner = finalizeOwnedTestSandbox(externalOwner, tmpRoot);
 result = cleanupOwnedOutput(owner, tmpRoot);
 verifyEqual(testCase, string(result.status), "deleted");
 verifyFalse(testCase, isfolder(owner.path));
@@ -236,7 +278,12 @@ owner = createOwnedTestSandbox(tmpRoot);
 ownedOutput = fullfile(owner.path, "candidate-output");
 mkdir(ownedOutput);
 writelines("owned", fullfile(ownedOutput, "owned.txt"));
-boundary = @() replaceAtCleanupBoundary(owner.path);
+owner = finalizeOwnedTestSandbox(owner, tmpRoot);
+replacementOwner = createOwnedTestSandbox(tmpRoot);
+writelines("replacement", fullfile(replacementOwner.path, "replacement.txt"));
+replacementOwner = finalizeOwnedTestSandbox(replacementOwner, tmpRoot);
+boundary = @() replaceAtCleanupBoundary( ...
+    owner.path, replacementOwner.path);
 result = cleanupOwnedOutput(owner, tmpRoot, boundary);
 verifyEqual(testCase, string(result.status), "retained_untrusted");
 verifyTrue(testCase, isfolder(owner.path));
@@ -247,16 +294,15 @@ displacedOwner.token_path = fullfile(displacedOwner.path, ...
     ".fig519a3-test-owner");
 verifyEqual(testCase, string(cleanupOwnedOutput( ...
     displacedOwner, tmpRoot).status), "deleted");
-replacementOwner = claimOwnedTestSandbox(owner.path, tmpRoot);
+replacementOwner = relocateOwner(replacementOwner, owner.path);
 verifyEqual(testCase, string(cleanupOwnedOutput( ...
     replacementOwner, tmpRoot).status), "deleted");
 end
 
-function replaceAtCleanupBoundary(pathValue)
+function replaceAtCleanupBoundary(pathValue, replacementPath)
 displaced = pathValue + "-owned-before-boundary";
 movefile(pathValue, displaced);
-mkdir(pathValue);
-writelines("replacement", fullfile(pathValue, "replacement.txt"));
+movefile(replacementPath, pathValue);
 end
 
 function testCleanupRetainsNestedReplacementAtDeletionBoundary(testCase)
@@ -266,11 +312,16 @@ owner = createOwnedTestSandbox(tmpRoot);
 nested = fullfile(owner.path, "candidate-output", "nested");
 mkdir(nested);
 writelines("owned", fullfile(nested, "owned.txt"));
-boundary = @() replaceNestedAtCleanupBoundary(nested);
+replacement = nested + "-replacement";
+mkdir(replacement);
+writelines("replacement", fullfile(replacement, "replacement.txt"));
+owner = finalizeOwnedTestSandbox(owner, tmpRoot);
+boundary = @() replaceNestedAtCleanupBoundary(nested, replacement);
 result = cleanupOwnedOutput(owner, tmpRoot, boundary);
 verifyEqual(testCase, string(result.status), "retained_untrusted");
 verifyTrue(testCase, isfile(fullfile(nested, "replacement.txt")));
 verifyTrue(testCase, isfile(fullfile(nested + "-displaced", "owned.txt")));
+owner = finalizeOwnedTestSandbox(owner, tmpRoot);
 verifyEqual(testCase, string(cleanupOwnedOutput(owner, tmpRoot).status), ...
     "deleted");
 end
@@ -294,6 +345,7 @@ for index = 1:numel(cases)
         mkdir(target);
         writelines("owned", fullfile(target, "owned.txt"));
     end
+    owner = finalizeOwnedTestSandbox(owner, tmpRoot);
     displaced = target + "-owned-displaced";
     hook = @(phase, pathValue, parentFd, entryName) ...
         replaceCleanupLastHop(phase, pathValue, parentFd, entryName, ...
@@ -302,6 +354,7 @@ for index = 1:numel(cases)
     verifyEqual(testCase, string(result.status), "retained_untrusted");
     verifyTrue(testCase, replacementAtPath(target, cases(index).kind));
     verifyTrue(testCase, ownedDisplacedPresent(displaced, cases(index).kind));
+    owner = finalizeOwnedTestSandbox(owner, tmpRoot);
     verifyEqual(testCase, string(cleanupOwnedOutput(owner, tmpRoot).status), ...
         "deleted");
     clear cleanup
@@ -313,16 +366,21 @@ repo = string(fileparts(fileparts(mfilename("fullpath"))));
 tmpRoot = fullfile(repo, "tmp");
 owner = createOwnedTestSandbox(tmpRoot);
 writelines("owned", fullfile(owner.path, "owned.txt"));
+owner = finalizeOwnedTestSandbox(owner, tmpRoot);
+replacementOwner = createOwnedTestSandbox(tmpRoot);
+writelines("replacement", fullfile(replacementOwner.path, "replacement.txt"));
+replacementOwner = finalizeOwnedTestSandbox(replacementOwner, tmpRoot);
 displaced = owner.path + "-owned-displaced";
 hook = @(phase, pathValue, parentFd, entryName) ...
     replaceCleanupLastHop(phase, pathValue, parentFd, entryName, ...
-    "before_root_quarantine", owner.path, "directory", displaced);
+    "before_root_quarantine", owner.path, "directory", displaced, ...
+    directChildName(replacementOwner.path, tmpRoot));
 result = cleanupOwnedOutput(owner, tmpRoot, hook);
 verifyEqual(testCase, string(result.status), "retained_untrusted");
 verifyTrue(testCase, isfile(fullfile(owner.path, "replacement.txt")));
 verifyTrue(testCase, isfile(fullfile(displaced, "owned.txt")));
 
-replacementOwner = claimOwnedTestSandbox(owner.path, tmpRoot);
+replacementOwner = relocateOwner(replacementOwner, owner.path);
 verifyEqual(testCase, string(cleanupOwnedOutput( ...
     replacementOwner, tmpRoot).status), "deleted");
 displacedOwner = relocateOwner(owner, displaced);
@@ -332,7 +390,18 @@ clear cleanup
 end
 
 function replaceCleanupLastHop(phase, pathValue, parentFd, entryName, ...
-        expectedPhase, target, kind, displaced)
+        expectedPhase, target, kind, displaced, replacementName)
+arguments
+    phase
+    pathValue
+    parentFd
+    entryName
+    expectedPhase
+    target
+    kind
+    displaced
+    replacementName = ""
+end
 if string(phase) ~= string(expectedPhase) || ...
         string(pathValue) ~= string(target)
     return
@@ -341,6 +410,11 @@ os = py.importlib.import_module("os");
 displacedName = string(entryName) + "-owned-displaced";
 os.rename(char(entryName), char(displacedName), pyargs( ...
     "src_dir_fd", parentFd, "dst_dir_fd", parentFd));
+if strlength(string(replacementName)) > 0
+    os.rename(char(replacementName), char(entryName), pyargs( ...
+        "src_dir_fd", parentFd, "dst_dir_fd", parentFd));
+    return
+end
 if string(kind) == "file"
     flags = bitor(bitor(int64(os.O_WRONLY), int64(os.O_CREAT)), ...
         int64(os.O_EXCL));
@@ -388,11 +462,10 @@ owner.path = string(newPath);
 owner.token_path = fullfile(owner.path, ".fig519a3-test-owner");
 end
 
-function replaceNestedAtCleanupBoundary(pathValue)
+function replaceNestedAtCleanupBoundary(pathValue, replacementPath)
 displaced = pathValue + "-displaced";
 movefile(pathValue, displaced);
-mkdir(pathValue);
-writelines("replacement", fullfile(pathValue, "replacement.txt"));
+movefile(replacementPath, pathValue);
 end
 
 function testInjectedFailuresRestoreCallerState(testCase)
@@ -415,8 +488,10 @@ for index = 1:numel(points)
     clear hookCleanup
     clearFailureHook();
     verifyCallerState(testCase, state);
+    finalOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
+    verifyEqual(testCase, string(cleanupOwnedOutput( ...
+        finalOwner, tmpRoot).status), "deleted");
     clear cleanup
-    cleanupOwnedOutput(owner, tmpRoot);
 end
 end
 
@@ -430,14 +505,20 @@ state = callerState();
 installTestHook(owner, struct("point", "restore_close_candidate", ...
     "action", "fail_restore_step"));
 hookCleanup = onCleanup(@() clearFailureHook());
+lastwarn("");
 verifyError(testCase, ...
     @() create_fig519_ihx_r2_hexe_shift_candidate(outputDir, repo), ...
     "fig519a3:CallerStateRestoreFailed");
+[~, cleanupWarningId] = lastwarn;
+verifyEqual(testCase, string(cleanupWarningId), ...
+    "fig519a3:CallerStateCleanupFailed");
 clear hookCleanup
 clearFailureHook();
 verifyCallerState(testCase, state);
+finalOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
+verifyEqual(testCase, string(cleanupOwnedOutput( ...
+    finalOwner, tmpRoot).status), "deleted");
 clear cleanup
-cleanupOwnedOutput(owner, tmpRoot);
 end
 
 function testRunAncestorLaunderingBeforeAndAfterCreationIsDetected(testCase)
@@ -463,28 +544,46 @@ for index = 1:numel(points)
         string(displacedItems(1).name));
     java.nio.file.Files.delete(nioPath(owner.path));
     displacedOwner = relocateOwner(owner, displaced);
+    displacedOwner = finalizeOwnedTestSandbox(displacedOwner, tmpRoot);
     verifyEqual(testCase, string(cleanupOwnedOutput( ...
         displacedOwner, tmpRoot).status), "deleted");
+    lastwarn("");
     clear cleanup
+    [~, cleanupWarningId] = lastwarn;
+    verifyEqual(testCase, string(cleanupWarningId), "");
 end
 end
 
 function cleanupAncestorAttackOwner(owner, tmpRoot)
 try
+    ownerExists = java.nio.file.Files.exists( ...
+        nioPath(owner.path), noFollowOptions());
     if java.nio.file.Files.isSymbolicLink(nioPath(owner.path))
         java.nio.file.Files.delete(nioPath(owner.path));
+        ownerExists = false;
     end
     displacedItems = dir(owner.path + "-laundered-*");
+    if ~ownerExists && isempty(displacedItems)
+        return
+    end
     if numel(displacedItems) == 1
         displaced = fullfile(string(displacedItems(1).folder), ...
             string(displacedItems(1).name));
-        cleanupOwnedOutput(relocateOwner(owner, displaced), tmpRoot);
+        finalOwner = finalizeOwnedTestSandbox( ...
+            relocateOwner(owner, displaced), tmpRoot);
     else
-        cleanupOwnedOutput(owner, tmpRoot);
+        finalOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
+    end
+    result = cleanupOwnedOutput(finalOwner, tmpRoot);
+    if string(result.status) ~= "deleted" && string(result.status) ~= "absent"
+        warning("fig519a3test:CleanupCallbackRetained", ...
+            "Ancestor attack cleanup retained %s: %s", ...
+            string(result.path), string(result.reason));
     end
 catch exception
-    fprintf(2, "Retained ancestor-attack output during test cleanup: %s\n", ...
-        string(exception.identifier));
+    warning("fig519a3test:CleanupCallbackFailed", ...
+        "Ancestor attack cleanup failed (%s): %s", ...
+        string(exception.identifier), string(exception.message));
 end
 end
 
@@ -502,6 +601,10 @@ audit = create_fig519_ihx_r2_hexe_shift_candidate(outputDir, repo);
 verifyEqual(testCase, string(audit.attempt_id), "20260901_A3");
 clear hookCleanup
 clearFailureHook();
+finalOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
+verifyEqual(testCase, string(cleanupOwnedOutput( ...
+    finalOwner, tmpRoot).status), "deleted");
+clear cleanup
 end
 
 function testFiniteReplacementAndSymlinkAttacksAreDetected(testCase)
@@ -561,7 +664,7 @@ for index = 1:numel(cases)
             outputDir, symlinkAttackName(cases(index).action))), ...
             javaArray("java.lang.String", 0)));
     end
-    replacementOwner = recordOwnedOutputSnapshot(owner, tmpRoot);
+    replacementOwner = finalizeOwnedTestSandbox(owner, tmpRoot);
     verifyEqual(testCase, string(cleanupOwnedOutput( ...
         replacementOwner, tmpRoot).status), "deleted");
     clear cleanup
@@ -693,30 +796,69 @@ raw = digest.digest();
 hash = string(lower(reshape(dec2hex(typecast(raw, "uint8"), 2).', 1, [])));
 end
 
-function owner = createOwnedTestSandbox(tmpRoot)
-ownerPath = string(tempname(tmpRoot));
-mkdir(ownerPath);
-owner = claimOwnedTestSandbox(ownerPath, tmpRoot);
+function owner = createOwnedTestSandbox(tmpRoot, rootName)
+arguments
+    tmpRoot
+    rootName = "tp" + replace(string(char(java.util.UUID.randomUUID)), "-", "_")
 end
-
-function owner = claimOwnedTestSandbox(ownerPath, tmpRoot)
-owner.path = string(ownerPath);
+rootName = string(rootName);
+if rootName == "." || rootName == ".." || strlength(rootName) == 0 || ...
+        contains(rootName, "/") || contains(rootName, "\")
+    error("fig519a3test:OwnerNameInvalid", ...
+        "Owned sandbox names must be one safe direct-child component.");
+end
+os = py.importlib.import_module("os");
+tmpFd = openPathDirectoryNoFollow(os, tmpRoot);
+tmpCleanup = onCleanup(@() closePythonFd(os, tmpFd));
+tmpIdentity = posixFdIdentity(os, tmpFd);
+tmpFileKey = fileIdentity(tmpRoot);
+try
+    os.mkdir(char(rootName), int64(448), pyargs("dir_fd", tmpFd));
+catch exception
+    try
+        os.stat(char(rootName), pyargs("dir_fd", tmpFd, ...
+            "follow_symlinks", false));
+        error("fig519a3test:OwnerExists", ...
+            "Refusing to claim an existing test sandbox entry.");
+    catch existenceException
+        if string(existenceException.identifier) == ...
+                "fig519a3test:OwnerExists"
+            rethrow(existenceException)
+        end
+        rethrow(exception)
+    end
+end
+rootFd = openRelativeDirectoryNoFollow(os, tmpFd, rootName);
+rootCleanup = onCleanup(@() closePythonFd(os, rootFd));
+rootIdentity = posixFdIdentity(os, rootFd);
+assertRelativeIdentity(os, tmpFd, rootName, rootIdentity, ...
+    "new owned sandbox");
+owner.path = fullfile(string(tmpRoot), rootName);
 owner.schema = "fig519a3_test_owner";
 owner.version = 2;
 owner.token = string(char(java.util.UUID.randomUUID));
 owner.capability_text = "fig519a3_test_owner_v2:" + owner.token;
 owner.token_path = fullfile(owner.path, ".fig519a3-test-owner");
-writeOwnerTokenExclusive(owner.token_path, owner.capability_text + newline);
+writeOwnerTokenExclusiveFd(os, rootFd, ".fig519a3-test-owner", ...
+    owner.capability_text + newline);
 owner.file_key = fileIdentity(owner.path);
 owner.token_file_key = fileIdentity(owner.token_path);
-owner.posix_identity = posixPathIdentity(owner.path, "directory");
-owner.token_posix_identity = posixPathIdentity(owner.token_path, "file");
-owner.tmp_file_key = fileIdentity(tmpRoot);
-owner.tmp_posix_identity = posixPathIdentity(tmpRoot, "directory");
+owner.posix_identity = rootIdentity;
+owner.token_posix_identity = posixRelativeIdentity( ...
+    os, rootFd, ".fig519a3-test-owner");
+owner.tmp_file_key = tmpFileKey;
+owner.tmp_posix_identity = tmpIdentity;
+if posixMode(owner.path) ~= "rwx------"
+    error("fig519a3test:OwnerMode", ...
+        "Owned test sandboxes must be created with POSIX mode 0700.");
+end
+clear rootCleanup tmpCleanup
+closePythonFd(os, rootFd);
+closePythonFd(os, tmpFd);
 end
 
-function owner = recordOwnedOutputSnapshot(owner, tmpRoot)
-validateCleanupOwnerShape(owner);
+function owner = finalizeOwnedTestSandbox(owner, tmpRoot)
+validateOwnerBaseShape(owner);
 os = py.importlib.import_module("os");
 parentFd = openPathDirectoryNoFollow(os, tmpRoot);
 parentCleanup = onCleanup(@() closePythonFd(os, parentFd));
@@ -744,19 +886,20 @@ closePythonFd(os, rootFd);
 closePythonFd(os, parentFd);
 end
 
-function writeOwnerTokenExclusive(tokenPath, tokenText)
-options = javaArray("java.nio.file.OpenOption", 2);
-options(1) = java.nio.file.StandardOpenOption.CREATE_NEW;
-options(2) = java.nio.file.StandardOpenOption.WRITE;
-channel = java.nio.file.Files.newByteChannel(nioPath(tokenPath), options);
-cleanup = onCleanup(@() channel.close());
-bytes = unicode2native(char(tokenText), "UTF-8");
-buffer = java.nio.ByteBuffer.wrap(int8(bytes));
-while buffer.hasRemaining()
-    channel.write(buffer);
+function writeOwnerTokenExclusiveFd(os, rootFd, tokenName, tokenText)
+flags = bitor(bitor(bitor(int64(os.O_WRONLY), int64(os.O_CREAT)), ...
+    int64(os.O_EXCL)), int64(os.O_NOFOLLOW));
+tokenFd = os.open(char(tokenName), flags, int64(384), ...
+    pyargs("dir_fd", rootFd));
+cleanup = onCleanup(@() closePythonFd(os, tokenFd));
+payload = py.bytes(char(tokenText), "utf-8");
+written = int64(os.write(tokenFd, payload));
+if written ~= int64(py.len(payload))
+    error("fig519a3test:OwnerTokenWrite", ...
+        "The exclusive owner token write was incomplete.");
 end
 clear cleanup
-channel.close();
+closePythonFd(os, tokenFd);
 end
 
 function result = cleanupOwnedOutput(owner, tmpRoot, boundaryHook)
@@ -796,18 +939,8 @@ try
             "The cleanup root fileKey changed.");
     end
     assertOwnedToken(os, rootFd, tokenName, owner);
-    if isfield(owner, "cleanup_snapshot")
-        if ~isfield(owner, "cleanup_snapshot_schema") || ...
-                string(owner.cleanup_snapshot_schema) ~= ...
-                "fig519a3_current_process_cleanup_snapshot_v1"
-            error("fig519a3test:CleanupSnapshotSchema", ...
-                "Recorded cleanup snapshots require the exact schema.");
-        end
-        snapshot = owner.cleanup_snapshot;
-        verifyDirectorySnapshotFd(os, rootFd, snapshot);
-    else
-        snapshot = snapshotDirectoryFd(os, rootFd);
-    end
+    snapshot = owner.cleanup_snapshot;
+    verifyDirectorySnapshotFd(os, rootFd, snapshot);
     invokeCleanupBoundaryHook(boundaryHook, ...
         "before_snapshot_delete", outputDir);
     assertRelativeIdentity(os, parentFd, rootName, ...
@@ -825,7 +958,7 @@ catch exception
 end
 end
 
-function validateCleanupOwnerShape(owner)
+function validateOwnerBaseShape(owner)
 required = ["path", "token", "token_path", "file_key", ...
     "token_file_key", "posix_identity", "token_posix_identity", ...
     "tmp_file_key", "tmp_posix_identity", "schema", "version", ...
@@ -841,6 +974,20 @@ valid = string(owner.schema) == "fig519a3_test_owner" && ...
 if ~valid
     error("fig519a3test:CleanupOwnerSchema", ...
         "Safe cleanup requires the exact A3 owner schema/version.");
+end
+end
+
+function validateCleanupOwnerShape(owner)
+validateOwnerBaseShape(owner);
+if ~isfield(owner, "cleanup_snapshot") || ...
+        ~isfield(owner, "cleanup_snapshot_schema")
+    error("fig519a3test:CleanupSnapshotRequired", ...
+        "Safe cleanup requires an explicit current-process fixed snapshot.");
+end
+if string(owner.cleanup_snapshot_schema) ~= ...
+        "fig519a3_current_process_cleanup_snapshot_v1"
+    error("fig519a3test:CleanupSnapshotSchema", ...
+        "Recorded cleanup snapshots require the exact schema.");
 end
 end
 
