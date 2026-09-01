@@ -7,6 +7,7 @@ import io
 import json
 import multiprocessing
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -38,6 +39,30 @@ def _replace_parent_process(parent, preserved, external, staging_name, go, done)
     os.symlink(external, parent, target_is_directory=True)
     os.mkdir(Path(external) / staging_name, 0o700)
     done.set()
+
+
+def _replace_staging_then_destination_process(
+    staging,
+    durable,
+    preserved_staging,
+    preserved_first_destination,
+    stage_go,
+    stage_done,
+    quarantine_go,
+    quarantine_done,
+    first_token,
+    second_token,
+):
+    stage_go.wait(10)
+    os.rename(staging, preserved_staging)
+    os.mkdir(staging, 0o700)
+    (Path(staging) / "first-competitor-token").write_bytes(first_token)
+    stage_done.set()
+    quarantine_go.wait(10)
+    os.rename(durable, preserved_first_destination)
+    os.mkdir(durable, 0o700)
+    (Path(durable) / "second-competitor-token").write_bytes(second_token)
+    quarantine_done.set()
 
 
 class Figure518aAnchorEvidencePublicationTests(unittest.TestCase):
@@ -332,6 +357,88 @@ class Figure518aAnchorEvidencePublicationTests(unittest.TestCase):
         ]
         self.assertEqual(len(preserved_tokens), 1, "attacker replacement was unlinked")
         self.assertTrue(preserved.is_dir(), "owned staging moved by attacker was lost")
+
+    def test_second_replacement_cannot_leave_a_false_inode_quarantine_label(self):
+        context = multiprocessing.get_context("fork")
+        stage_go = context.Event()
+        stage_done = context.Event()
+        quarantine_go = context.Event()
+        quarantine_done = context.Event()
+        staging = publisher.staging_path(self.durable)
+        preserved_staging = self.durable_parent / ".fig5_18a.original-owned-staging"
+        preserved_first = self.durable_parent / ".fig5_18a.first-competitor-preserved"
+        first_token = b"first competing directory"
+        second_token = b"second competing directory"
+        competitor = context.Process(
+            target=_replace_staging_then_destination_process,
+            args=(
+                staging,
+                self.durable,
+                preserved_staging,
+                preserved_first,
+                stage_go,
+                stage_done,
+                quarantine_go,
+                quarantine_done,
+                first_token,
+                second_token,
+            ),
+        )
+        original = publisher._exclusive_rename
+        rename_call = 0
+
+        def replace_at_both_rename_boundaries(*args):
+            nonlocal rename_call
+            rename_call += 1
+            if rename_call == 1:
+                stage_go.set()
+                if not stage_done.wait(10):
+                    raise RuntimeError("competitor did not replace staging")
+            elif rename_call == 2:
+                quarantine_go.set()
+                if not quarantine_done.wait(10):
+                    raise RuntimeError("competitor did not replace quarantine source")
+            return original(*args)
+
+        competitor.start()
+        try:
+            with self.patched(), mock.patch.object(
+                publisher,
+                "_exclusive_rename",
+                side_effect=replace_at_both_rename_boundaries,
+            ):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish()
+        finally:
+            competitor.join(10)
+            if competitor.is_alive():
+                competitor.terminate()
+                competitor.join()
+        self.assertEqual(competitor.exitcode, 0)
+        self.assertFalse(self.durable.exists(), "invalid durable destination remained")
+        self.assertEqual(
+            (preserved_first / "first-competitor-token").read_bytes(), first_token
+        )
+        quarantines = [
+            entry for entry in self.durable_parent.iterdir()
+            if entry.name.startswith(".fig5_18a.rejected-")
+        ]
+        self.assertEqual(len(quarantines), 1)
+        quarantine = quarantines[0]
+        self.assertEqual(
+            (quarantine / "second-competitor-token").read_bytes(), second_token
+        )
+        identity_label = re.fullmatch(
+            r"\.fig5_18a\.rejected-([0-9a-f]+)-([0-9a-f]+)-[0-9]+",
+            quarantine.name,
+        )
+        if identity_label is not None:
+            quarantined_stat = quarantine.lstat()
+            self.assertEqual(
+                (int(identity_label.group(1), 16), int(identity_label.group(2), 16)),
+                (quarantined_stat.st_dev, quarantined_stat.st_ino),
+                "quarantine name claims the inode sampled before a competing swap",
+            )
 
     def test_active_parent_replacement_cannot_redirect_staged_writes(self):
         context = multiprocessing.get_context("fork")

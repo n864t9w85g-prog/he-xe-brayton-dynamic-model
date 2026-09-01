@@ -11,6 +11,7 @@ import hashlib
 import io
 import json
 import os
+import secrets
 import stat
 import sys
 from contextlib import contextmanager
@@ -439,12 +440,14 @@ def _quarantine_unbound_destination(
     A continuously mutating same-UID process can deny service, but no cleanup
     here unlinks or overwrites its replacement.
     """
-    for counter in range(32):
+    for _ in range(32):
         current = _entry_stat(parent_descriptor, destination_name)
         if current is None:
             return
+        # The token is deliberately opaque: the name makes no forensic claim
+        # about the inode that may be swapped between this check and rename.
         quarantine_name = (
-            f".{destination_name}.rejected-{current.st_dev:x}-{current.st_ino:x}-{counter}"
+            f".{destination_name}.rejected-neutral-{secrets.token_hex(16)}"
         )
         if _entry_stat(parent_descriptor, quarantine_name) is not None:
             continue
