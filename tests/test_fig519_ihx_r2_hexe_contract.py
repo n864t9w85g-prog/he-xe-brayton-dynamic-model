@@ -272,8 +272,17 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         )
         self.assertIn("hooks.testExclusiveTextCreation();", source)
         self.assertIn("hooks.testExclusiveDirectoryCreation();", source)
+        self.assertIn("hooks.testThrownCallArtifactTruthfulness();", source)
         self.assertNotIn("BEGIN_A3_500", source)
-        self.assertNotIn("run_steady53_case", source)
+        self.assertEqual(_matlab_calls(source, "run_steady53_case"), [])
+
+    def test_a3_runner_never_saves_synthetic_raw_after_a_thrown_call(self):
+        source = self._runner_source()
+        self.assertIn("callReturned = false;", source)
+        self.assertIn("callReturned = true;", source)
+        self.assertIn("if ~callReturned", source)
+        self.assertIn('"run_steady53_case_returned", callReturned', source)
+        self.assertNotIn("emptyFailureResult", source)
 
     def test_a3_candidate_generator_has_the_frozen_public_contract(self):
         source = self._generator_source()
