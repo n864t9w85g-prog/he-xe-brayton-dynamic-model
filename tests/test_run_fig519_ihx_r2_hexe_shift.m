@@ -33,6 +33,7 @@ for rawAttackIndex = 1:numel(rawAttackKinds)
         hooks.testRawExclusivePublicationAttack(rawAttackKinds(rawAttackIndex));
 end
 auditNegativeStatus = hooks.testExactAuditNegativeValidation();
+protectedStatus = hooks.testCapturedProtectedRecords();
 
 verifyEqual(testCase, textStatus.simulation_call_count, 0);
 verifyTrue(testCase, textStatus.overwrite_rejected);
@@ -66,8 +67,16 @@ verifyTrue(testCase, auditNegativeStatus.duplicate_rejected);
 verifyTrue(testCase, auditNegativeStatus.missing_rejected);
 verifyTrue(testCase, auditNegativeStatus.extra_rejected);
 verifyTrue(testCase, auditNegativeStatus.changed_value_rejected);
+verifyTrue(testCase, auditNegativeStatus.nan_state_rejected);
+verifyTrue(testCase, auditNegativeStatus.inf_state_rejected);
+verifyTrue(testCase, auditNegativeStatus.nonnumeric_state_rejected);
 verifyTrue(testCase, auditNegativeStatus.symlink_ancestor_rejected);
 verifyEqual(testCase, auditNegativeStatus.simulation_call_count, 0);
+verifyTrue(testCase, protectedStatus.captured_empty_relative_passed);
+verifyTrue(testCase, protectedStatus.tampered_path_rejected);
+verifyTrue(testCase, protectedStatus.tampered_hash_rejected);
+verifyEqual(testCase, protectedStatus.protected_record_count, 34);
+verifyEqual(testCase, protectedStatus.simulation_call_count, 0);
 verifyEqual(testCase, string(find_system("type", "block_diagram")), loadedBefore);
 verifyFalse(testCase, isfolder(expectedRunDir));
 end

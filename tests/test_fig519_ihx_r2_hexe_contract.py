@@ -364,12 +364,21 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             '"33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64"',
             "validateExactRuntimeSet",
             "validateExactProtectedSet",
+            "validateProtectedRecords",
+            "recalcProtectedRecords",
             "validateExactFormalSet",
             "validateStateInventoryValues",
             "assertNoSymlinkAncestors(filePath, repoRoot)",
         ):
             with self.subTest(literal=literal):
                 self.assertIn(literal, source)
+        self.assertNotIn(
+            "recalcRecords(audit.protected_files, repoRoot)", source
+        )
+        self.assertNotIn(
+            'validateUnchangedRecords(audit.protected_files, repoRoot, "protected file")',
+            source,
+        )
 
     def test_a3_candidate_generator_has_the_frozen_public_contract(self):
         source = self._generator_source()
