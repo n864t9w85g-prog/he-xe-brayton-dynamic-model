@@ -63,6 +63,20 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, lowered)
+        forbidden_editing_patterns = {
+            "generic XML API": r"\b(?:xml[a-z0-9_]*|matlab\.io\.xml(?:\.[a-z0-9_]+)+)\s*\(",
+            "generic ZIP API": r"\b(?:zip|unzip|java\.util\.zip(?:\.[a-z0-9_]+)+)\s*\(",
+            "archive extraction API": r"\b(?:untar|extractarchive|expandarchive)\s*\(",
+            "generic unpack intent": r"\b(?:unpack|unpacking|unpacked|slxunpack|slxpack)\b",
+            "BlockDiagram API": r"\b(?:simulink\.)?blockdiagram(?:\.[a-z0-9_]+)?\s*\(",
+            "BlockDiagram editing helper": (
+                r"\b(?:edit|modify|write|unpack)[a-z0-9_]*"
+                r"blockdiagram[a-z0-9_]*\b"
+            ),
+        }
+        for label, pattern in forbidden_editing_patterns.items():
+            with self.subTest(label=label):
+                self.assertIsNone(re.search(pattern, lowered), label)
 
     def test_a3_candidate_generator_freezes_counts_flags_and_candidate_only_save(self):
         source = self._generator_source()
@@ -71,6 +85,7 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             '"delta_T_K", deltaTK',
             '"changed_state_count", 2',
             '"unchanged_state_count", 38',
+            '"state_count", 40',
             '"solver_parameter_count", 37',
             '"update_diagram_count", 1',
             '"paper_reproduced", false',
@@ -81,6 +96,11 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             'activeFileGeneration = Simulink.fileGenControl("getConfig")',
             "openFileExclusive(auditPath)",
             "writeOpenChannel(auditChannel",
+            '"patch_schema", "steady53_fig519_ihx_r2_hexe_shift_candidate_v1"',
+            'string(get_param(blocks(index), "Mask"))',
+            'string(get_param(blocks(index), "MaskType"))',
+            '"mask_inventory", maskInventory',
+            '"mask_fingerprint", sha256Text(strjoin(maskRecords, newline))',
         ):
             with self.subTest(literal=literal):
                 self.assertIn(literal, source)
