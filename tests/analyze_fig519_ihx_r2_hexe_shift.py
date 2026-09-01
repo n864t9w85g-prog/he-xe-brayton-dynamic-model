@@ -115,6 +115,37 @@ CAPTURE_EXECUTABLES = (
     "tests/fig519_ihx_r2_hexe_contract.py",
     "tests/execute_fig519_ihx_r2_hexe_a3_once.py",
 )
+CAPTURE_DATA_GROUPS = (
+    "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
+    "data/provenance/baselines/f8bcd83/runtime",
+    "data/provenance/steady53/fig5_18a",
+    "data/provenance/steady53/fig5_19/paper_points.csv",
+    "data/provenance/steady53/fig5_19/model_baseline",
+    "data/provenance/steady53/fig5_19/signal_contract.json",
+    "data/provenance/steady53/fig5_19/initialization_audit.json",
+    "data/provenance/steady53/fig5_19/reactor_ic_counterfactual.json",
+    "data/provenance/steady53/fig5_19/manifest.csv",
+)
+
+
+def _declared_snapshot_paths() -> tuple[str, ...]:
+    names = set(CAPTURE_EXECUTABLES)
+    for group in CAPTURE_DATA_GROUPS:
+        path = ROOT / group
+        if path.is_file() and not path.is_symlink():
+            names.add(group)
+            continue
+        if not path.is_dir() or path.is_symlink():
+            raise RuntimeError(f"A3 immutable data group is unsafe/missing: {group}")
+        for item in path.rglob("*"):
+            if item.is_symlink():
+                raise RuntimeError(f"A3 immutable data group contains symlink: {item}")
+            if item.is_file():
+                names.add(item.relative_to(ROOT).as_posix())
+    return tuple(sorted(names))
+
+
+CAPTURE_IMMUTABLES = _declared_snapshot_paths()
 RUN_FILES = MappingProxyType({
     "patch_audit.json": "patch_audit.json",
     "run_status.json": "run/run_status.json",
@@ -123,7 +154,6 @@ RUN_FILES = MappingProxyType({
     "reference_curves.csv": "run/reference_curves.csv",
 })
 RUN_AUTHENTICITY_SOURCES = MappingProxyType({
-    "candidate_slx": "candidate.slx",
     "patch_audit": "patch_audit.json",
     "run_status": "run/run_status.json",
     "raw_result": "run/raw_result.mat",
@@ -139,7 +169,7 @@ PUBLICATION_DATA_FILES = (
     "untracked_paths.json", "preflight_status.json",
     "consumed_execution_manifest.json",
     "captured/SHA256SUMS",
-    *tuple("captured/" + name for name in CAPTURE_EXECUTABLES),
+    *tuple("captured/" + name for name in CAPTURE_IMMUTABLES),
     "a3_summary.json",
 )
 MANIFEST_NAME = "manifest.csv"
@@ -1324,7 +1354,7 @@ def _execution_authenticity(capture_dir: Path, run_dir: Path) -> dict[str, objec
     success_eligible = (
         exit_code == 0 and execution["matlab_subprocess_start_count"] == 1 and
         execution["run_steady53_case_call_count"] == 1 and run_exists and
-        not ({"candidate_slx", "patch_audit", "run_status", "raw_result",
+        not ({"patch_audit", "run_status", "raw_result",
               "candidate_curves", "reference_curves"} & set(missing_run))
     )
     return {
@@ -1357,12 +1387,14 @@ def _capture_files(capture_dir: Path) -> dict[str, bytes]:
         if relative.is_absolute() or ".." in relative.parts:
             raise PublicationError("captured SHA256SUMS path escaped snapshot")
         path = _regular_file(snapshot / relative, under=snapshot)
+        if stat.S_IMODE(path.stat().st_mode) != 0o400:
+            raise PublicationError(f"captured immutable file mode is not 0400: {relative}")
         if _hash(path.read_bytes()) != parts[0]:
             raise PublicationError(f"captured immutable hash mismatch: {relative}")
         declared[parts[1]] = parts[0]
-    if set(declared) != set(CAPTURE_EXECUTABLES):
+    if set(declared) != set(CAPTURE_IMMUTABLES):
         raise PublicationError(
-            "captured executable SHA256SUMS set is not the exact nine-file allowlist"
+            "captured SHA256SUMS set differs from executable/data-group allowlist"
         )
     analyzer_name = "tests/analyze_fig519_ihx_r2_hexe_shift.py"
     captured_analyzer = _regular_file(snapshot / analyzer_name, under=snapshot)
@@ -1373,7 +1405,7 @@ def _capture_files(capture_dir: Path) -> dict[str, bytes]:
     for name in CAPTURE_ROOT_FILES:
         output[name] = _regular_file(capture / name, under=capture).read_bytes()
     output["captured/SHA256SUMS"] = sums_path.read_bytes()
-    for name in CAPTURE_EXECUTABLES:
+    for name in CAPTURE_IMMUTABLES:
         output["captured/" + name] = _regular_file(
             snapshot / name, under=snapshot
         ).read_bytes()
@@ -1382,6 +1414,80 @@ def _capture_files(capture_dir: Path) -> dict[str, bytes]:
 
 def _artifact_record(payload: bytes, role: str) -> dict[str, object]:
     return {"sha256": _hash(payload), "bytes": len(payload), "role": role}
+
+
+def _rebuild_consumed_manifest(durable: Path) -> dict[str, object]:
+    capture_identities = (
+        "formal_invocation.claim", "command.txt", "stdout.log", "stderr.log",
+        "formal_exit_code.txt", "execution_record.json",
+    )
+    artifacts = [
+        _authenticity_record(name, "capture/" + name, durable / name)
+        for name in capture_identities
+    ]
+    public_by_identity = {
+        "patch_audit": "patch_audit.json", "run_status": "run_status.json",
+        "raw_result": "raw_result.mat",
+        "candidate_curves": "candidate_curves.csv",
+        "reference_curves": "reference_curves.csv",
+    }
+    missing: list[str] = []
+    for identity, relative in RUN_AUTHENTICITY_SOURCES.items():
+        public = public_by_identity[identity]
+        path = durable / public
+        if os.path.lexists(path):
+            artifacts.append(_authenticity_record(
+                identity, "run/" + relative, _regular_file(path, under=durable)
+            ))
+        else:
+            missing.append(identity)
+    try:
+        exit_code = int(
+            _regular_file(durable / "formal_exit_code.txt", under=durable)
+            .read_text(encoding="ascii").strip()
+        )
+    except (UnicodeDecodeError, ValueError, PathValidationError) as exc:
+        raise VerificationError("durable formal exit code cannot rebuild consumption") from exc
+    return {
+        "manifest_schema": "steady53_fig519_ihx_r2_hexe_a3_consumed_execution_v1",
+        "attempt_id": contract.ATTEMPT_ID,
+        "invocation_claimed": True,
+        "formal_command": EXACT_FORMAL_COMMAND,
+        "formal_process_exit_code": exit_code,
+        "artifacts": sorted(artifacts, key=lambda item: item["identity"]),
+        "missing_run_artifacts": sorted(missing),
+    }
+
+
+def _verify_durable_consumed_manifest(durable: Path) -> None:
+    consumed = _read_json(
+        durable / "consumed_execution_manifest.json", error_type=VerificationError
+    )
+    rebuilt = _rebuild_consumed_manifest(durable)
+    if consumed != rebuilt:
+        raise VerificationError(
+            "durable consumed execution manifest does not rebuild from durable bytes"
+        )
+
+
+def _verify_durable_snapshot(durable: Path) -> None:
+    sums = _regular_file(durable / "captured/SHA256SUMS", under=durable)
+    declared: dict[str, str] = {}
+    try:
+        for line in sums.read_text(encoding="utf-8").splitlines():
+            parts = line.split("  ", 1)
+            if (len(parts) != 2 or len(parts[0]) != 64 or not parts[1] or
+                    parts[1] in declared):
+                raise VerificationError("durable captured SHA256SUMS is malformed")
+            declared[parts[1]] = parts[0]
+    except UnicodeDecodeError as exc:
+        raise VerificationError("durable captured SHA256SUMS is not UTF-8") from exc
+    if set(declared) != set(CAPTURE_IMMUTABLES):
+        raise VerificationError("durable captured immutable set is not exact")
+    for relative, digest in declared.items():
+        path = _regular_file(durable / "captured" / relative, under=durable)
+        if _hash(path.read_bytes()) != digest:
+            raise VerificationError(f"durable captured immutable hash changed: {relative}")
 
 
 def _history_payload(summary: dict[str, object]) -> dict[str, object]:
@@ -1424,7 +1530,7 @@ def _planned(run_dir: Path, capture_dir: Path) -> tuple[dict[str, bytes], bytes]
     execution = evidence["execution_record"]
     missing_identities = set(evidence["missing_run_artifacts"])
     analyzable_run = evidence["run_exists"] and not (
-        {"candidate_slx", "patch_audit", "run_status"} & missing_identities
+        {"patch_audit", "run_status"} & missing_identities
     )
     if analyzable_run:
         result = analyze(selected)
@@ -1845,6 +1951,8 @@ def verify_only(durable_dir: Path, history_path: Path) -> None:
     if files["analysis.json"] != _json_bytes(summary["analysis"]):
         raise VerificationError("durable analysis differs from summary")
     try:
+        _verify_durable_snapshot(durable)
+        _verify_durable_consumed_manifest(durable)
         _verify_durable_scientific_derivation(durable, summary["analysis"])
     except A3AnalysisError as exc:
         if isinstance(exc, VerificationError):
@@ -1889,7 +1997,15 @@ def main() -> None:
     if run_dir is None or capture_dir is None:
         raise SystemExit("--run-dir and --capture-dir are required for publication")
     publish(run_dir, capture_dir, durable, history)
-    print("FIG519_IHX_R2_HEXE_A3=" + analyze(run_dir)["conclusion"])
+    verify_only(durable, history)
+    try:
+        published = json.loads(
+            _regular_file(durable / "analysis.json", under=durable).read_text()
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, PathValidationError) as exc:
+        raise VerificationError("published durable analysis is unreadable") from exc
+    published = validate_analysis(published)
+    print("FIG519_IHX_R2_HEXE_A3=" + str(published["conclusion"]))
 
 
 if __name__ == "__main__":
