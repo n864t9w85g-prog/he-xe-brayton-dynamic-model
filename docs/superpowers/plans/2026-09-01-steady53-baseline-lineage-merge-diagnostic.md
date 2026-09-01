@@ -16,7 +16,8 @@
 - Root model SHA-256: `a93cd94b6c5a0c941fe9eed40d8aea779019cbdb26fe2558df65f7c81c9dc159`.
 - Frozen model SHA-256: `0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391`.
 - Exact common Integrator count: 40.
-- Only changed parameter: each common Integrator's `InitialCondition`.
+- State-vector assignment count: 40; effective value-change count: 39; the common TAC rotor-speed Integrator is already `55090` in both models.
+- Only changed parameters: the 39 common Integrators whose `InitialCondition` values differ. Root `Unit Delay1` is outside the state-vector contract and remains frozen.
 - Candidate run count: one; duration: 500 s; no retry, scan, smoothing, fitting, time shift, 14000 s extension, or formal promotion.
 - Runtime output root: `tmp/steady53_lineage_merge_20260901_A/`.
 
@@ -46,7 +47,9 @@ audit = create_steady53_lineage_merge_candidate(outputDir, repoRoot);
 verifyEqual(testCase, string(audit.schema), ...
     "steady53_lineage_merge_candidate_v1");
 verifyEqual(testCase, audit.state_count, 40);
-verifyEqual(testCase, audit.changed_state_count, 40);
+verifyEqual(testCase, audit.assigned_state_count, 40);
+verifyEqual(testCase, audit.changed_state_count, 39);
+verifyEqual(testCase, audit.unchanged_state_count, 1);
 verifyEqual(testCase, unique(string({audit.changes.parameter})), ...
     "InitialCondition");
 verifyEqual(testCase, string(audit.root_model_sha256), ...
@@ -106,10 +109,10 @@ close_system("candidate", 0);
 
 candidateAfter = readModelContract(candidatePath);
 changes = compareContracts(frozenBefore, candidateAfter);
-if numel(changes) ~= 40 || ...
+if numel(changes) ~= 39 || ...
         any(string({changes.parameter}) ~= "InitialCondition")
     error("lineagemerge:NonICChange", ...
-        "Candidate changed something other than the exact 40 initial conditions.");
+        "Candidate must apply the exact 40-state root vector with 39 effective changes.");
 end
 ```
 
@@ -213,7 +216,7 @@ class LineageMergeAnalysisTests(unittest.TestCase):
         )
 ```
 
-Also reject wrong columns, nonfinite values, nonmonotonic time, final time other than 500, changed paper-point hash, missing audit, wrong model hashes, changed count other than 40, and call count other than one.
+Also reject wrong columns, nonfinite values, nonmonotonic time, final time other than 500, changed paper-point hash, missing audit, wrong model hashes, assigned count other than 40, effective changed count other than 39, unchanged count other than one, or call count other than one.
 
 - [ ] **Step 2: Run RED**
 
