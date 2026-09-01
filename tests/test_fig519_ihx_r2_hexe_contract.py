@@ -38,6 +38,12 @@ def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
         "Python subprocess execution": (
             r"\bpy\.subprocess\.(?:run|popen|call|check_call|check_output)\s*\("
         ),
+        "Python process execution": (
+            r"\bpy\.(?:os\.(?:system|popen|spawn[a-z0-9_]*)|"
+            r"subprocess\.[a-z0-9_]+)\s*\("
+        ),
+        "Java process builder": r"\bjava\.lang\.processbuilder\s*\(",
+        "MATLAB bang shell": r"(?m)^\s*!",
         "generic XML API": r"\b(?:xml[a-z0-9_]*|matlab\.io\.xml(?:\.[a-z0-9_]+)+)\s*\(",
         "generic ZIP API": r"\b(?:zip|unzip|java\.util\.zip(?:\.[a-z0-9_]+)+)\s*\(",
         "archive extraction API": r"\b(?:untar|extractarchive|expandarchive)\s*\(",
@@ -96,12 +102,17 @@ def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
     if "simulink.blockdiagram." in collapsed_literals:
         findings.append("concatenated BlockDiagram method string")
 
-    for call in re.findall(r"set_param\s*\([^;]*?\)", source, re.I | re.S):
-        normalized = re.sub(r"[\s\"'+]", "", call.lower())
-        if "simulationcommand" in normalized and normalized != (
-            "set_param(model,simulationcommand,update)"
-        ):
-            findings.append("non-update SimulationCommand")
+    allowed_set_param = {
+        'set_param(averagetarget,"initialcondition",'
+        'num2str(newaveragek,"%.17g"))',
+        'set_param(outlettarget,"initialcondition",'
+        'num2str(newoutletk,"%.17g"))',
+        'set_param(model,"simulationcommand","update")',
+    }
+    for call in _matlab_calls(source, "set_param"):
+        normalized = re.sub(r"\s+|\.\.\.", "", call.lower())
+        if normalized not in allowed_set_param:
+            findings.append("non-allowlisted set_param")
 
     evalin_calls = len(re.findall(r"(?<![a-z0-9_])evalin\s*\(", lowered))
     allowed_startup = len(
@@ -115,6 +126,35 @@ def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
         findings.append("non-allowlisted evalin")
 
     return tuple(dict.fromkeys(findings))
+
+
+def _matlab_calls(source: str, identifier: str) -> list[str]:
+    """Extract balanced MATLAB calls without being fooled by nested calls."""
+    starts = re.finditer(rf"(?i)(?<![a-z0-9_]){re.escape(identifier)}\s*\(", source)
+    calls: list[str] = []
+    for match in starts:
+        depth = 0
+        quote: str | None = None
+        index = match.start()
+        while index < len(source):
+            character = source[index]
+            if quote is not None:
+                if character == quote:
+                    if index + 1 < len(source) and source[index + 1] == quote:
+                        index += 2
+                        continue
+                    quote = None
+            elif character in ('"', "'"):
+                quote = character
+            elif character == "(":
+                depth += 1
+            elif character == ")":
+                depth -= 1
+                if depth == 0:
+                    calls.append(source[match.start() : index + 1])
+                    break
+            index += 1
+    return calls
 
 
 MALICIOUS_DYNAMIC_EXECUTION = {
@@ -141,6 +181,15 @@ MALICIOUS_DYNAMIC_EXECUTION = {
     ),
     "java runtime exec": 'java.lang.Runtime.getRuntime().exec("tool")',
     "python subprocess": 'py.subprocess.run(args)',
+    "indirect SimulationCommand": (
+        'parameterName = "SimulationCommand"; command = "start"; '
+        'set_param(model, parameterName, command)'
+    ),
+    "bang shell unzip": '!unzip candidate.slx',
+    "java process builder": (
+        'java.lang.ProcessBuilder("unzip", "candidate.slx").start()'
+    ),
+    "python os process": 'py.os.system("unzip candidate.slx")',
 }
 
 
@@ -212,7 +261,10 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
                 'sourcePath = fullfile(repo, "candidate.slx");',
                 'hash = java.security.MessageDigest.getInstance("SHA-256");',
                 'relative = extractAfter(canonical, prefix);',
-                'set_param(target, "InitialCondition", "1200");',
+                'set_param(averageTarget, "InitialCondition", '
+                'num2str(newAverageK, "%.17g"));',
+                'set_param(outletTarget, "InitialCondition", '
+                'num2str(newOutletK, "%.17g"));',
                 'set_param(model, "SimulationCommand", "update");',
             )
         )
@@ -245,6 +297,31 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             simulation_commands,
             ['set_param(model, "SimulationCommand", "update")'],
         )
+
+    def test_real_generator_set_param_calls_match_the_exact_literal_allowlist(self):
+        source = self._generator_source()
+        calls = _matlab_calls(source, "set_param")
+        self.assertEqual(
+            calls,
+            [
+                'set_param(averageTarget, "InitialCondition", '
+                'num2str(newAverageK, "%.17g"))',
+                'set_param(outletTarget, "InitialCondition", '
+                'num2str(newOutletK, "%.17g"))',
+                'set_param(model, "SimulationCommand", "update")',
+            ],
+        )
+
+    def test_test_harness_has_no_marker_or_environment_cleanup_authority(self):
+        source = MATLAB_GENERATOR_TEST.read_text(encoding="utf-8")
+        for forbidden in (
+            "FIG519A3_CLEAN_VERIFIED_HISTORICAL",
+            "cleanupVerifiedOwnedSandboxes",
+            "recoverOwnedTestSandbox",
+            '"execute-verified-owned"',
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, source)
 
     def test_a3_candidate_generator_freezes_counts_flags_and_candidate_only_save(self):
         source = self._generator_source()

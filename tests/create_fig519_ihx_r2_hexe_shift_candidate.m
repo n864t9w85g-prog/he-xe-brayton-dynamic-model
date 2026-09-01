@@ -12,7 +12,8 @@ end
 
 repoRoot = validateRepoRoot(repoRoot);
 tmpRoot = fullfile(repoRoot, "tmp");
-runDir = validateNewRunDirectory(runDir, tmpRoot);
+[runDir, runBinding] = validateNewRunDirectory(runDir, tmpRoot);
+runBindingCleanup = onCleanup(@() closeRunBinding(runBinding));
 sourcePath = fullfile(repoRoot, "data", "provenance", "baselines", ...
     "f8bcd83", "final_steady_24a.slx");
 runtimeDir = fullfile(repoRoot, "data", "provenance", "baselines", ...
@@ -33,17 +34,22 @@ runtimeBefore = runtimeIdentities(runtimeDir, repoRoot);
 protectedBefore = protectedIdentities(protectedPath, repoRoot);
 formalBefore = formalIdentities(repoRoot);
 
-createDirectoryExclusive(runDir);
-runIdentity = pathIdentity(runDir, "directory");
-testHook = activateTestCapability(runDir, runIdentity);
+testHook = activateTestCapability(runDir, struct.empty);
+injectFailure(testHook, "before_run_create");
+[runIdentity, runBinding] = createBoundRunDirectory(runBinding);
+testHook.run_identity = runIdentity;
+injectFailure(testHook, "after_run_create");
+assertRunBinding(runBinding, runIdentity);
 stagingDir = createPrivateStagingDirectory(runDir);
 stagingIdentity = pathIdentity(stagingDir, "directory");
 stagingCandidatePath = fullfile(stagingDir, "candidate.slx");
 candidatePath = fullfile(runDir, "candidate.slx");
+assertRunBinding(runBinding, runIdentity);
 copyFileExclusive(sourcePath, stagingCandidatePath)
 stagingCandidateIdentity = pathIdentity(stagingCandidatePath, "file");
 assertSameIdentity(runIdentity, runDir, "run directory");
 assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
+assertRunBinding(runBinding, runIdentity);
 if sha256File(stagingCandidatePath, stagingCandidateIdentity, testHook) ~= ...
         sourceHashBefore
     error("fig519a3:CopyHashMismatch", ...
@@ -61,37 +67,43 @@ if bdIsLoaded(sourceModel) || bdIsLoaded(model)
         "Source or candidate model is already loaded; refusing unsaved state.");
 end
 callerCleanup = onCleanup(@() restoreCallerState(sourceModel, model, ...
-    oldFileGeneration, baseSnapshot, oldFolder, oldPath));
+    oldFileGeneration, baseSnapshot, oldFolder, oldPath, testHook));
+assertRunBinding(runBinding, runIdentity);
 cd(runDir);
+assertRunBinding(runBinding, runIdentity);
 addpath(runtimeDir, fullfile(repoRoot, "tests", "steady53"));
 
 startPath = fullfile(runtimeDir, "start.m");
 evalin("base", "run(" + matlabString(startPath) + ")");
+assertRunBinding(runBinding, runIdentity);
 
 fileGenerationRoot = fullfile(runDir, "filegen");
 cacheFolder = fullfile(fileGenerationRoot, "cache");
 codegenFolder = fullfile(fileGenerationRoot, "codegen");
+assertRunBinding(runBinding, runIdentity);
 createDirectoryExclusive(fileGenerationRoot);
 createDirectoryExclusive(cacheFolder);
 createDirectoryExclusive(codegenFolder);
+assertRunBinding(runBinding, runIdentity);
 fileGenerationRootIdentity = pathIdentity(fileGenerationRoot, "directory");
 cacheIdentity = pathIdentity(cacheFolder, "directory");
 codegenIdentity = pathIdentity(codegenFolder, "directory");
 Simulink.fileGenControl("set", "CacheFolder", cacheFolder, ...
     "CodeGenFolder", codegenFolder, "createDir", false);
+assertRunBinding(runBinding, runIdentity);
 activeFileGeneration = Simulink.fileGenControl("getConfig");
 assertFileGeneration(activeFileGeneration, cacheFolder, codegenFolder, ...
     runDir, fileGenerationRootIdentity, cacheIdentity, codegenIdentity);
 injectFailure(testHook, "after_environment_setup", stagingDir);
 
-assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+assertPathOperationIdentities(runBinding, runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
     codegenIdentity);
 load_system(sourcePath);
 assertLoadedFile(sourceModel, sourcePath);
-assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+assertPathOperationIdentities(runBinding, runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
@@ -110,14 +122,14 @@ assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
     codegenIdentity);
 
-assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+assertPathOperationIdentities(runBinding, runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
     codegenIdentity);
 load_system(stagingCandidatePath);
 assertLoadedFile(model, stagingCandidatePath);
-assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+assertPathOperationIdentities(runBinding, runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
@@ -155,12 +167,13 @@ end
 
 set_param(averageTarget, "InitialCondition", num2str(newAverageK, "%.17g"));
 set_param(outletTarget, "InitialCondition", num2str(newOutletK, "%.17g"));
-assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+assertPathOperationIdentities(runBinding, runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
     codegenIdentity);
 save_system(model, stagingCandidatePath);
+assertRunBinding(runBinding, runIdentity);
 assertSameIdentity(runIdentity, runDir, "run directory");
 assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
 stagingCandidateIdentity = pathIdentity(stagingCandidatePath, "file");
@@ -172,14 +185,14 @@ injectFailure(testHook, "after_candidate_save", stagingCandidatePath);
 
 % Reopen the persisted bytes, perform the only diagram update, and audit
 % without saving again so compilation side effects cannot enter candidate.slx.
-assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+assertPathOperationIdentities(runBinding, runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
     codegenIdentity);
 load_system(stagingCandidatePath);
 assertLoadedFile(model, stagingCandidatePath);
-assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+assertPathOperationIdentities(runBinding, runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
@@ -188,7 +201,7 @@ assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
     codegenIdentity);
 set_param(model, "SimulationCommand", "update")
-assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+assertPathOperationIdentities(runBinding, runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
@@ -234,7 +247,7 @@ if abs(persistedAverageK - newAverageK) > 1e-12 || ...
         "The post-update candidate state values changed unexpectedly.");
 end
 closeWithoutSaving(model);
-assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+assertPathOperationIdentities(runBinding, runIdentity, runDir, stagingIdentity, ...
     stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
     codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
@@ -244,6 +257,7 @@ assertFileGenerationRestored(oldFileGeneration);
 restoreBaseWorkspace(baseSnapshot);
 
 injectFailure(testHook, "before_candidate_publish", candidatePath);
+assertRunBinding(runBinding, runIdentity);
 moveFileExclusive(stagingCandidatePath, candidatePath)
 candidateIdentity = pathIdentity(candidatePath, "file");
 if candidateIdentity.file_key ~= stagingCandidateIdentity.file_key
@@ -252,7 +266,7 @@ if candidateIdentity.file_key ~= stagingCandidateIdentity.file_key
 end
 assertSameIdentity(runIdentity, runDir, "run directory");
 assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
-assertPublishedIdentities(runIdentity, runDir, candidateIdentity, candidatePath);
+assertPublishedIdentities(runBinding, runIdentity, runDir, candidateIdentity, candidatePath);
 injectFailure(testHook, "after_candidate_publish", candidatePath);
 
 sourceHashAfter = sha256File(sourcePath);
@@ -268,9 +282,9 @@ if sourceHashAfter ~= expectedSourceHash || sourceHashAfter ~= sourceHashBefore
 end
 assertRegularFile(candidatePath, "candidate model");
 candidateHash = sha256File(candidatePath, candidateIdentity, testHook);
-assertPublishedIdentities(runIdentity, runDir, candidateIdentity, candidatePath);
+assertPublishedIdentities(runBinding, runIdentity, runDir, candidateIdentity, candidatePath);
 injectFailure(testHook, "after_candidate_hash", candidatePath);
-assertPublishedIdentities(runIdentity, runDir, candidateIdentity, candidatePath);
+assertPublishedIdentities(runBinding, runIdentity, runDir, candidateIdentity, candidatePath);
 
 runtimeRecords = beforeAfterRecords(runtimeBefore, runtimeAfter);
 protectedRecords = beforeAfterRecords(protectedBefore, protectedAfter);
@@ -292,21 +306,25 @@ changedStates = [ ...
         "delta_T_K", deltaTK)];
 
 auditPath = fullfile(runDir, "patch_audit.json");
+assertPublishedIdentities(runBinding, runIdentity, runDir, ...
+    candidateIdentity, candidatePath);
 auditChannel = openFileExclusive(auditPath);
 auditChannelCleanup = onCleanup(@() closeChannel(auditChannel));
 assertRegularFile(auditPath, "patch audit");
 auditIdentity = pathIdentity(auditPath, "file");
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 injectFailure(testHook, "after_audit_open", runDir, stagingDir, ...
     candidatePath, auditPath);
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 injectFailure(testHook, "before_artifact_walk", candidatePath, auditPath);
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 artifacts = artifactAudit(runDir, candidatePath, auditPath, ...
-    runIdentity, candidateIdentity, auditIdentity);
+    runBinding, runIdentity, candidateIdentity, auditIdentity);
+injectFailure(testHook, "after_artifact_walk", runDir, stagingDir, ...
+    candidatePath, auditPath);
 fileGenerationSettings = struct( ...
     "cache_folder", canonicalPath(activeFileGeneration.CacheFolder), ...
     "codegen_folder", canonicalPath(activeFileGeneration.CodeGenFolder), ...
@@ -368,10 +386,10 @@ audit = struct( ...
     "formal_promotion", false);
 
 auditText = string(jsonencode(audit, PrettyPrint=true)) + newline;
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 writeOpenChannel(auditChannel, auditText);
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 injectFailure(testHook, "after_audit_write");
 auditChannel.force(true);
@@ -386,27 +404,34 @@ if persistedAuditHash ~= expectedAuditHash
         "(expected SHA256 %s, got %s).", ...
         expectedAuditHash, persistedAuditHash);
 end
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 finalCandidateHash = sha256File(candidatePath, candidateIdentity);
 if finalCandidateHash ~= candidateHash
     error("fig519a3:FinalCandidateHashChanged", ...
         "Final candidate bytes no longer match persisted evidence.");
 end
-restoreCallerState(sourceModel, model, oldFileGeneration, baseSnapshot, ...
-    oldFolder, oldPath);
+restoreErrors = restoreCallerState(sourceModel, model, oldFileGeneration, ...
+    baseSnapshot, oldFolder, oldPath, testHook);
 clear callerCleanup
+if ~isempty(restoreErrors)
+    error("fig519a3:CallerStateRestoreFailed", ...
+        "Caller-state restoration reported: %s", strjoin(restoreErrors, " | "));
+end
 injectFailure(testHook, "before_return", candidatePath, auditPath);
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 finalCandidateHash = sha256File(candidatePath, candidateIdentity);
 finalAuditHash = sha256File(auditPath, auditIdentity);
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 if finalCandidateHash ~= candidateHash || finalAuditHash ~= expectedAuditHash
     error("fig519a3:FinalPublicationHashChanged", ...
         "Final published bytes no longer match returned audit evidence.");
 end
+finalArtifacts = artifactAudit(runDir, candidatePath, auditPath, ...
+    runBinding, runIdentity, candidateIdentity, auditIdentity);
+assertArtifactInventoryUnchanged(artifacts, finalArtifacts);
 end
 
 function repoRoot = validateRepoRoot(repoRoot)
@@ -428,7 +453,7 @@ if repoRoot ~= canonicalPath(detected)
 end
 end
 
-function runDir = validateNewRunDirectory(runDir, tmpRoot)
+function [runDir, binding] = validateNewRunDirectory(runDir, tmpRoot)
 runDir = string(runDir);
 if ~startsWith(runDir, filesep)
     error("fig519a3:RunDirMustBeAbsolute", "runDir must be absolute.");
@@ -448,6 +473,111 @@ if isfolder(runDir) || isfile(runDir) || ...
     error("fig519a3:RunDirExists", "runDir must not already exist.");
 end
 runDir = canonicalRun;
+binding = bindRunAncestors(runDir, canonicalTmp);
+end
+
+function binding = bindRunAncestors(runDir, tmpRoot)
+runPath = nioPath(runDir).toAbsolutePath().normalize();
+tmpPath = nioPath(tmpRoot).toAbsolutePath().normalize();
+relative = tmpPath.relativize(runPath);
+componentCount = relative.getNameCount();
+if componentCount < 2
+    error("fig519a3:RunParentRequired", ...
+        "runDir must have an existing owned parent below tmp/.");
+end
+os = py.importlib.import_module("os");
+fds = cell(componentCount, 1);
+records = repmat(struct("path", "", "identity", struct(), ...
+    "posix_identity", struct()), componentCount, 1);
+fds{1} = openPathDirectoryNoFollow(os, tmpRoot);
+records(1) = struct("path", string(tmpRoot), ...
+    "identity", pathIdentity(tmpRoot, "directory"), ...
+    "posix_identity", posixFdIdentity(os, fds{1}));
+currentPath = string(tmpRoot);
+for index = 1:(componentCount - 1)
+    component = string(relative.getName(index - 1).toString());
+    if component == "." || component == ".." || contains(component, filesep)
+        error("fig519a3:RunComponentInvalid", ...
+            "runDir contains an unsafe path component.");
+    end
+    currentPath = fullfile(currentPath, component);
+    fds{index + 1} = openRelativeDirectoryNoFollow( ...
+        os, fds{index}, component);
+    records(index + 1) = struct("path", currentPath, ...
+        "identity", pathIdentity(currentPath, "directory"), ...
+        "posix_identity", posixFdIdentity(os, fds{index + 1}));
+end
+binding = struct("os", os, "ancestor_fds", {fds}, ...
+    "ancestor_records", records, "parent_fd", fds{componentCount}, ...
+    "run_name", string(relative.getName(componentCount - 1).toString()), ...
+    "run_path", string(runDir), ...
+    "approved_canonical_run", string(runDir), ...
+    "run_posix_identity", struct.empty);
+end
+
+function [runIdentity, binding] = createBoundRunDirectory(binding)
+assertRunBinding(binding, struct.empty);
+try
+    binding.os.mkdir(char(binding.run_name), int64(448), ...
+        pyargs("dir_fd", binding.parent_fd));
+catch exception
+    try
+        binding.os.stat(char(binding.run_name), pyargs( ...
+            "dir_fd", binding.parent_fd, "follow_symlinks", false));
+        error("fig519a3:RunDirExists", ...
+            "Refusing an existing candidate directory: '%s'.", ...
+            binding.run_path);
+    catch existenceException
+        if string(existenceException.identifier) == "fig519a3:RunDirExists"
+            rethrow(existenceException)
+        end
+        rethrow(exception)
+    end
+end
+runFd = openRelativeDirectoryNoFollow(binding.os, ...
+    binding.parent_fd, binding.run_name);
+runFdCleanup = onCleanup(@() closePythonFd(binding.os, runFd));
+binding.run_posix_identity = posixFdIdentity(binding.os, runFd);
+runIdentity = pathIdentity(binding.run_path, "directory");
+assertRunBinding(binding, runIdentity);
+clear runFdCleanup
+closePythonFd(binding.os, runFd);
+end
+
+function assertRunBinding(binding, runIdentity)
+try
+    for index = 1:numel(binding.ancestor_records)
+        record = binding.ancestor_records(index);
+        assertSameIdentity(record.identity, record.path, "run ancestor");
+        assertPosixIdentity(posixFdIdentity(binding.os, ...
+            binding.ancestor_fds{index}), record.posix_identity, ...
+            "run ancestor handle");
+    end
+    if canonicalPath(binding.run_path) ~= binding.approved_canonical_run
+        error("fig519a3:RunCanonicalChanged", ...
+            "The approved canonical run path changed.");
+    end
+    if ~isempty(runIdentity)
+        assertSameIdentity(runIdentity, binding.run_path, "run directory");
+        actual = posixRelativeIdentity(binding.os, binding.parent_fd, ...
+            binding.run_name);
+        assertPosixIdentity(actual, binding.run_posix_identity, ...
+            "run directory entry");
+    end
+catch exception
+    error("fig519a3:RunAncestorChanged", ...
+        "The identity-bound run ancestor chain changed: %s", ...
+        string(exception.message));
+end
+end
+
+function closeRunBinding(binding)
+if ~isstruct(binding) || ~isfield(binding, "ancestor_fds")
+    return
+end
+for index = numel(binding.ancestor_fds):-1:1
+    closePythonFd(binding.os, binding.ancestor_fds{index});
+end
 end
 
 function value = numericInitialCondition(blockPath)
@@ -606,7 +736,8 @@ snapshot = struct( ...
     "block_count", numel(blockRecords), ...
     "port_owner_count", numel(portRecords), ...
     "line_count", numel(lineInventory), ...
-    "edge_count", sum(arrayfun(@(item) numel(item.destinations), ...
+    "edge_count", sum(arrayfun(@(item) ...
+        sum(string(item.destinations) ~= "<no-destination>"), ...
         lineInventory)), ...
     "mask_enabled_count", maskEnabledCount, ...
     "mask_inventory", maskInventory, ...
@@ -797,8 +928,8 @@ end
 end
 
 function artifacts = artifactAudit(runDir, candidatePath, auditPath, ...
-        runIdentity, candidateIdentity, auditIdentity)
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+        runBinding, runIdentity, candidateIdentity, auditIdentity)
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 [files, directories] = walkArtifactTree(runDir, runDir);
 candidateRelative = lexicalRelative(candidatePath, runDir);
@@ -812,7 +943,8 @@ if numel(candidateRows) ~= 1 || ...
     error("fig519a3:ArtifactIdentityMismatch", ...
         "Artifact inventory did not retain published file identities.");
 end
-assertPublicationIdentities(runIdentity, runDir, candidateIdentity, ...
+
+assertPublicationIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
 artifacts = struct( ...
     "candidate_regular_file", isRegularFile(candidatePath), ...
@@ -838,6 +970,14 @@ if ~artifacts.candidate_regular_file || artifacts.candidate_symlink || ...
         artifacts.run_directory_present
     error("fig519a3:ArtifactAuditFailed", ...
         "The zero-simulation candidate artifact audit failed.");
+end
+end
+
+function assertArtifactInventoryUnchanged(expected, actual)
+if ~isequal(expected.files, actual.files) || ...
+        ~isequal(expected.directories, actual.directories)
+    error("fig519a3:ArtifactInventoryChanged", ...
+        "The no-follow artifact tree changed after the persisted audit walk.");
 end
 end
 
@@ -904,14 +1044,58 @@ if bdIsLoaded(model)
 end
 end
 
-function restoreCallerState(sourceModel, model, fileGeneration, ...
-        baseSnapshot, folder, matlabPath)
+function errors = restoreCallerState(sourceModel, model, fileGeneration, ...
+        baseSnapshot, folder, matlabPath, testHook)
+errors = strings(0, 1);
+errors = guardRestoreStep(errors, "candidate model", ...
+    @() restoreModelStep(model, testHook, "restore_close_candidate"));
+errors = guardRestoreStep(errors, "source model", ...
+    @() restoreModelStep(sourceModel, testHook, "restore_close_source"));
+errors = guardRestoreStep(errors, "file generation", ...
+    @() restoreFileGeneration(fileGeneration));
+errors = guardRestoreStep(errors, "base workspace", ...
+    @() restoreBaseWorkspace(baseSnapshot));
+errors = guardRestoreStep(errors, "working directory", @() cd(folder));
+errors = guardRestoreStep(errors, "MATLAB path", @() path(matlabPath));
+
+if bdIsLoaded(model) || bdIsLoaded(sourceModel)
+    errors(end + 1, 1) = "validation: models remain loaded"; %#ok<AGROW>
+end
+try
+    assertFileGenerationRestored(fileGeneration);
+catch exception
+    errors(end + 1, 1) = "validation:file generation:" + ...
+        string(exception.message); %#ok<AGROW>
+end
+if ~baseWorkspaceMatches(baseSnapshot)
+    errors(end + 1, 1) = "validation: base workspace mismatch"; %#ok<AGROW>
+end
+if canonicalPath(pwd) ~= canonicalPath(folder)
+    errors(end + 1, 1) = "validation: working directory mismatch"; %#ok<AGROW>
+end
+if string(path) ~= string(matlabPath)
+    errors(end + 1, 1) = "validation: MATLAB path mismatch"; %#ok<AGROW>
+end
+end
+
+function errors = guardRestoreStep(errors, label, callback)
+try
+    callback();
+catch exception
+    errors(end + 1, 1) = string(label) + ":" + ...
+        string(exception.identifier) + ":" + string(exception.message); %#ok<AGROW>
+end
+end
+
+function restoreModelStep(model, testHook, point)
 closeWithoutSaving(model);
-closeWithoutSaving(sourceModel);
-restoreFileGeneration(fileGeneration);
-restoreBaseWorkspace(baseSnapshot);
-cd(folder);
-path(matlabPath);
+if isstruct(testHook) && isfield(testHook, "enabled") && ...
+        testHook.enabled && string(testHook.point) == string(point) && ...
+        string(testHook.action) == "fail_restore_step"
+    assertTestHookCapability(testHook);
+    error("fig519a3:InjectedRestoreFailure", ...
+        "Injected guarded restoration-step failure.");
+end
 end
 
 function restoreFileGeneration(config)
@@ -980,6 +1164,28 @@ for index = 1:numel(snapshot)
         base.assignin(char(snapshot(index).name), snapshot(index).value);
     elseif base.exist(char(snapshot(index).name))
         base.clear(char(snapshot(index).name));
+    end
+end
+end
+
+function tf = baseWorkspaceMatches(snapshot)
+base = Simulink.data.BaseWorkspace;
+accessor = base.getDataAccessor;
+tf = true;
+for index = 1:numel(snapshot)
+    exists = logical(base.exist(char(snapshot(index).name)));
+    if exists ~= snapshot(index).existed
+        tf = false;
+        return
+    end
+    if exists
+        identifiers = accessor.identifyByName(char(snapshot(index).name));
+        if isempty(identifiers) || ...
+                ~isequaln(accessor.getVariable(identifiers(1)), ...
+                snapshot(index).value)
+            tf = false;
+            return
+        end
     end
 end
 end
@@ -1246,22 +1452,24 @@ if actual.absolute_path ~= expected.absolute_path || ...
 end
 end
 
-function assertPathOperationIdentities(runIdentity, runDir, ...
+function assertPathOperationIdentities(runBinding, runIdentity, runDir, ...
         stagingIdentity, stagingDir, candidateIdentity, candidatePath)
+assertRunBinding(runBinding, runIdentity);
 assertSameIdentity(runIdentity, runDir, "run directory");
 assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
 assertSameIdentity(candidateIdentity, candidatePath, "staging candidate");
 end
 
-function assertPublishedIdentities(runIdentity, runDir, candidateIdentity, ...
+function assertPublishedIdentities(runBinding, runIdentity, runDir, candidateIdentity, ...
         candidatePath)
+assertRunBinding(runBinding, runIdentity);
 assertSameIdentity(runIdentity, runDir, "run directory");
 assertSameIdentity(candidateIdentity, candidatePath, "published candidate");
 end
 
-function assertPublicationIdentities(runIdentity, runDir, ...
+function assertPublicationIdentities(runBinding, runIdentity, runDir, ...
         candidateIdentity, candidatePath, auditIdentity, auditPath)
-assertPublishedIdentities(runIdentity, runDir, candidateIdentity, candidatePath);
+assertPublishedIdentities(runBinding, runIdentity, runDir, candidateIdentity, candidatePath);
 assertSameIdentity(auditIdentity, auditPath, "patch audit");
 end
 
@@ -1291,7 +1499,9 @@ if parentIdentity.file_key ~= string(candidate.run_parent_file_key) || ...
         string(candidate.capability_token)
     return
 end
-assertSameIdentity(runIdentity, runDir, "test-hook run directory");
+if ~isempty(runIdentity)
+    assertSameIdentity(runIdentity, runDir, "test-hook run directory");
+end
 rmappdata(0, key);
 hook = candidate;
 hook.enabled = true;
@@ -1347,6 +1557,27 @@ switch action
         createDirectoryExclusive(redirectCodegen);
         Simulink.fileGenControl("set", "CacheFolder", redirectCache, ...
             "CodeGenFolder", redirectCodegen, "createDir", false);
+    case "launder_run_parent_symlink"
+        original = string(hook.run_parent);
+        displaced = original + "-laundered-" + ...
+            string(char(java.util.UUID.randomUUID));
+        moveDirectoryExclusive(original, displaced);
+        java.nio.file.Files.createSymbolicLink(nioPath(original), ...
+            nioPath(displaced), ...
+            javaArray("java.nio.file.attribute.FileAttribute", 0));
+    case "insert_raw_result"
+        injectedPath = fullfile(hook.run_dir, "raw_result.mat");
+        channel = openFileExclusive(injectedPath);
+        writeOpenChannel(channel, "injected");
+        channel.close();
+    case "insert_directory"
+        createDirectoryExclusive(fullfile(hook.run_dir, ...
+            "injected-after-walk-directory"));
+    case "insert_symlink_directory_after_walk"
+        java.nio.file.Files.createSymbolicLink( ...
+            nioPath(fullfile(hook.run_dir, ...
+            "injected-after-walk-symlink")), nioPath(string(varargin{2})), ...
+            javaArray("java.nio.file.attribute.FileAttribute", 0));
     otherwise
         error("fig519a3:InvalidTestHook", ...
             "The zero-simulation test hook action is not allowlisted.");
@@ -1384,8 +1615,10 @@ assertSameIdentity(hook.run_parent_identity, hook.run_parent, ...
     "test-hook run parent");
 assertSameIdentity(hook.capability_identity, hook.capability_path, ...
     "test-hook capability file");
-assertSameIdentity(hook.run_identity, hook.run_dir, ...
-    "test-hook run directory");
+if ~isempty(hook.run_identity)
+    assertSameIdentity(hook.run_identity, hook.run_dir, ...
+        "test-hook run directory");
+end
 if strtrim(string(fileread(hook.capability_path))) ~= ...
         string(hook.capability_token)
     error("fig519a3:TestCapabilityChanged", ...
@@ -1399,6 +1632,58 @@ if ~(isContainedLexically(target, hook.run_dir) || ...
         string(nioPath(hook.run_dir).toAbsolutePath().normalize().toString()))
     error("fig519a3:TestHookTargetOutsideRun", ...
         "Test hooks may target only the capability-bound owned run.");
+end
+end
+
+function fd = openPathDirectoryNoFollow(os, pathValue)
+flags = bitor(bitor(int64(os.O_RDONLY), int64(os.O_DIRECTORY)), ...
+    int64(os.O_NOFOLLOW));
+fd = os.open(char(string(pathValue)), flags);
+end
+
+function fd = openRelativeDirectoryNoFollow(os, parentFd, name)
+flags = bitor(bitor(int64(os.O_RDONLY), int64(os.O_DIRECTORY)), ...
+    int64(os.O_NOFOLLOW));
+fd = os.open(char(string(name)), flags, pyargs("dir_fd", parentFd));
+end
+
+function closePythonFd(os, fd)
+try
+    os.close(fd);
+catch
+end
+end
+
+function identity = posixFdIdentity(os, fd)
+identity = posixStatIdentity(os.fstat(fd));
+end
+
+function identity = posixRelativeIdentity(os, parentFd, name)
+identity = posixStatIdentity(os.stat(char(string(name)), pyargs( ...
+    "dir_fd", parentFd, "follow_symlinks", false)));
+end
+
+function identity = posixStatIdentity(statResult)
+mode = uint64(statResult.st_mode);
+kindBits = bitand(mode, uint64(61440));
+if kindBits == uint64(16384)
+    kind = "directory";
+elseif kindBits == uint64(32768)
+    kind = "file";
+elseif kindBits == uint64(40960)
+    kind = "symlink";
+else
+    kind = "other";
+end
+identity = struct("device", uint64(statResult.st_dev), ...
+    "inode", uint64(statResult.st_ino), "kind", kind);
+end
+
+function assertPosixIdentity(actual, expected, label)
+if actual.device ~= expected.device || actual.inode ~= expected.inode || ...
+        actual.kind ~= string(expected.kind)
+    error("fig519a3:PathIdentityChanged", ...
+        "%s changed during candidate generation.", label);
 end
 end
 
