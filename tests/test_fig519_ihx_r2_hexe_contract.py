@@ -15,6 +15,62 @@ ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "tests/create_fig519_ihx_r2_hexe_shift_candidate.m"
 
 
+def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
+    """Return findings for direct or string-indirected SLX archive editing."""
+    lowered = source.lower()
+    direct_patterns = {
+        "generic XML API": r"\b(?:xml[a-z0-9_]*|matlab\.io\.xml(?:\.[a-z0-9_]+)+)\s*\(",
+        "generic ZIP API": r"\b(?:zip|unzip|java\.util\.zip(?:\.[a-z0-9_]+)+)\s*\(",
+        "archive extraction API": r"\b(?:untar|extractarchive|expandarchive)\s*\(",
+        "generic unpack intent": r"\b(?:unpack|unpacking|unpacked|slxunpack|slxpack)\b",
+        "BlockDiagram API": r"\b(?:simulink\.)?blockdiagram(?:\.[a-z0-9_]+)?\s*\(",
+        "BlockDiagram editing helper": (
+            r"\b(?:edit|modify|write|unpack)[a-z0-9_]*"
+            r"blockdiagram[a-z0-9_]*\b"
+        ),
+    }
+    findings = [
+        label
+        for label, pattern in direct_patterns.items()
+        if re.search(pattern, lowered)
+    ]
+
+    identifiers = set(
+        re.findall(
+            r"(?<![a-z0-9_.])([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)\s*\(",
+            lowered,
+        )
+    )
+    literals = []
+    for match in re.finditer(r'"((?:[^"]|"")*)"|\'((?:[^\']|\'\')*)\'', source):
+        value = match.group(1) if match.group(1) is not None else match.group(2)
+        literals.append(value.replace('""', '"').replace("''", "'").lower())
+
+    archive_command = re.compile(
+        r"(?:^|[;&|]\s*)(?:(?:unzip|zip)\s+\S+|"
+        r"tar\s+(?:-[a-z]*[xf][a-z]*|--extract)\b)"
+    )
+    if any(archive_command.search(literal) for literal in literals):
+        findings.append("archive command string payload")
+    if any(
+        re.search(r"\b(?:unpack|unpacking|unpacked|slxunpack|slxpack)\b", literal)
+        for literal in literals
+    ):
+        findings.append("unpack string payload")
+    if "readstruct" in identifiers and {"filetype", "xml"}.issubset(literals):
+        findings.append("readstruct XML string options")
+    if "javaobject" in identifiers and any(
+        literal.startswith("java.util.zip.") for literal in literals
+    ):
+        findings.append("javaObject ZIP class string")
+    if "feval" in identifiers and any(
+        literal.startswith("simulink.blockdiagram.") for literal in literals
+    ):
+        findings.append("feval BlockDiagram method string")
+
+    return tuple(dict.fromkeys(findings))
+
+
 class Figure519IhxR2HexeContractTests(unittest.TestCase):
     def _generator_source(self):
         self.assertTrue(GENERATOR.is_file(), "the A3 MATLAB generator is required")
@@ -63,20 +119,31 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, lowered)
-        forbidden_editing_patterns = {
-            "generic XML API": r"\b(?:xml[a-z0-9_]*|matlab\.io\.xml(?:\.[a-z0-9_]+)+)\s*\(",
-            "generic ZIP API": r"\b(?:zip|unzip|java\.util\.zip(?:\.[a-z0-9_]+)+)\s*\(",
-            "archive extraction API": r"\b(?:untar|extractarchive|expandarchive)\s*\(",
-            "generic unpack intent": r"\b(?:unpack|unpacking|unpacked|slxunpack|slxpack)\b",
-            "BlockDiagram API": r"\b(?:simulink\.)?blockdiagram(?:\.[a-z0-9_]+)?\s*\(",
-            "BlockDiagram editing helper": (
-                r"\b(?:edit|modify|write|unpack)[a-z0-9_]*"
-                r"blockdiagram[a-z0-9_]*\b"
-            ),
+        self.assertEqual(_forbidden_slx_editing_intents(source), ())
+
+    def test_static_editing_gate_rejects_indirect_string_payloads(self):
+        malicious = {
+            "system unzip": 'system("unzip candidate.slx")',
+            "system zip": 'system("zip candidate.slx payload")',
+            "system tar": 'system("tar -xf candidate.slx")',
+            "readstruct XML": 'readstruct(path,"FileType","xml")',
+            "javaObject ZIP": 'javaObject("java.util.zip.ZipFile",path)',
+            "feval BlockDiagram": 'feval("Simulink.BlockDiagram.modify",model)',
         }
-        for label, pattern in forbidden_editing_patterns.items():
+        for label, snippet in malicious.items():
             with self.subTest(label=label):
-                self.assertIsNone(re.search(pattern, lowered), label)
+                self.assertTrue(_forbidden_slx_editing_intents(snippet), snippet)
+
+        legitimate = "\n".join(
+            (
+                'sourcePath = fullfile(repo, "candidate.slx");',
+                'hash = java.security.MessageDigest.getInstance("SHA-256");',
+                'relative = extractAfter(canonical, prefix);',
+                'set_param(target, "InitialCondition", "1200");',
+                'set_param(model, "SimulationCommand", "update");',
+            )
+        )
+        self.assertEqual(_forbidden_slx_editing_intents(legitimate), ())
 
     def test_a3_candidate_generator_freezes_counts_flags_and_candidate_only_save(self):
         source = self._generator_source()
