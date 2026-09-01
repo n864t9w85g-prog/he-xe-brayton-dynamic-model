@@ -13,6 +13,7 @@ from tests import fig519_ihx_r2_hexe_contract as contract
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "tests/create_fig519_ihx_r2_hexe_shift_candidate.m"
+MATLAB_GENERATOR_TEST = ROOT / "tests/test_create_fig519_ihx_r2_hexe_shift_candidate.m"
 
 
 def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
@@ -472,6 +473,22 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
     def test_production_module_contains_no_assert_statement(self):
         tree = ast.parse(Path(contract.__file__).read_text(encoding="utf-8"))
         self.assertFalse(any(isinstance(node, ast.Assert) for node in ast.walk(tree)))
+
+    def test_matlab_cleanup_is_secure_handle_relative_and_never_path_recursive(self):
+        source = MATLAB_GENERATOR_TEST.read_text(encoding="utf-8")
+        for literal in (
+            "SecureDirectoryStream-equivalent",
+            'py.importlib.import_module("os")',
+            "O_NOFOLLOW",
+            'pyargs("dir_fd"',
+            "os.stat",
+            "os.unlink",
+            "os.rmdir",
+            '"retained_untrusted"',
+        ):
+            with self.subTest(literal=literal):
+                self.assertIn(literal, source)
+        self.assertNotRegex(source, r"(?i)\brmdir\s*\([^\n]*[\"']s[\"']")
 
 
 if __name__ == "__main__":

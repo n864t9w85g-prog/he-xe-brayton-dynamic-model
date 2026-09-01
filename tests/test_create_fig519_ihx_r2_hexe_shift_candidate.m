@@ -157,6 +157,56 @@ displacedOwner = owner;
 displacedOwner.path = displaced;
 displacedOwner.token_path = fullfile(displaced, ".fig519a3-test-owner");
 cleanupOwnedOutput(displacedOwner, tmpRoot);
+replacementOwner = claimOwnedTestSandbox(owner.path, tmpRoot);
+cleanupOwnedOutput(replacementOwner, tmpRoot);
+end
+
+function testCleanupDeletesTrustedOwnedTree(testCase)
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+owner = createOwnedTestSandbox(tmpRoot);
+ownedOutput = fullfile(owner.path, "candidate-output");
+mkdir(ownedOutput);
+writelines("owned", fullfile(ownedOutput, "owned.txt"));
+result = cleanupOwnedOutput(owner, tmpRoot);
+verifyEqual(testCase, string(result.status), "deleted");
+verifyFalse(testCase, isfolder(owner.path));
+end
+
+function testCleanupRejectsForeignOwnerSchema(testCase)
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+owner = createOwnedTestSandbox(tmpRoot);
+writelines("owned", fullfile(owner.path, "owned.txt"));
+foreignOwner = owner;
+foreignOwner.schema = "foreign_owner";
+result = cleanupOwnedOutput(foreignOwner, tmpRoot);
+verifyEqual(testCase, string(result.status), "retained_untrusted");
+verifyTrue(testCase, isfile(fullfile(owner.path, "owned.txt")));
+verifyEqual(testCase, string(cleanupOwnedOutput(owner, tmpRoot).status), ...
+    "deleted");
+end
+
+function testCleanupDeletesSymlinkWithoutFollowingExternalTarget(testCase)
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+externalOwner = createOwnedTestSandbox(tmpRoot);
+externalSentinel = fullfile(externalOwner.path, "external.txt");
+writelines("external", externalSentinel);
+owner = createOwnedTestSandbox(tmpRoot);
+ownedOutput = fullfile(owner.path, "candidate-output");
+mkdir(ownedOutput);
+linkPath = fullfile(ownedOutput, "external-link");
+java.nio.file.Files.createSymbolicLink(nioPath(linkPath), ...
+    nioPath(externalOwner.path), ...
+    javaArray("java.nio.file.attribute.FileAttribute", 0));
+
+result = cleanupOwnedOutput(owner, tmpRoot);
+verifyEqual(testCase, string(result.status), "deleted");
+verifyFalse(testCase, isfolder(owner.path));
+verifyTrue(testCase, isfile(externalSentinel));
+externalResult = cleanupOwnedOutput(externalOwner, tmpRoot);
+verifyEqual(testCase, string(externalResult.status), "deleted");
 end
 
 function testCleanupRetainsOwnedNonemptyAndFinalBoundaryReplacement(testCase)
@@ -166,14 +216,20 @@ owner = createOwnedTestSandbox(tmpRoot);
 ownedOutput = fullfile(owner.path, "candidate-output");
 mkdir(ownedOutput);
 writelines("owned", fullfile(ownedOutput, "owned.txt"));
-cleanupOwnedOutput(owner, tmpRoot);
-verifyTrue(testCase, isfolder(owner.path));
-verifyTrue(testCase, isfile(fullfile(ownedOutput, "owned.txt")));
-
 boundary = @() replaceAtCleanupBoundary(owner.path);
-cleanupOwnedOutput(owner, tmpRoot, boundary);
+result = cleanupOwnedOutput(owner, tmpRoot, boundary);
+verifyEqual(testCase, string(result.status), "retained_untrusted");
 verifyTrue(testCase, isfolder(owner.path));
 verifyTrue(testCase, isfile(fullfile(owner.path, "replacement.txt")));
+displacedOwner = owner;
+displacedOwner.path = owner.path + "-owned-before-boundary";
+displacedOwner.token_path = fullfile(displacedOwner.path, ...
+    ".fig519a3-test-owner");
+verifyEqual(testCase, string(cleanupOwnedOutput( ...
+    displacedOwner, tmpRoot).status), "deleted");
+replacementOwner = claimOwnedTestSandbox(owner.path, tmpRoot);
+verifyEqual(testCase, string(cleanupOwnedOutput( ...
+    replacementOwner, tmpRoot).status), "deleted");
 end
 
 function replaceAtCleanupBoundary(pathValue)
@@ -181,6 +237,88 @@ displaced = pathValue + "-owned-before-boundary";
 movefile(pathValue, displaced);
 mkdir(pathValue);
 writelines("replacement", fullfile(pathValue, "replacement.txt"));
+end
+
+function testCleanupRetainsNestedReplacementAtDeletionBoundary(testCase)
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+owner = createOwnedTestSandbox(tmpRoot);
+nested = fullfile(owner.path, "candidate-output", "nested");
+mkdir(nested);
+writelines("owned", fullfile(nested, "owned.txt"));
+boundary = @() replaceNestedAtCleanupBoundary(nested);
+result = cleanupOwnedOutput(owner, tmpRoot, boundary);
+verifyEqual(testCase, string(result.status), "retained_untrusted");
+verifyTrue(testCase, isfile(fullfile(nested, "replacement.txt")));
+verifyTrue(testCase, isfile(fullfile(nested + "-displaced", "owned.txt")));
+verifyEqual(testCase, string(cleanupOwnedOutput(owner, tmpRoot).status), ...
+    "deleted");
+end
+
+function replaceNestedAtCleanupBoundary(pathValue)
+displaced = pathValue + "-displaced";
+movefile(pathValue, displaced);
+mkdir(pathValue);
+writelines("replacement", fullfile(pathValue, "replacement.txt"));
+end
+
+function testCleanupVerifiedHistoricalOwnersLeavesUntrustedEntries(testCase)
+repo = string(fileparts(fileparts(mfilename("fullpath"))));
+tmpRoot = fullfile(repo, "tmp");
+untrustedPath = string(tempname(tmpRoot));
+mkdir(untrustedPath);
+sentinel = fullfile(untrustedPath, "untrusted.txt");
+writelines("untrusted", sentinel);
+trustedOwner = createOwnedTestSandbox(tmpRoot);
+writelines("trusted", fullfile(trustedOwner.path, "trusted.txt"));
+
+candidatePaths = [trustedOwner.path; untrustedPath];
+historicalMode = string(getenv("FIG519A3_CLEAN_VERIFIED_HISTORICAL"));
+if historicalMode == "dry-run-verified-owned" || ...
+        historicalMode == "execute-verified-owned"
+    candidatePaths = directTmpChildren(tmpRoot);
+end
+dryReport = cleanupVerifiedOwnedSandboxes(tmpRoot, candidatePaths, "dry_run");
+verifyTrue(testCase, isfolder(trustedOwner.path));
+verifyTrue(testCase, any(string(dryReport.verified_owned) == ...
+    trustedOwner.path));
+fprintf("A3 owned cleanup dry-run: verified=%d retained_untrusted=%d\n", ...
+    numel(dryReport.verified_owned), numel(dryReport.retained_untrusted));
+disp("A3 retained sample: " + ...
+    join(string(dryReport.retained_untrusted( ...
+    1:min(3, numel(dryReport.retained_untrusted)))), ", "));
+verifiedTmpNames = leafNames(dryReport.verified_owned);
+retainedTmpNames = leafNames(dryReport.retained_untrusted);
+verifiedTp = startsWith(verifiedTmpNames, "tp");
+retainedTp = startsWith(retainedTmpNames, "tp");
+fprintf("A3 tp classification: verified=%d retained_untrusted=%d\n", ...
+    nnz(verifiedTp), nnz(retainedTp));
+disp("A3 retained tp sample: " + join(string( ...
+    dryReport.retained_untrusted(find(retainedTp, ...
+    min(3, nnz(retainedTp)), "first"))), ", "));
+if historicalMode == "execute-verified-owned"
+    report = cleanupVerifiedOwnedSandboxes(tmpRoot, candidatePaths, "execute");
+else
+    report = cleanupVerifiedOwnedSandboxes(tmpRoot, ...
+        [trustedOwner.path; untrustedPath], "execute");
+end
+verifyFalse(testCase, isfolder(trustedOwner.path));
+verifyTrue(testCase, any(string(report.deleted) == trustedOwner.path));
+verifyTrue(testCase, isfolder(untrustedPath));
+verifyTrue(testCase, isfile(sentinel));
+verifyFalse(testCase, any(string(report.deleted) == untrustedPath));
+verifyTrue(testCase, any(string(report.retained_untrusted) == untrustedPath));
+
+untrustedOwner = claimOwnedTestSandbox(untrustedPath, tmpRoot);
+verifyEqual(testCase, string(cleanupOwnedOutput( ...
+    untrustedOwner, tmpRoot).status), "deleted");
+end
+
+function names = leafNames(paths)
+names = strings(numel(paths), 1);
+for index = 1:numel(paths)
+    [~, names(index)] = fileparts(string(paths(index)));
+end
 end
 
 function testInjectedFailuresRestoreCallerState(testCase)
@@ -377,76 +515,475 @@ hash = string(lower(reshape(dec2hex(typecast(raw, "uint8"), 2).', 1, [])));
 end
 
 function owner = createOwnedTestSandbox(tmpRoot)
-owner.path = string(tempname(tmpRoot));
-mkdir(owner.path);
-owner.token = string(char(java.util.UUID.randomUUID));
-owner.token_path = fullfile(owner.path, ".fig519a3-test-owner");
-writelines(owner.token, owner.token_path);
-owner.file_key = fileIdentity(owner.path);
+ownerPath = string(tempname(tmpRoot));
+mkdir(ownerPath);
+owner = claimOwnedTestSandbox(ownerPath, tmpRoot);
 end
 
-function cleanupOwnedOutput(owner, tmpRoot, boundaryHook)
+function owner = claimOwnedTestSandbox(ownerPath, tmpRoot)
+owner.path = string(ownerPath);
+owner.schema = "fig519a3_test_owner";
+owner.version = 2;
+owner.token = string(char(java.util.UUID.randomUUID));
+owner.capability_text = "fig519a3_test_owner_v2:" + owner.token;
+owner.token_path = fullfile(owner.path, ".fig519a3-test-owner");
+writeOwnerTokenExclusive(owner.token_path, owner.capability_text + newline);
+owner.file_key = fileIdentity(owner.path);
+owner.token_file_key = fileIdentity(owner.token_path);
+owner.posix_identity = posixPathIdentity(owner.path, "directory");
+owner.token_posix_identity = posixPathIdentity(owner.token_path, "file");
+owner.tmp_file_key = fileIdentity(tmpRoot);
+owner.tmp_posix_identity = posixPathIdentity(tmpRoot, "directory");
+end
+
+function writeOwnerTokenExclusive(tokenPath, tokenText)
+options = javaArray("java.nio.file.OpenOption", 2);
+options(1) = java.nio.file.StandardOpenOption.CREATE_NEW;
+options(2) = java.nio.file.StandardOpenOption.WRITE;
+channel = java.nio.file.Files.newByteChannel(nioPath(tokenPath), options);
+cleanup = onCleanup(@() channel.close());
+bytes = unicode2native(char(tokenText), "UTF-8");
+buffer = java.nio.ByteBuffer.wrap(int8(bytes));
+while buffer.hasRemaining()
+    channel.write(buffer);
+end
+clear cleanup
+channel.close();
+end
+
+function result = cleanupOwnedOutput(owner, tmpRoot, boundaryHook)
 arguments
     owner
     tmpRoot
     boundaryHook = []
 end
 outputDir = string(owner.path);
-if ~isfolder(outputDir)
+result = struct("status", "absent", "path", outputDir, "reason", "");
+if ~java.nio.file.Files.exists(nioPath(outputDir), noFollowOptions())
     return
 end
-canonicalTmp = canonicalPath(tmpRoot);
-canonicalOutput = canonicalPath(outputDir);
-javaPath = java.nio.file.Paths.get(char(outputDir), ...
-    javaArray("java.lang.String", 0));
-if canonicalOutput == canonicalTmp || ...
-        ~startsWith(canonicalOutput, canonicalTmp + filesep) || ...
-        java.nio.file.Files.isSymbolicLink(javaPath) || ...
-        fileIdentity(outputDir) ~= string(owner.file_key) || ...
-        ~isfile(owner.token_path) || ...
-        strtrim(string(fileread(owner.token_path))) ~= string(owner.token) || ...
-        ~treeMatchesOwnedInventory(outputDir)
-    fprintf(2, "Retained untrusted A3 test output: %s\n", outputDir);
-    return
+try
+    validateCleanupOwnerShape(owner);
+    rootName = directChildName(outputDir, tmpRoot);
+    tokenName = directChildName(owner.token_path, outputDir);
+    os = py.importlib.import_module("os");
+    % macOS's NIO provider lacks SecureDirectoryStream. These in-process
+    % openat/unlinkat calls are the SecureDirectoryStream-equivalent gate.
+    parentFd = openPathDirectoryNoFollow(os, tmpRoot);
+    parentCleanup = onCleanup(@() closePythonFd(os, parentFd));
+    assertPosixIdentity(posixFdIdentity(os, parentFd), ...
+        owner.tmp_posix_identity, "tmp root");
+    if fileIdentity(tmpRoot) ~= string(owner.tmp_file_key)
+        error("fig519a3test:CleanupTmpIdentityChanged", ...
+            "The cleanup tmp root fileKey changed.");
+    end
+    rootFd = openRelativeDirectoryNoFollow(os, parentFd, rootName);
+    rootCleanup = onCleanup(@() closePythonFd(os, rootFd));
+    assertPosixIdentity(posixFdIdentity(os, rootFd), ...
+        owner.posix_identity, "owned root");
+    assertRelativeIdentity(os, parentFd, rootName, ...
+        owner.posix_identity, "owned root entry");
+    if fileIdentity(outputDir) ~= string(owner.file_key)
+        error("fig519a3test:CleanupRootFileKeyChanged", ...
+            "The cleanup root fileKey changed.");
+    end
+    assertOwnedToken(os, rootFd, tokenName, owner);
+    snapshot = snapshotDirectoryFd(os, rootFd);
+    if ~isempty(boundaryHook)
+        boundaryHook();
+    end
+    assertRelativeIdentity(os, parentFd, rootName, ...
+        owner.posix_identity, "owned root deletion boundary");
+    verifyDirectorySnapshotFd(os, rootFd, snapshot);
+    deleteDirectorySnapshotFd(os, rootFd, snapshot, tokenName);
+    assertRelativeIdentity(os, parentFd, rootName, ...
+        owner.posix_identity, "owned root final boundary");
+    os.rmdir(char(rootName), pyargs("dir_fd", parentFd));
+    result.status = "deleted";
+    clear rootCleanup parentCleanup
+catch exception
+    result.status = "retained_untrusted";
+    result.reason = string(exception.identifier);
+    fprintf(2, "Retained untrusted A3 test output: %s (%s)\n", ...
+        outputDir, result.reason);
 end
-if ~isempty(boundaryHook)
-    boundaryHook();
-end
-fprintf(2, "Retained nonempty A3 test output for external cleanup: %s\n", ...
-    outputDir);
 end
 
-function tf = treeMatchesOwnedInventory(root)
-items = dir(fullfile(root, "**", "*"));
-items = items(~ismember({items.name}, {'.', '..'}));
-tf = true;
-for index = 1:numel(items)
-    candidate = fullfile(items(index).folder, items(index).name);
-    javaPath = java.nio.file.Paths.get(char(candidate), ...
-        javaArray("java.lang.String", 0));
-    regular = java.nio.file.Files.isRegularFile(javaPath, ...
-        javaArray("java.nio.file.LinkOption", 0));
-    directory = java.nio.file.Files.isDirectory(javaPath, ...
-        javaArray("java.nio.file.LinkOption", 0));
-    if java.nio.file.Files.isSymbolicLink(javaPath) || ...
-            (~regular && ~directory) || ...
-            ~startsWith(canonicalPath(candidate), canonicalPath(root) + filesep)
-        tf = false;
-        return
+function paths = directTmpChildren(tmpRoot)
+os = py.importlib.import_module("os");
+parentFd = openPathDirectoryNoFollow(os, tmpRoot);
+cleanup = onCleanup(@() closePythonFd(os, parentFd));
+names = listFdNames(os, parentFd);
+paths = fullfile(string(tmpRoot), names);
+clear cleanup
+closePythonFd(os, parentFd);
+end
+
+function report = cleanupVerifiedOwnedSandboxes(tmpRoot, candidatePaths, mode)
+arguments
+    tmpRoot
+    candidatePaths
+    mode {mustBeMember(mode, ["dry_run", "execute"])}
+end
+deleted = strings(0, 1);
+retained = strings(0, 1);
+verified = strings(0, 1);
+for index = 1:numel(candidatePaths)
+    candidatePath = string(candidatePaths(index));
+    try
+        owner = recoverOwnedTestSandbox(candidatePath, tmpRoot);
+    catch
+        retained(end + 1, 1) = candidatePath; %#ok<AGROW>
+        continue
+    end
+    verified(end + 1, 1) = candidatePath; %#ok<AGROW>
+    if mode == "dry_run"
+        continue
+    end
+    result = cleanupOwnedOutput(owner, tmpRoot);
+    if string(result.status) == "deleted"
+        deleted(end + 1, 1) = candidatePath; %#ok<AGROW>
+    else
+        retained(end + 1, 1) = candidatePath; %#ok<AGROW>
     end
 end
-top = dir(root);
-top = string({top(~ismember({top.name}, {'.', '..'})).name});
-tf = all(top == ".fig519a3-test-owner" | ...
-    top == "candidate-output");
+report = struct("verified_owned", verified, "deleted", deleted, ...
+    "retained_untrusted", retained);
+end
+
+function owner = recoverOwnedTestSandbox(ownerPath, tmpRoot)
+ownerPath = string(ownerPath);
+rootName = directChildName(ownerPath, tmpRoot);
+tokenName = ".fig519a3-test-owner";
+os = py.importlib.import_module("os");
+parentFd = openPathDirectoryNoFollow(os, tmpRoot);
+parentCleanup = onCleanup(@() closePythonFd(os, parentFd));
+tmpIdentity = posixFdIdentity(os, parentFd);
+rootIdentity = posixRelativeIdentity(os, parentFd, rootName);
+if rootIdentity.kind ~= "directory"
+    error("fig519a3test:RecoveredOwnerKind", ...
+        "Only real directories can carry an owned-test capability.");
+end
+rootFd = openRelativeDirectoryNoFollow(os, parentFd, rootName);
+rootCleanup = onCleanup(@() closePythonFd(os, rootFd));
+assertPosixIdentity(posixFdIdentity(os, rootFd), rootIdentity, ...
+    "recovered owner root");
+tokenIdentity = posixRelativeIdentity(os, rootFd, tokenName);
+if tokenIdentity.kind ~= "file"
+    error("fig519a3test:RecoveredTokenKind", ...
+        "Recovered ownership tokens must be no-follow regular files.");
+end
+flags = bitor(int64(os.O_RDONLY), int64(os.O_NOFOLLOW));
+tokenFd = os.open(char(tokenName), flags, pyargs("dir_fd", rootFd));
+tokenCleanup = onCleanup(@() closePythonFd(os, tokenFd));
+assertPosixIdentity(posixFdIdentity(os, tokenFd), tokenIdentity, ...
+    "recovered owner token");
+raw = os.read(tokenFd, int64(4096));
+extra = os.read(tokenFd, int64(1));
+capabilityText = strtrim(string(raw.decode("utf-8")));
+uuidPattern = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+v2Match = regexp(char(capabilityText), ...
+    ['^fig519a3_test_owner_v2:(' uuidPattern ')$'], 'tokens', 'once');
+legacyMatch = regexp(char(capabilityText), ['^(' uuidPattern ')$'], ...
+    'tokens', 'once');
+if int64(py.len(extra)) ~= 0 || (isempty(v2Match) && isempty(legacyMatch))
+    error("fig519a3test:RecoveredTokenInvalid", ...
+        "Recovered ownership token is not an A3 owner capability.");
+end
+if ~isempty(v2Match)
+    schema = "fig519a3_test_owner";
+    version = 2;
+    token = string(v2Match{1});
+else
+    schema = "fig519a3_test_owner_legacy";
+    version = 1;
+    token = string(legacyMatch{1});
+    topNames = listFdNames(os, rootFd);
+    if ~all(topNames == tokenName | topNames == "candidate-output")
+        error("fig519a3test:RecoveredLegacyInventory", ...
+            "Legacy A3 owners require the frozen top-level inventory.");
+    end
+    outputIndex = find(topNames == "candidate-output", 1);
+    if ~isempty(outputIndex) && ...
+            posixRelativeIdentity(os, rootFd, ...
+            topNames(outputIndex)).kind ~= "directory"
+        error("fig519a3test:RecoveredLegacyInventory", ...
+            "Legacy candidate-output must be a real directory.");
+    end
+end
+snapshotDirectoryFd(os, rootFd);
+owner = struct("path", ownerPath, "schema", schema, ...
+    "version", version, "token", token, ...
+    "capability_text", capabilityText, ...
+    "token_path", fullfile(ownerPath, tokenName), ...
+    "file_key", fileIdentity(ownerPath), ...
+    "token_file_key", fileIdentity(fullfile(ownerPath, tokenName)), ...
+    "posix_identity", rootIdentity, ...
+    "token_posix_identity", tokenIdentity, ...
+    "tmp_file_key", fileIdentity(tmpRoot), ...
+    "tmp_posix_identity", tmpIdentity);
+assertRelativeIdentity(os, parentFd, rootName, rootIdentity, ...
+    "recovered owner root boundary");
+assertRelativeIdentity(os, rootFd, tokenName, tokenIdentity, ...
+    "recovered owner token boundary");
+clear tokenCleanup rootCleanup parentCleanup
+closePythonFd(os, tokenFd);
+closePythonFd(os, rootFd);
+closePythonFd(os, parentFd);
+end
+
+function validateCleanupOwnerShape(owner)
+required = ["path", "token", "token_path", "file_key", ...
+    "token_file_key", "posix_identity", "token_posix_identity", ...
+    "tmp_file_key", "tmp_posix_identity", "schema", "version", ...
+    "capability_text"];
+if ~isstruct(owner) || ~all(isfield(owner, required))
+    error("fig519a3test:CleanupOwnerInvalid", ...
+        "Safe cleanup requires the complete identity-bound owner record.");
+end
+v2 = string(owner.schema) == "fig519a3_test_owner" && ...
+    double(owner.version) == 2 && ...
+    string(owner.capability_text) == ...
+    "fig519a3_test_owner_v2:" + string(owner.token);
+legacy = string(owner.schema) == "fig519a3_test_owner_legacy" && ...
+    double(owner.version) == 1 && ...
+    string(owner.capability_text) == string(owner.token);
+if ~(v2 || legacy)
+    error("fig519a3test:CleanupOwnerSchema", ...
+        "Safe cleanup requires the exact A3 owner schema/version.");
+end
+end
+
+function name = directChildName(pathValue, parentValue)
+pathObject = nioPath(pathValue).toAbsolutePath().normalize();
+parentObject = nioPath(parentValue).toAbsolutePath().normalize();
+relative = parentObject.relativize(pathObject);
+if relative.getNameCount() ~= 1 || relative.isAbsolute() || ...
+        string(relative.toString()) == ".."
+    error("fig519a3test:CleanupContainment", ...
+        "Safe cleanup targets must be direct lexical children.");
+end
+name = string(relative.toString());
+end
+
+function fd = openPathDirectoryNoFollow(os, pathValue)
+flags = bitor(bitor(int64(os.O_RDONLY), int64(os.O_DIRECTORY)), ...
+    int64(os.O_NOFOLLOW));
+fd = os.open(char(string(pathValue)), flags);
+end
+
+function fd = openRelativeDirectoryNoFollow(os, parentFd, name)
+flags = bitor(bitor(int64(os.O_RDONLY), int64(os.O_DIRECTORY)), ...
+    int64(os.O_NOFOLLOW));
+fd = os.open(char(name), flags, pyargs("dir_fd", parentFd));
+end
+
+function closePythonFd(os, fd)
+try
+    os.close(fd);
+catch
+end
+end
+
+function identity = posixPathIdentity(pathValue, kind)
+os = py.importlib.import_module("os");
+if kind == "directory"
+    fd = openPathDirectoryNoFollow(os, pathValue);
+else
+    flags = bitor(int64(os.O_RDONLY), int64(os.O_NOFOLLOW));
+    fd = os.open(char(string(pathValue)), flags);
+end
+cleanup = onCleanup(@() closePythonFd(os, fd));
+identity = posixFdIdentity(os, fd);
+if identity.kind ~= string(kind)
+    error("fig519a3test:OwnerIdentityKind", ...
+        "Owned path has the wrong no-follow POSIX kind.");
+end
+clear cleanup
+closePythonFd(os, fd);
+end
+
+function identity = posixFdIdentity(os, fd)
+identity = posixStatIdentity(os.fstat(fd));
+end
+
+function identity = posixRelativeIdentity(os, parentFd, name)
+statResult = os.stat(char(name), pyargs("dir_fd", parentFd, ...
+    "follow_symlinks", false));
+identity = posixStatIdentity(statResult);
+end
+
+function identity = posixStatIdentity(statResult)
+mode = uint64(statResult.st_mode);
+kindBits = bitand(mode, uint64(61440));
+if kindBits == uint64(16384)
+    kind = "directory";
+elseif kindBits == uint64(32768)
+    kind = "file";
+elseif kindBits == uint64(40960)
+    kind = "symlink";
+else
+    kind = "other";
+end
+identity = struct("device", uint64(statResult.st_dev), ...
+    "inode", uint64(statResult.st_ino), "kind", kind);
+end
+
+function assertPosixIdentity(actual, expected, label)
+if actual.device ~= expected.device || actual.inode ~= expected.inode || ...
+        actual.kind ~= string(expected.kind)
+    error("fig519a3test:CleanupIdentityChanged", ...
+        "%s changed before safe cleanup.", label);
+end
+end
+
+function assertRelativeIdentity(os, parentFd, name, expected, label)
+actual = posixRelativeIdentity(os, parentFd, name);
+assertPosixIdentity(actual, expected, label);
+end
+
+function assertOwnedToken(os, rootFd, tokenName, owner)
+assertRelativeIdentity(os, rootFd, tokenName, ...
+    owner.token_posix_identity, "ownership token entry");
+flags = bitor(int64(os.O_RDONLY), int64(os.O_NOFOLLOW));
+tokenFd = os.open(char(tokenName), flags, pyargs("dir_fd", rootFd));
+cleanup = onCleanup(@() closePythonFd(os, tokenFd));
+assertPosixIdentity(posixFdIdentity(os, tokenFd), ...
+    owner.token_posix_identity, "ownership token handle");
+raw = os.read(tokenFd, int64(4096));
+extra = os.read(tokenFd, int64(1));
+if int64(py.len(extra)) ~= 0 || ...
+        strtrim(string(raw.decode("utf-8"))) ~= string(owner.capability_text)
+    error("fig519a3test:CleanupTokenChanged", ...
+        "The exclusive ownership token changed.");
+end
+assertPosixIdentity(posixFdIdentity(os, tokenFd), ...
+    owner.token_posix_identity, "ownership token handle");
+if fileIdentity(owner.token_path) ~= string(owner.token_file_key)
+    error("fig519a3test:CleanupTokenFileKeyChanged", ...
+        "The ownership token fileKey changed.");
+end
+assertRelativeIdentity(os, rootFd, tokenName, ...
+    owner.token_posix_identity, "ownership token entry");
+clear cleanup
+closePythonFd(os, tokenFd);
+end
+
+function snapshot = snapshotDirectoryFd(os, directoryFd)
+snapshot = struct("identity", posixFdIdentity(os, directoryFd), ...
+    "entries", []);
+names = listFdNames(os, directoryFd);
+entries = repmat(struct("name", "", "identity", struct(), ...
+    "snapshot", []), 0, 1);
+for index = 1:numel(names)
+    name = names(index);
+    identity = posixRelativeIdentity(os, directoryFd, name);
+    nested = [];
+    if identity.kind == "directory"
+        childFd = openRelativeDirectoryNoFollow(os, directoryFd, name);
+        childCleanup = onCleanup(@() closePythonFd(os, childFd));
+        assertPosixIdentity(posixFdIdentity(os, childFd), identity, ...
+            "snapshot directory");
+        nested = snapshotDirectoryFd(os, childFd);
+        clear childCleanup
+        closePythonFd(os, childFd);
+    elseif identity.kind ~= "file" && identity.kind ~= "symlink"
+        error("fig519a3test:CleanupUnsupportedEntry", ...
+            "Owned cleanup trees may contain only files, directories, or symlinks.");
+    end
+    entries(end + 1, 1) = struct("name", name, ...
+        "identity", identity, "snapshot", nested); %#ok<AGROW>
+end
+snapshot.entries = entries;
+end
+
+function names = listFdNames(os, directoryFd)
+values = cell(os.listdir(directoryFd));
+names = strings(numel(values), 1);
+for index = 1:numel(values)
+    names(index) = string(values{index});
+    if names(index) == "." || names(index) == ".." || ...
+            contains(names(index), "/")
+        error("fig519a3test:CleanupEntryName", ...
+            "Unsafe directory entry name encountered.");
+    end
+end
+names = sort(names);
+end
+
+function verifyDirectorySnapshotFd(os, directoryFd, snapshot)
+assertPosixIdentity(posixFdIdentity(os, directoryFd), ...
+    snapshot.identity, "snapshot directory handle");
+names = listFdNames(os, directoryFd);
+expectedNames = reshape(string({snapshot.entries.name}), [], 1);
+if ~isequal(names, expectedNames)
+    error("fig519a3test:CleanupInventoryChanged", ...
+        "Directory inventory changed at the deletion boundary.");
+end
+for index = 1:numel(snapshot.entries)
+    entry = snapshot.entries(index);
+    assertRelativeIdentity(os, directoryFd, entry.name, ...
+        entry.identity, "snapshot entry");
+    if entry.identity.kind == "directory"
+        childFd = openRelativeDirectoryNoFollow(os, directoryFd, entry.name);
+        childCleanup = onCleanup(@() closePythonFd(os, childFd));
+        verifyDirectorySnapshotFd(os, childFd, entry.snapshot);
+        clear childCleanup
+        closePythonFd(os, childFd);
+    end
+end
+end
+
+function deleteDirectorySnapshotFd(os, directoryFd, snapshot, tokenName)
+verifyDirectorySnapshotFd(os, directoryFd, snapshot);
+entries = snapshot.entries;
+if strlength(tokenName) > 0 && ~isempty(entries)
+    tokenIndex = find(string({entries.name}) == tokenName, 1);
+    if ~isempty(tokenIndex)
+        entries = [entries(1:tokenIndex - 1); entries(tokenIndex + 1:end); ...
+            entries(tokenIndex)];
+    end
+end
+for index = 1:numel(entries)
+    entry = entries(index);
+    assertRelativeIdentity(os, directoryFd, entry.name, ...
+        entry.identity, "entry deletion boundary");
+    if entry.identity.kind == "directory"
+        childFd = openRelativeDirectoryNoFollow(os, directoryFd, entry.name);
+        childCleanup = onCleanup(@() closePythonFd(os, childFd));
+        assertPosixIdentity(posixFdIdentity(os, childFd), ...
+            entry.identity, "directory deletion handle");
+        deleteDirectorySnapshotFd(os, childFd, entry.snapshot, "");
+        assertRelativeIdentity(os, directoryFd, entry.name, ...
+            entry.identity, "directory final deletion boundary");
+        os.rmdir(char(entry.name), pyargs("dir_fd", directoryFd));
+        clear childCleanup
+        closePythonFd(os, childFd);
+    else
+        os.unlink(char(entry.name), pyargs("dir_fd", directoryFd));
+    end
+end
+if ~isempty(listFdNames(os, directoryFd))
+    error("fig519a3test:CleanupDirectoryNotEmpty", ...
+        "A replacement appeared during handle-relative cleanup.");
+end
 end
 
 function key = fileIdentity(pathValue)
-javaPath = java.nio.file.Paths.get(char(pathValue), ...
-    javaArray("java.lang.String", 0));
+javaPath = nioPath(pathValue);
 attributes = java.nio.file.Files.readAttributes(javaPath, ...
-    "basic:fileKey", javaArray("java.nio.file.LinkOption", 0));
+    "basic:fileKey", noFollowOptions());
 key = string(attributes.get("fileKey"));
+end
+
+function javaPath = nioPath(pathValue)
+javaPath = java.nio.file.Paths.get(char(string(pathValue)), ...
+    javaArray("java.lang.String", 0));
+end
+
+function options = noFollowOptions()
+options = javaArray("java.nio.file.LinkOption", 1);
+options(1) = java.nio.file.LinkOption.NOFOLLOW_LINKS;
 end
 
 function state = callerState()
@@ -499,7 +1036,7 @@ end
 
 function installTestHook(owner, hook)
 hook.capability_path = owner.token_path;
-hook.capability_token = owner.token;
+hook.capability_token = owner.capability_text;
 hook.capability_file_key = fileIdentity(owner.token_path);
 hook.run_parent = owner.path;
 hook.run_parent_file_key = owner.file_key;
