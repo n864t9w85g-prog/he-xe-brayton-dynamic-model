@@ -13,6 +13,13 @@
 ## Fixed authority boundaries
 
 - The approved design is `docs/superpowers/specs/2026-09-01-ihx-r2-hexe-shift-a3-design.md` at commit `b248299`.
+- The approved dependency-closure amendment is
+  `docs/superpowers/specs/2026-09-01-a3-capture-dependency-closure-design.md`
+  at commit `fd83c06`; its implementation plan is
+  `docs/superpowers/plans/2026-09-01-a3-capture-dependency-closure.md`.
+- The dependency-closure amendment supersedes the original Task 5 dependency
+  list wherever they differ. Complete its Tasks 1–5 and both review gates
+  before starting this plan's Task 5 runtime capture.
 - Tasks 1–5 are zero-simulation implementation and preflight work.
 - Task 6 is a hard human gate. Do not execute it until the user explicitly says **“批准 A3 单次正式运行”** after the READY evidence is reported.
 - The first formal command invocation consumes A3. Never retry it automatically, even if no model integration occurred.
@@ -30,12 +37,17 @@
 | `tests/analyze_fig519_ihx_r2_hexe_shift.py` | Validate A3 artifacts, compute fixed metrics, classify, and publish durable evidence/history |
 | `tests/prepare_fig519_ihx_r2_hexe_a3.py` | Build and verify the self-contained read-only captured repository snapshot |
 | `tests/execute_fig519_ihx_r2_hexe_a3_once.py` | Own the exact-once subprocess call and immutable execution record |
+| `tests/publish_a3_capture_dependency_closure.py` | Publish and verify the repository-local protected/formal dependency closure |
 | `tests/test_fig519_ihx_r2_hexe_contract.py` | Pure contract and analyzer tests, including `python -O`-safe failures |
+| `tests/test_publish_a3_capture_dependency_closure.py` | Portable archive, formal-state, collision, symlink, and no-external-read tests |
 | `tests/test_publish_fig518a_anchor_evidence.py` | Anchor publisher integrity, idempotence, symlink, and no-write tests |
 | `tests/test_prepare_fig519_ihx_r2_hexe_a3.py` | Capture completeness, self-containment, exact-once, and tamper tests |
 | `tests/test_create_fig519_ihx_r2_hexe_shift_candidate.m` | MATLAB no-simulation candidate/API tests |
 | `tests/test_run_fig519_ihx_r2_hexe_shift.m` | MATLAB no-simulation runner hook and marker tests |
 | `data/provenance/steady53/fig5_18a/*` | Durable 1200 K visual-proxy source evidence |
+| `data/provenance/baselines/f8bcd83/portable_protected_manifest.json` | Exact 34-row repository-local protected-object mapping |
+| `data/provenance/baselines/f8bcd83/formal_root_state.json` | Exact eight-record formal-root presence/hash state |
+| `data/provenance/baselines/f8bcd83/protected_objects/**` | One immutable repository-local byte object for each protected logical row |
 | `data/provenance/steady53/fig5_19/ihx_r2_hexe_shift_A3/*` | Durable A3 execution, raw, curves, and analysis evidence |
 | `data/provenance/steady53/fig5_19/initial_state_counterfactual_history.json` | Cross-family append-only attempt index |
 
@@ -517,6 +529,44 @@ git add tests/analyze_fig519_ihx_r2_hexe_shift.py \
 git commit -m "实现IHX A3离线判据与证据事务"
 ```
 
+### Task 4A: Close the portable dependency graph before capture
+
+**Files:**
+- Implement and verify every file named by
+  `docs/superpowers/plans/2026-09-01-a3-capture-dependency-closure.md`
+- Do not create the Task 5 runtime capture in this task
+
+- [ ] **Step 1: Execute the approved closure plan Tasks 1–5 in order**
+
+Use the supplemental plan as the executable specification. It must publish the
+34-row repository-local protected archive, freeze the exact eight-record formal
+root state, migrate candidate/runner/analyzer consumers, and prove a real
+captured-root zero-simulation preflight.
+
+- [ ] **Step 2: Enforce the two-stage closure review gate**
+
+Obtain an independent specification review followed by an independent
+code-quality review of the completed closure. Any Critical or Important finding
+blocks Task 5. The reviewers must inspect actual captured-root behavior and
+confirm that no consumer reads a protected object from a live or external
+absolute path.
+
+- [ ] **Step 3: Confirm the formal boundary before Task 5**
+
+Require all of the following before proceeding:
+
+```text
+protected logical records = 34
+formal records = 8
+formal present records = 7
+root final_dynamic_24a.slx = absent
+run_steady53_case call count = 0
+formal command invocation count = 0
+```
+
+Task 5 may start only after the supplemental plan is complete and both reviews
+report Ready.
+
 ### Task 5: Build the self-contained capture and reach READY without simulation
 
 **Files:**
@@ -558,9 +608,40 @@ DATA_GROUPS = (
     "data/provenance/steady53/fig5_19/reactor_ic_counterfactual.json",
     "data/provenance/steady53/fig5_19/manifest.csv",
 )
+CLOSURE_GOVERNANCE = (
+    "data/provenance/baselines/f8bcd83/protected_manifest_recovery.csv",
+    "data/provenance/baselines/f8bcd83/portable_protected_manifest.json",
+    "data/provenance/baselines/f8bcd83/formal_root_state.json",
+    "data/provenance/baselines/f8bcd83/protected_objects",
+)
+FORMAL_ROOT_PRESENT = (
+    "final_steady_24a.slx",
+    "HeXe_property_simulink.m",
+    "Lithium_property_simulink.m",
+    "hexe_compressor_lookup.mat",
+    "radiator_table.mat",
+    "turbine_table1.mat",
+    "turbine_table2.mat",
+)
+FORMAL_ROOT_ABSENT = ("final_dynamic_24a.slx",)
 ```
 
-The tests must reject missing/extra executables, symlinks, writable immutable snapshot files, hash mismatch, live-repo MATLAB paths in `command.txt`, an existing formal run directory, and any command containing a retry loop. The one declared exception is the empty `repo_snapshot/tmp/` output directory: it must be mode `0700`, excluded from the immutable-input file manifest, and rejected if it contains a pre-existing formal A3 run directory.
+The exact immutable input set is the deduplicated union of `EXECUTABLES`, every
+ordinary file recursively contained by `DATA_GROUPS` and `CLOSURE_GOVERNANCE`,
+and every file in `FORMAL_ROOT_PRESENT`. `SHA256SUMS` must list every immutable
+file exactly once in sorted POSIX-path order. `FORMAL_ROOT_ABSENT` is an absence
+contract, not a copied input. The snapshot `tmp/` tree is excluded from the
+immutable input set.
+
+The tests must reject missing/extra executables, missing/extra protected archive
+rows or files, duplicate manifest paths, symlinks, writable immutable snapshot
+files, hash mismatch, a present captured-root `final_dynamic_24a.slx`, a changed
+formal-root hash, any protected path resolved outside the captured repository,
+an internal blank line or duplicate path in `SHA256SUMS`, live-repo MATLAB paths
+in `command.txt`, an existing formal run directory, and any command containing a
+retry loop. The one declared exception is the empty `repo_snapshot/tmp/` output
+directory: it must be mode `0700`, excluded from the immutable-input file
+manifest, and rejected if it contains a pre-existing formal A3 run directory.
 
 - [ ] **Step 2: Run RED**
 
@@ -576,15 +657,27 @@ Expected: missing prepare/execute modules.
 
 1. verify Task 1–4 tests and frozen identities;
 2. create the capture directory exclusively with mode `0700`;
-3. copy the exact repository tree subset above as regular files, preserving bytes;
+3. copy the exact repository tree subset above as regular files, preserving
+   bytes, including both closure governance manifests, all 34 logical protected
+   archive objects, and the seven present formal-root files; never copy or
+   recreate root `final_dynamic_24a.slx`;
 4. write `tracked_diff.patch`, `git_head.txt`, `git_status_porcelain_v1_z.bin`, `untracked_paths.json`, `SHA256SUMS`, and `preflight_status.json`;
 5. record the resolved Python and MATLAB executable paths, versions, and SHA-256 identities as system-runtime provenance;
 6. make immutable snapshot files mode `0400` and immutable directories `0500`, while keeping only the empty `repo_snapshot/tmp/` output directory mode `0700`;
-7. invoke the captured candidate generator through MATLAB once in `repo_snapshot/tmp/fig519_ihx_r2_hexe_20260901_A3_preflight`, without calling the runner, and bind its 40-state/37-solver/common-delta/update-diagram audit into `preflight_status.json`;
-8. reverify all immutable-input hashes after the preflight and verify the 34/34 protected manifest plus unchanged A1/A2 canonical summary bytes;
-9. implement `--archive-consumed-execution` as a model-read-only verifier of already-existing execution artifacts; it writes exactly one new outer-capture file, `consumed_execution_manifest.json`, by exclusive create after hashing the claim, command, logs, exit code, execution record, candidate audit, status, and every raw/CSV artifact that actually exists; it must reject an absent invocation claim and must never launch a subprocess;
-10. write `command.txt` that calls only the captured executor;
-11. keep `repo_snapshot/tmp/fig519_ihx_r2_hexe_20260901_A3` absent.
+7. before MATLAB, verify the fixed source-manifest and portable-manifest hashes,
+   exact protected34/formal8/formal-present7 sets, formal exact hashes, captured
+   root dynamic absence, and that no executable protected path leaves the
+   captured repository;
+8. invoke the captured candidate generator through MATLAB once in
+   `repo_snapshot/tmp/fig519_ihx_r2_hexe_20260901_A3_preflight`, without calling
+   the runner, and bind its protected34/formal8/formal-present7/runtime9,
+   40-state/37-solver/common-delta/update-diagram audit into
+   `preflight_status.json`;
+9. reverify all immutable-input hashes after the preflight and verify the 34/34
+   protected manifest plus unchanged A1/A2 canonical summary bytes;
+10. implement `--archive-consumed-execution` as a model-read-only verifier of already-existing execution artifacts; it writes exactly one new outer-capture file, `consumed_execution_manifest.json`, by exclusive create after hashing the claim, command, logs, exit code, execution record, candidate audit, status, and every raw/CSV artifact that actually exists; it must reject an absent invocation claim and must never launch a subprocess;
+11. write `command.txt` that calls only the captured executor;
+12. keep `repo_snapshot/tmp/fig519_ihx_r2_hexe_20260901_A3` absent.
 
 The exact command text must be:
 
@@ -608,10 +701,12 @@ Inject a temporary fake executable into the executor unit test. The fake process
 
 ```bash
 python3 -m unittest -v \
+  tests.test_publish_a3_capture_dependency_closure \
   tests.test_fig519_ihx_r2_hexe_contract \
   tests.test_publish_fig518a_anchor_evidence \
   tests.test_prepare_fig519_ihx_r2_hexe_a3
 python3 -O -m unittest -v \
+  tests.test_publish_a3_capture_dependency_closure \
   tests.test_fig519_ihx_r2_hexe_contract \
   tests.test_publish_fig518a_anchor_evidence \
   tests.test_prepare_fig519_ihx_r2_hexe_a3
@@ -797,6 +892,7 @@ python3 -m unittest -v \
   tests.test_analyze_fig519_baseline \
   tests.test_fig519_counterfactual \
   tests.test_prepare_fig519_reactor_ic_a2 \
+  tests.test_publish_a3_capture_dependency_closure \
   tests.test_fig519_ihx_r2_hexe_contract \
   tests.test_publish_fig518a_anchor_evidence \
   tests.test_prepare_fig519_ihx_r2_hexe_a3 \
@@ -815,6 +911,7 @@ Expected: identical pass count; no validation disappears under optimization.
 
 ```bash
 python3 tests/publish_f8bcd83_runtime.py --verify-only
+python3 tests/publish_a3_capture_dependency_closure.py --verify-only
 python3 tests/publish_fig518d_evidence.py --verify-only
 python3 tests/publish_fig518a_anchor_evidence.py --verify-only
 python3 tests/digitize_fig519.py --verify-only
@@ -845,34 +942,16 @@ Expected: `4 Passed, 0 Failed, 0 Incomplete`; no A3 model run marker.
 - [ ] **Step 5: Verify protected and formal files**
 
 ```bash
-python3 - <<'PY'
-from pathlib import Path
-from tests.audit_cleanup_protected_manifest import resolve_manifest
-root = Path.cwd()
-runtime = root / "data/provenance/baselines/f8bcd83/runtime"
-durable = [
-    root / "data/provenance/baselines/f8bcd83/final_steady_24a.slx",
-    root / "data/provenance/baselines/f8bcd83/final_dynamic_24a.slx",
-] + sorted(path for path in runtime.rglob("*") if path.is_file())
-_, summary = resolve_manifest(
-    root / "tmp/tp7d213f64_7fad_4bfa_b722_0771b21d9640/protected_after.csv",
-    durable,
-)
-if summary != {
-    "row_count": 34, "resolved_count": 34,
-    "original_present_count": 31, "durable_equivalent_count": 3,
-    "unresolved_count": 0,
-}:
-    raise SystemExit(summary)
-print("PROTECTED_MANIFEST_VERIFY_PASS; ROWS=34; RESOLVED=34")
-PY
+python3 tests/publish_a3_capture_dependency_closure.py --verify-only
+test ! -e final_dynamic_24a.slx
 git diff --check
 git diff --name-only b248299..HEAD -- \
   final_steady_24a.slx final_dynamic_24a.slx '*.mat' \
   HeXe_property_simulink.m Lithium_property_simulink.m
 ```
 
-Expected: 34/34, no whitespace errors, and empty formal-file diff.
+Expected: protected 34/34 and formal 8/7 verification passes, root dynamic is
+absent, no whitespace errors exist, and the formal-file diff is empty.
 
 - [ ] **Step 6: Perform two-stage review**
 
