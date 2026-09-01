@@ -14,6 +14,8 @@ from tests import fig519_ihx_r2_hexe_contract as contract
 ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "tests/create_fig519_ihx_r2_hexe_shift_candidate.m"
 MATLAB_GENERATOR_TEST = ROOT / "tests/test_create_fig519_ihx_r2_hexe_shift_candidate.m"
+RUNNER = ROOT / "tests/run_fig519_ihx_r2_hexe_shift.m"
+MATLAB_RUNNER_TEST = ROOT / "tests/test_run_fig519_ihx_r2_hexe_shift.m"
 
 
 def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
@@ -209,6 +211,69 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
     def _generator_source(self):
         self.assertTrue(GENERATOR.is_file(), "the A3 MATLAB generator is required")
         return GENERATOR.read_text(encoding="utf-8")
+
+    def _runner_source(self):
+        self.assertTrue(RUNNER.is_file(), "the A3 MATLAB runner is required")
+        return RUNNER.read_text(encoding="utf-8")
+
+    def test_a3_runner_has_exactly_one_blocking_case_call_and_no_retry(self):
+        source = self._runner_source()
+        self.assertRegex(
+            source,
+            r"(?m)^function status = "
+            r"run_fig519_ihx_r2_hexe_shift\(runDir, repoRoot\)$",
+        )
+        calls = re.findall(
+            r"runResult\s*=\s*run_steady53_case\(candidatePath,\s*500,\s*true\)\s*;",
+            source,
+        )
+        self.assertEqual(calls, [
+            "runResult = run_steady53_case(candidatePath, 500, true);"
+        ])
+        self.assertEqual(len(re.findall(r"\brun_steady53_case\s*\(", source)), 1)
+        top_level = source[: source.index("\nfunction ", 1)]
+        self.assertNotRegex(top_level, r"(?im)^\s*(?:for|while)\b")
+        self.assertNotRegex(top_level, r"(?i)\b(?:retry|rerun)\s*\(")
+        self.assertIn('"run_steady53_case_call_count", 1', source)
+        self.assertIn('"retry_count", 0', source)
+
+    def test_a3_runner_freezes_schema_paths_and_truthful_artifact_contract(self):
+        source = self._runner_source()
+        for literal in (
+            '"steady53_fig519_ihx_r2_hexe_shift_candidate_v1"',
+            '"steady53_fig519_ihx_r2_hexe_shift_run_v1"',
+            '"20260901_A3"',
+            '"figure_5_18a_t0_visual_proxy_not_author_initial_state"',
+            '"IHX/IHX_region_2/T_c1_average_Integrator"',
+            '"IHX/IHX_region_2/T_c2_out_Integrator"',
+            '"time_s,reactor_W,turbine_W,compressor_W,ihx_r2_average_K,ihx_r2_outlet_K\\n"',
+            '"paper_reproduced", false',
+            '"author_initial_state_identified", false',
+            '"formal_promotion", false',
+            'fullfile(runPath, "experiment_started.json")',
+            'fullfile(runPath, "raw_result.mat")',
+            'fullfile(runPath, "candidate_curves.csv")',
+            'fullfile(runPath, "reference_curves.csv")',
+            'fullfile(runPath, "run_status.json")',
+        ):
+            with self.subTest(literal=literal):
+                self.assertIn(literal, source)
+        self.assertNotIn('save_system(', source)
+        self.assertNotRegex(source, r'(?i)\bsim\s*\(')
+
+    def test_a3_runner_matlab_test_uses_hooks_only(self):
+        self.assertTrue(
+            MATLAB_RUNNER_TEST.is_file(), "the A3 MATLAB runner test is required"
+        )
+        source = MATLAB_RUNNER_TEST.read_text(encoding="utf-8")
+        self.assertIn(
+            'hooks = run_fig519_ihx_r2_hexe_shift("__a3_test_hooks__", pwd);',
+            source,
+        )
+        self.assertIn("hooks.testExclusiveTextCreation();", source)
+        self.assertIn("hooks.testExclusiveDirectoryCreation();", source)
+        self.assertNotIn("BEGIN_A3_500", source)
+        self.assertNotIn("run_steady53_case", source)
 
     def test_a3_candidate_generator_has_the_frozen_public_contract(self):
         source = self._generator_source()
