@@ -24,7 +24,11 @@ if string(runDir) == "__a3_test_hooks__"
         "testExactAuditNegativeValidation", ...
             @() testExactAuditNegativeValidation(hookRoot), ...
         "testCapturedProtectedRecords", ...
-            @() testCapturedProtectedRecords(hookRoot));
+            @() testCapturedProtectedRecords(hookRoot), ...
+        "testCapturedHelperFiniteReplacement", ...
+            @(kind) testCapturedHelperFiniteReplacement(hookRoot, kind), ...
+        "testHookCleanupInventoryDrift", ...
+            @() testHookCleanupInventoryDrift(hookRoot));
     return
 end
 
@@ -275,6 +279,12 @@ function validateStateInventory(states)
 if numel(states) ~= 40 || sum([states.unchanged]) ~= 38
     error("fig519a3run:StateInventoryMismatch", ...
         "The audit must preserve exactly 38 of 40 state ICs.");
+end
+sourcePaths = string({states.source_path}).';
+candidatePaths = string({states.candidate_path}).';
+if numel(unique(sourcePaths)) ~= 40 || numel(unique(candidatePaths)) ~= 40
+    error("fig519a3run:StateInventoryPathDuplicate", ...
+        "All 40 source and candidate state paths must be unique.");
 end
 changed = states(~[states.unchanged]);
 paths = sort(string({changed.source_path}).');
@@ -901,7 +911,8 @@ binding = struct( ...
     "run_dir", pathIdentity(runDir, "directory"), ...
     "candidate", pathIdentity(candidatePath, "file"), ...
     "audit", pathIdentity(auditPath, "file"), ...
-    "source", pathIdentity(sourcePath, "file"));
+    "source", pathIdentity(sourcePath, "file"), ...
+    "matlab_helpers", bindCapturedMatlabHelpers(repoRoot));
 auditByteHash = sha256File(auditPath);
 if sha256File(sourcePath) ~= ...
         "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
@@ -950,6 +961,59 @@ assertSameIdentity(binding.run_dir, runDir, "candidate run directory");
 assertSameIdentity(binding.candidate, candidatePath, "candidate model");
 assertSameIdentity(binding.audit, auditPath, "patch audit");
 assertSameIdentity(binding.source, sourcePath, "immutable source model");
+assertCapturedMatlabHelpers(binding.matlab_helpers, ...
+    string(fileparts(fileparts(mfilename("fullpath")))));
+end
+
+function records = bindCapturedMatlabHelpers(repoRoot)
+functionNames = ["run_steady53_case"; "steady53_signal_manifest"; ...
+    "reset_steady53_property_warning_state"];
+fileNames = functionNames + ".m";
+hashes = [ ...
+    "686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42"; ...
+    "7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd"; ...
+    "04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0"];
+records = repmat(struct("function_name", "", ...
+    "repository_relative_path", "", "sha256", "", ...
+    "identity", struct()), numel(functionNames), 1);
+for index = 1:numel(functionNames)
+    relative = "tests/steady53/" + fileNames(index);
+    filePath = resolveCapturedPath(repoRoot, relative);
+    assertRegularFile(filePath, "captured MATLAB helper");
+    resolved = string(which(functionNames(index)));
+    if strlength(resolved) == 0 || canonicalPath(resolved) ~= canonicalPath(filePath)
+        error("fig519a3run:CapturedHelperResolutionMismatch", ...
+            "MATLAB helper %s does not resolve to the captured file.", ...
+            functionNames(index));
+    end
+    if sha256File(filePath) ~= hashes(index)
+        error("fig519a3run:CapturedHelperHashMismatch", ...
+            "Captured MATLAB helper hash differs: %s", relative);
+    end
+    records(index) = struct("function_name", functionNames(index), ...
+        "repository_relative_path", relative, "sha256", hashes(index), ...
+        "identity", pathIdentity(filePath, "file"));
+end
+end
+
+function assertCapturedMatlabHelpers(records, repoRoot)
+if numel(records) ~= 3
+    error("fig519a3run:CapturedHelperSetMismatch", ...
+        "Exactly three captured MATLAB helpers must remain bound.");
+end
+for index = 1:numel(records)
+    filePath = resolveCapturedPath(repoRoot, ...
+        records(index).repository_relative_path);
+    assertSameIdentity(records(index).identity, filePath, ...
+        "captured MATLAB helper");
+    resolved = string(which(records(index).function_name));
+    if strlength(resolved) == 0 || canonicalPath(resolved) ~= canonicalPath(filePath) || ...
+            sha256File(filePath) ~= records(index).sha256
+        error("fig519a3run:CapturedHelperBindingChanged", ...
+            "Captured MATLAB helper binding changed: %s", ...
+            records(index).function_name);
+    end
+end
 end
 
 function assertInvocationHashes(binding, auditByteHash, candidateFrozenHash, ...
@@ -1177,7 +1241,6 @@ end
 
 function status = testExclusiveTextCreation(repoRoot)
 sandbox = createHookSandbox(repoRoot);
-cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 filePath = fullfile(sandbox.path, "exclusive.txt");
 writeExclusiveText(filePath, "first");
 if string(fileread(filePath)) ~= "first"
@@ -1199,11 +1262,12 @@ if ~rejected
 end
 status = struct("test_only", true, "simulation_call_count", 0, ...
     "overwrite_rejected", true);
+sandbox = freezeHookSandboxInventory(sandbox);
+cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 end
 
 function status = testExclusiveDirectoryCreation(repoRoot)
 sandbox = createHookSandbox(repoRoot);
-cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 claimPath = fullfile(sandbox.path, "claim");
 createDirectoryExclusive(claimPath);
 rejected = false;
@@ -1221,11 +1285,12 @@ if ~rejected
 end
 status = struct("test_only", true, "simulation_call_count", 0, ...
     "second_claim_rejected", true);
+sandbox = freezeHookSandboxInventory(sandbox);
+cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 end
 
 function status = testThrownCallArtifactTruthfulness(repoRoot)
 sandbox = createHookSandbox(repoRoot);
-cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 candidatePath = fullfile(sandbox.path, "candidate.slx");
 auditPath = fullfile(sandbox.path, "patch_audit.json");
 writeExclusiveText(candidatePath, "test-only candidate locator");
@@ -1266,11 +1331,12 @@ status.raw_result_present = isfile(rawPath);
 status.candidate_curves_present = isfile(candidateCsv);
 status.all_artifact_locators_existed_at_write = locatorExists;
 delete(statusPath);
+sandbox = freezeHookSandboxInventory(sandbox);
+cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 end
 
 function status = testCallGateFiniteReplacement(repoRoot, kind)
 sandbox = createHookSandbox(repoRoot);
-cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 runDir = fullfile(sandbox.path, "candidate_run");
 createDirectoryExclusive(runDir);
 candidatePath = fullfile(runDir, "candidate.slx");
@@ -1284,7 +1350,8 @@ binding = struct( ...
     "run_dir", pathIdentity(runDir, "directory"), ...
     "candidate", pathIdentity(candidatePath, "file"), ...
     "audit", pathIdentity(auditPath, "file"), ...
-    "source", pathIdentity(sourcePath, "file"));
+    "source", pathIdentity(sourcePath, "file"), ...
+    "matlab_helpers", bindCapturedMatlabHelpers(repoRoot));
 displacedPath = fullfile(sandbox.path, "displaced_" + kind);
 switch string(kind)
     case "run_dir"
@@ -1312,13 +1379,15 @@ if ~rejected
     error("fig519a3run:HookReplacementAccepted", ...
         "The call gate accepted a finite replacement of %s.", kind);
 end
+clear cleanupReplacement
 status = struct("test_only", true, "simulation_call_count", 0, ...
     "rejected_before_call", true, "error_id", errorId);
+sandbox = freezeHookSandboxInventory(sandbox);
+cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 end
 
 function status = testRawExclusivePublicationAttack(repoRoot, kind)
 sandbox = createHookSandbox(repoRoot);
-cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 runPath = fullfile(sandbox.path, "run");
 createDirectoryExclusive(runPath);
 runIdentity = pathIdentity(runPath, "directory");
@@ -1365,6 +1434,8 @@ end
 status = struct("test_only", true, "simulation_call_count", 0, ...
     "overwrite_rejected", true, "original_unchanged", unchanged, ...
     "error_id", errorId);
+sandbox = freezeHookSandboxInventory(sandbox);
+cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 end
 
 function status = testExactAuditNegativeValidation(repoRoot)
@@ -1390,8 +1461,16 @@ nonnumericStates = hookStateInventory();
 nonnumericStates(40).candidate_expression = "not-a-number";
 [nonnumericStateRejected, ~] = captureExpectedFailure(@() ...
     validateStateInventoryValues(nonnumericStates));
+duplicateSourceStates = hookStateInventory();
+duplicateSourceStates(2).source_path = duplicateSourceStates(1).source_path;
+[duplicateSourcePathRejected, ~] = captureExpectedFailure(@() ...
+    validateStateInventory(duplicateSourceStates));
+duplicateCandidateStates = hookStateInventory();
+duplicateCandidateStates(2).candidate_path = ...
+    duplicateCandidateStates(1).candidate_path;
+[duplicateCandidatePathRejected, ~] = captureExpectedFailure(@() ...
+    validateStateInventory(duplicateCandidateStates));
 sandbox = createHookSandbox(repoRoot);
-cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 realParent = fullfile(sandbox.path, "real_parent");
 createDirectoryExclusive(realParent);
 filePath = fullfile(realParent, "fixture.txt");
@@ -1413,7 +1492,11 @@ status = struct("test_only", true, "simulation_call_count", 0, ...
     "nan_state_rejected", nanStateRejected, ...
     "inf_state_rejected", infStateRejected, ...
     "nonnumeric_state_rejected", nonnumericStateRejected, ...
+    "duplicate_source_path_rejected", duplicateSourcePathRejected, ...
+    "duplicate_candidate_path_rejected", duplicateCandidatePathRejected, ...
     "symlink_ancestor_rejected", symlinkRejected);
+sandbox = freezeHookSandboxInventory(sandbox);
+cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
 end
 
 function status = testCapturedProtectedRecords(repoRoot)
@@ -1449,6 +1532,74 @@ for index = 1:height(manifest)
         "after_sha256", manifest.resolved_sha256(index), ...
         "unchanged", true);
 end
+end
+
+function status = testCapturedHelperFiniteReplacement(repoRoot, kind)
+records = bindCapturedMatlabHelpers(repoRoot);
+match = find(string({records.function_name}) == string(kind));
+if numel(match) ~= 1
+    error("fig519a3run:HookKindInvalid", ...
+        "Unknown captured-helper replacement kind: %s", kind);
+end
+filePath = resolveCapturedPath(repoRoot, ...
+    records(match).repository_relative_path);
+displacedPath = fullfile(repoRoot, "tmp", ...
+    ".fig519a3_helper_displaced_" + string(java.util.UUID.randomUUID()));
+movePathNoReplace(filePath, displacedPath);
+restore = onCleanup(@() restoreDisplacedFile(filePath, displacedPath));
+writeExclusiveText(filePath, "% test-only finite replacement" + newline);
+[rejected, errorId] = captureExpectedFailure(@() ...
+    assertCapturedMatlabHelpers(records, repoRoot));
+clear restore
+if ~rejected || sha256File(filePath) ~= records(match).sha256
+    error("fig519a3run:HookHelperReplacementAccepted", ...
+        "Captured-helper replacement was accepted or not restored: %s", kind);
+end
+status = struct("test_only", true, "simulation_call_count", 0, ...
+    "rejected_before_call", true, "error_id", errorId);
+end
+
+function status = testHookCleanupInventoryDrift(repoRoot)
+stable = createHookSandbox(repoRoot);
+writeExclusiveText(fullfile(stable.path, "known.txt"), "known");
+stable = freezeHookSandboxInventory(stable);
+stableCleaned = cleanupHookSandbox(stable);
+
+extra = createHookSandbox(repoRoot);
+knownExtraPath = fullfile(extra.path, "known.txt");
+writeExclusiveText(knownExtraPath, "known");
+extra = freezeHookSandboxInventory(extra);
+extraPath = fullfile(extra.path, "extra.txt");
+writeExclusiveText(extraPath, "extra");
+extraCleaned = cleanupHookSandbox(extra);
+extraRetained = ~extraCleaned && isfile(knownExtraPath) && isfile(extraPath);
+delete(extraPath);
+if ~cleanupHookSandbox(extra)
+    error("fig519a3run:HookCleanupRecoveryFailed", ...
+        "Stable cleanup failed after removing the injected extra entry.");
+end
+
+replaced = createHookSandbox(repoRoot);
+knownReplacedPath = fullfile(replaced.path, "known.txt");
+writeExclusiveText(knownReplacedPath, "known");
+replaced = freezeHookSandboxInventory(replaced);
+displacedPath = fullfile(repoRoot, "tmp", ...
+    ".fig519a3_cleanup_displaced_" + string(java.util.UUID.randomUUID()));
+movePathNoReplace(knownReplacedPath, displacedPath);
+restore = onCleanup(@() restoreDisplacedFile(knownReplacedPath, displacedPath));
+writeExclusiveText(knownReplacedPath, "replacement");
+replacedCleaned = cleanupHookSandbox(replaced);
+replacedRetained = ~replacedCleaned && isfile(knownReplacedPath) && ...
+    isfile(displacedPath);
+clear restore
+if ~cleanupHookSandbox(replaced)
+    error("fig519a3run:HookCleanupRecoveryFailed", ...
+        "Stable cleanup failed after restoring the replaced entry.");
+end
+status = struct("test_only", true, "simulation_call_count", 0, ...
+    "stable_inventory_cleaned", stableCleaned, ...
+    "extra_inventory_retained", extraRetained, ...
+    "replaced_identity_retained", replacedRetained);
 end
 
 function states = hookStateInventory()
@@ -1535,40 +1686,106 @@ sandboxPath = fullfile(tmpRoot, ...
     ".fig519a3_runner_hook_" + string(java.util.UUID.randomUUID()));
 createDirectoryExclusive(sandboxPath);
 sandbox = struct("path", sandboxPath, ...
-    "identity", pathIdentity(sandboxPath, "directory"));
+    "identity", pathIdentity(sandboxPath, "directory"), ...
+    "files", struct([]), "directories", struct([]), ...
+    "inventory_frozen", false);
 end
 
-function cleanupHookSandbox(sandbox)
+function sandbox = freezeHookSandboxInventory(sandbox)
+assertSameIdentity(sandbox.identity, sandbox.path, "hook sandbox freeze root");
+[sandbox.files, sandbox.directories] = hookInventorySnapshot(sandbox.path);
+sandbox.inventory_frozen = true;
+end
+
+function [files, directories] = hookInventorySnapshot(rootPath)
+files = repmat(struct("path", "", "identity", struct()), 0, 1);
+directories = repmat(struct("path", "", "identity", struct()), 0, 1);
+queue = string(rootPath);
+nextIndex = 1;
+while nextIndex <= numel(queue)
+    parent = queue(nextIndex);
+    nextIndex = nextIndex + 1;
+    listing = dir(parent);
+    names = string({listing.name});
+    children = names(~ismember(names, [".", ".."]));
+    for index = 1:numel(children)
+        child = fullfile(parent, children(index));
+        if isSymbolicLink(child)
+            error("fig519a3run:HookInventorySymlink", ...
+                "Hook cleanup inventory cannot contain a symlink: %s", child);
+        elseif isfile(child)
+            files(end + 1, 1) = struct("path", child, ... %#ok<AGROW>
+                "identity", pathIdentity(child, "file"));
+        elseif isfolder(child)
+            directories(end + 1, 1) = struct("path", child, ... %#ok<AGROW>
+                "identity", pathIdentity(child, "directory"));
+            queue(end + 1, 1) = string(child); %#ok<AGROW>
+        else
+            error("fig519a3run:HookInventoryUnsupportedEntry", ...
+                "Hook cleanup inventory found an unsupported entry: %s", child);
+        end
+    end
+end
+end
+
+function assertHookInventoryUnchanged(sandbox)
+if ~isfield(sandbox, "inventory_frozen") || ~sandbox.inventory_frozen
+    error("fig519a3run:HookInventoryNotFrozen", ...
+        "Hook cleanup requires a fixed creation-time inventory.");
+end
+assertSameIdentity(sandbox.identity, sandbox.path, "hook sandbox cleanup root");
+[actualFiles, actualDirectories] = hookInventorySnapshot(sandbox.path);
+validateExactNameSet(string({actualFiles.path}).', ...
+    string({sandbox.files.path}).', "hook cleanup file path");
+validateExactNameSet(string({actualDirectories.path}).', ...
+    string({sandbox.directories.path}).', "hook cleanup directory path");
+for index = 1:numel(sandbox.files)
+    assertSameIdentity(sandbox.files(index).identity, ...
+        sandbox.files(index).path, "known hook cleanup file");
+end
+for index = 1:numel(sandbox.directories)
+    assertSameIdentity(sandbox.directories(index).identity, ...
+        sandbox.directories(index).path, "known hook cleanup directory");
+end
+end
+
+function cleaned = cleanupHookSandbox(sandbox)
+cleaned = false;
 if ~isfolder(sandbox.path) || isSymbolicLink(sandbox.path)
     return
 end
 try
-    assertSameIdentity(sandbox.identity, sandbox.path, "hook sandbox");
-    cleanupHookOwnedDirectory(sandbox.path, 3);
-catch
-    % Retain untrusted or replaced test paths; never delete recursively.
-end
-end
-
-function cleanupHookOwnedDirectory(directoryPath, remainingDepth)
-if remainingDepth < 0 || ~isfolder(directoryPath) || ...
-        isSymbolicLink(directoryPath)
-    return
-end
-listing = dir(directoryPath);
-names = string({listing.name});
-children = names(~ismember(names, [".", ".."]));
-for index = 1:numel(children)
-    child = fullfile(directoryPath, children(index));
-    if isSymbolicLink(child) || isfile(child)
-        delete(child);
-    elseif isfolder(child)
-        cleanupHookOwnedDirectory(child, remainingDepth - 1);
+    assertHookInventoryUnchanged(sandbox);
+    for index = 1:numel(sandbox.files)
+        assertSameIdentity(sandbox.files(index).identity, ...
+            sandbox.files(index).path, "known hook cleanup file deletion");
+        delete(sandbox.files(index).path);
     end
-end
-listing = dir(directoryPath);
-names = string({listing.name});
-if ~any(~ismember(names, [".", ".."]))
-    rmdir(directoryPath);
+    directoryPaths = string({sandbox.directories.path}).';
+    [~, order] = sort(strlength(directoryPaths), "descend");
+    for index = 1:numel(order)
+        record = sandbox.directories(order(index));
+        assertSameIdentity(record.identity, record.path, ...
+            "known hook cleanup directory deletion");
+        listing = dir(record.path);
+        names = string({listing.name});
+        if any(~ismember(names, [".", ".."]))
+            error("fig519a3run:HookDirectoryNotEmpty", ...
+                "Known hook directory is not empty at deletion: %s", record.path);
+        end
+        rmdir(record.path);
+    end
+    assertSameIdentity(sandbox.identity, sandbox.path, ...
+        "hook sandbox root deletion");
+    listing = dir(sandbox.path);
+    names = string({listing.name});
+    if any(~ismember(names, [".", ".."]))
+        error("fig519a3run:HookRootNotEmpty", ...
+            "Known hook sandbox root is not empty at deletion.");
+    end
+    rmdir(sandbox.path);
+    cleaned = true;
+catch
+    % Retain the entire unknown/replaced/drifted tree as evidence.
 end
 end

@@ -180,6 +180,9 @@ def _runner_invocation_findings(
         findings.append("call outside top level")
     forbidden = {
         "dynamic execution": r"(?<![a-z0-9_])(?:eval|feval|str2func|builtin)\s*\(",
+        "workspace/script execution": (
+            r"(?<![a-z0-9_])(?:run|evalin|evalc)\s*\("
+        ),
         "simulation primitive": (
             r"(?<![a-z0-9_])(?:sim|parsim|batchsim)\s*\("
         ),
@@ -295,6 +298,20 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
                 "function x=f()\n"
                 "x=run_steady53_case(candidatePath,500,true); x=f();\nend"
             ),
+            "run script": (
+                "function x=f()\n"
+                "x=run_steady53_case(candidatePath,500,true); run('x.m');\nend"
+            ),
+            "split evalin run": (
+                "function x=f()\n"
+                "x=run_steady53_case(candidatePath,500,true); "
+                'evalin("base","r"+"un(\'x.m\')");\nend'
+            ),
+            "split evalc": (
+                "function x=f()\n"
+                "x=run_steady53_case(candidatePath,500,true); "
+                'evalc("r"+"un(\'x.m\')");\nend'
+            ),
         }
         for label, fixture in fixtures.items():
             with self.subTest(label=label):
@@ -369,6 +386,13 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             "validateExactFormalSet",
             "validateStateInventoryValues",
             "assertNoSymlinkAncestors(filePath, repoRoot)",
+            "bindCapturedMatlabHelpers",
+            "assertCapturedMatlabHelpers",
+            '"686749ffe329f71ed884e0f98d2681d6c35aa5df258ff6675917a55c20b9da42"',
+            '"7807290de1b02cf4c2e513976a8c95e5780201ce5fdae0bdd97679b0f2e835bd"',
+            '"04f1be8b20c3b48f17e468c1dd15a282e15ea08f14f255f5a6f3d269f2d44ff0"',
+            "freezeHookSandboxInventory",
+            "assertHookInventoryUnchanged",
         ):
             with self.subTest(literal=literal):
                 self.assertIn(literal, source)
@@ -379,6 +403,7 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             'validateUnchangedRecords(audit.protected_files, repoRoot, "protected file")',
             source,
         )
+        self.assertNotIn("cleanupHookOwnedDirectory", source)
 
     def test_a3_candidate_generator_has_the_frozen_public_contract(self):
         source = self._generator_source()
