@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import re
 import subprocess
 import sys
 import unittest
@@ -10,7 +11,96 @@ from pathlib import Path
 from tests import fig519_ihx_r2_hexe_contract as contract
 
 
+ROOT = Path(__file__).resolve().parents[1]
+GENERATOR = ROOT / "tests/create_fig519_ihx_r2_hexe_shift_candidate.m"
+
+
 class Figure519IhxR2HexeContractTests(unittest.TestCase):
+    def _generator_source(self):
+        self.assertTrue(GENERATOR.is_file(), "the A3 MATLAB generator is required")
+        return GENERATOR.read_text(encoding="utf-8")
+
+    def test_a3_candidate_generator_has_the_frozen_public_contract(self):
+        source = self._generator_source()
+        self.assertRegex(
+            source,
+            r"(?m)^function audit = "
+            r"create_fig519_ihx_r2_hexe_shift_candidate\(runDir, repoRoot\)$",
+        )
+        for literal in (
+            "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator",
+            "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator",
+            "figure_5_18a_t0_visual_proxy_not_author_initial_state",
+            "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391",
+        ):
+            with self.subTest(literal=literal):
+                self.assertIn(literal, source)
+
+    def test_a3_candidate_generator_uses_only_the_frozen_api_patch(self):
+        source = self._generator_source()
+        initial_condition_calls = re.findall(
+            r"set_param\([^,\n]+,\s*(?:\.\.\.\s*)?[\r\n\s]*"
+            r'"InitialCondition"\s*,',
+            source,
+        )
+        self.assertEqual(len(initial_condition_calls), 2)
+        update_calls = re.findall(
+            r'set_param\([^,\n]+,\s*"SimulationCommand"\s*,\s*"update"\s*\)',
+            source,
+        )
+        self.assertEqual(len(update_calls), 1)
+        lowered = source.lower()
+        for forbidden in (
+            "sim(",
+            '"simulationcommand", "start"',
+            "run_steady53_case",
+            "xmlread",
+            "xmlwrite",
+            "unzip(",
+            "zip(",
+            "blockdiagram.modify",
+            "simulink.blockdiagram",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, lowered)
+
+    def test_a3_candidate_generator_freezes_counts_flags_and_candidate_only_save(self):
+        source = self._generator_source()
+        for literal in (
+            '"attempt_id", "20260901_A3"',
+            '"delta_T_K", deltaTK',
+            '"changed_state_count", 2',
+            '"unchanged_state_count", 38',
+            '"solver_parameter_count", 37',
+            '"update_diagram_count", 1',
+            '"paper_reproduced", false',
+            '"author_initial_state_identified", false',
+            '"formal_promotion", false',
+            "copyFileExclusive(sourcePath, candidatePath)",
+            "save_system(model, candidatePath)",
+            'activeFileGeneration = Simulink.fileGenControl("getConfig")',
+            "openFileExclusive(auditPath)",
+            "writeOpenChannel(auditChannel",
+        ):
+            with self.subTest(literal=literal):
+                self.assertIn(literal, source)
+        self.assertNotRegex(source, r'save_system\([^\n]*(?:final_steady|final_dynamic)')
+        self.assertNotRegex(source, r'set_param\([^\n]*(?:final_steady|final_dynamic)')
+        self.assertNotIn('copyfile(sourcePath, candidatePath, "f")', source)
+        self.assertNotIn('fopen(filePath, "w"', source)
+        save_at = source.index("save_system(model, candidatePath)")
+        reopen_at = source.index("load_system(candidatePath)", save_at)
+        update_at = source.index(
+            'set_param(model, "SimulationCommand", "update")', reopen_at
+        )
+        audit_at = source.index("candidateStates = stateSnapshot(model)", update_at)
+        self.assertLess(save_at, reopen_at)
+        self.assertLess(reopen_at, update_at)
+        self.assertLess(update_at, audit_at)
+        tree = ast.parse(Path(contract.__file__).read_text(encoding="utf-8"))
+        self.assertFalse(any(isinstance(node, ast.Assert) for node in ast.walk(tree)))
+        self.assertNotRegex(source, r"(?m)^\s*assert\s*\(")
+
     def test_exact_literals(self):
         self.assertEqual(contract.ATTEMPT_ID, "20260901_A3")
         self.assertEqual(
