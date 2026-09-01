@@ -167,6 +167,45 @@ def _matlab_calls(source: str, identifier: str) -> list[str]:
     return calls
 
 
+def _runner_invocation_findings(
+    source: str, *, expected_direct_calls: int = 1
+) -> tuple[str, ...]:
+    lowered = source.lower()
+    findings: list[str] = []
+    direct = _matlab_calls(source, "run_steady53_case")
+    if len(direct) != expected_direct_calls:
+        findings.append("direct call count")
+    first_local = lowered.find("\nfunction ", 1)
+    if direct and first_local >= 0 and source.find(direct[0]) >= first_local:
+        findings.append("call outside top level")
+    forbidden = {
+        "dynamic execution": r"(?<![a-z0-9_])(?:eval|feval|str2func|builtin)\s*\(",
+        "simulation primitive": (
+            r"(?<![a-z0-9_])(?:sim|parsim|batchsim)\s*\("
+        ),
+        "process primitive": (
+            r"(?<![a-z0-9_])(?:system|unix|dos|perl|pyrun|pyrunfile)\s*\("
+        ),
+        "java process": r"\bjava\.lang\.(?:runtime|processbuilder)\b",
+        "python process": r"\bpy\.(?:subprocess|os\.(?:system|popen|spawn))\b",
+        "runner function handle": (
+            r"@\s*(?:run_steady53_case|run_fig519_ihx_r2_hexe_shift|sim)\b"
+        ),
+    }
+    for label, pattern in forbidden.items():
+        if re.search(pattern, lowered):
+            findings.append(label)
+    main = re.search(
+        r"(?im)^\s*function\s+(?:[^=\n]+?=\s*)?([a-z][a-z0-9_]*)\b",
+        source,
+    )
+    if main is not None:
+        body = source[source.find("\n", main.end()) + 1 :]
+        if _matlab_calls(body, main.group(1)):
+            findings.append("self recursion")
+    return tuple(dict.fromkeys(findings))
+
+
 MALICIOUS_DYNAMIC_EXECUTION = {
     "spaced sim": 'sim (model)',
     "feval sim": 'feval("sim", model)',
@@ -236,6 +275,30 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         self.assertNotRegex(top_level, r"(?i)\b(?:retry|rerun)\s*\(")
         self.assertIn('"run_steady53_case_call_count", 1', source)
         self.assertIn('"retry_count", 0', source)
+        self.assertEqual(_runner_invocation_findings(source), ())
+
+    def test_runner_invocation_gate_rejects_dynamic_and_duplicate_calls(self):
+        fixtures = {
+            "helper twice": (
+                "function x=f()\n"
+                "x=run_steady53_case(candidatePath,500,true);\n"
+                "x=run_steady53_case(candidatePath,500,true);\nend"
+            ),
+            "feval": (
+                "function x=f()\n"
+                'x=feval("run_steady53_case",candidatePath,500,true);\nend'
+            ),
+            "function handle": (
+                "function x=f()\nrunner=@run_steady53_case; x=runner();\nend"
+            ),
+            "self recursion": (
+                "function x=f()\n"
+                "x=run_steady53_case(candidatePath,500,true); x=f();\nend"
+            ),
+        }
+        for label, fixture in fixtures.items():
+            with self.subTest(label=label):
+                self.assertTrue(_runner_invocation_findings(fixture))
 
     def test_a3_runner_freezes_schema_paths_and_truthful_artifact_contract(self):
         source = self._runner_source()
@@ -275,6 +338,9 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         self.assertIn("hooks.testThrownCallArtifactTruthfulness();", source)
         self.assertNotIn("BEGIN_A3_500", source)
         self.assertEqual(_matlab_calls(source, "run_steady53_case"), [])
+        self.assertEqual(
+            _runner_invocation_findings(source, expected_direct_calls=0), ()
+        )
 
     def test_a3_runner_never_saves_synthetic_raw_after_a_thrown_call(self):
         source = self._runner_source()
@@ -283,6 +349,27 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         self.assertIn("if ~callReturned", source)
         self.assertIn('"run_steady53_case_returned", callReturned', source)
         self.assertNotIn("emptyFailureResult", source)
+
+    def test_a3_runner_binds_inputs_raw_publication_and_exact_audit_sets(self):
+        source = self._runner_source()
+        for literal in (
+            "bindInvocationInputs",
+            "assertInvocationBindings",
+            "assertInvocationHashes",
+            "auditByteHash",
+            "candidateFrozenHash",
+            "createLink",
+            "assertSameIdentity(stagingIdentity",
+            "assertPosixDirectoryMode0700",
+            '"33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64"',
+            "validateExactRuntimeSet",
+            "validateExactProtectedSet",
+            "validateExactFormalSet",
+            "validateStateInventoryValues",
+            "assertNoSymlinkAncestors(filePath, repoRoot)",
+        ):
+            with self.subTest(literal=literal):
+                self.assertIn(literal, source)
 
     def test_a3_candidate_generator_has_the_frozen_public_contract(self):
         source = self._generator_source()

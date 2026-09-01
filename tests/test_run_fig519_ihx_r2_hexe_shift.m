@@ -18,6 +18,21 @@ hooks = run_fig519_ihx_r2_hexe_shift("__a3_test_hooks__", pwd);
 textStatus = hooks.testExclusiveTextCreation();
 directoryStatus = hooks.testExclusiveDirectoryCreation();
 failureStatus = hooks.testThrownCallArtifactTruthfulness();
+replacementKinds = ["run_dir", "candidate", "audit"];
+replacementStatus = cell(size(replacementKinds));
+for replacementIndex = 1:numel(replacementKinds)
+    replacementStatus{replacementIndex} = ...
+        hooks.testCallGateFiniteReplacement(replacementKinds(replacementIndex));
+end
+rawAttackKinds = ["existing_file", "symlink", "parent_replacement"];
+rawAttackErrorIds = ["fig519a3run:OutputExists", ...
+    "fig519a3run:OutputExists", "fig519a3run:PathIdentityChanged"];
+rawAttackStatus = cell(size(rawAttackKinds));
+for rawAttackIndex = 1:numel(rawAttackKinds)
+    rawAttackStatus{rawAttackIndex} = ...
+        hooks.testRawExclusivePublicationAttack(rawAttackKinds(rawAttackIndex));
+end
+auditNegativeStatus = hooks.testExactAuditNegativeValidation();
 
 verifyEqual(testCase, textStatus.simulation_call_count, 0);
 verifyTrue(testCase, textStatus.overwrite_rejected);
@@ -34,6 +49,25 @@ verifyFalse(testCase, any(ismember( ...
     string({failureStatus.artifacts.identity}), ...
     ["raw_result", "candidate_curves"])));
 verifyTrue(testCase, failureStatus.all_artifact_locators_existed_at_write);
+for replacementIndex = 1:numel(replacementStatus)
+    verifyTrue(testCase, replacementStatus{replacementIndex}.rejected_before_call);
+    verifyEqual(testCase, ...
+        replacementStatus{replacementIndex}.simulation_call_count, 0);
+    verifyNotEmpty(testCase, replacementStatus{replacementIndex}.error_id);
+end
+for rawAttackIndex = 1:numel(rawAttackStatus)
+    verifyTrue(testCase, rawAttackStatus{rawAttackIndex}.overwrite_rejected);
+    verifyTrue(testCase, rawAttackStatus{rawAttackIndex}.original_unchanged);
+    verifyEqual(testCase, rawAttackStatus{rawAttackIndex}.simulation_call_count, 0);
+    verifyEqual(testCase, string(rawAttackStatus{rawAttackIndex}.error_id), ...
+        rawAttackErrorIds(rawAttackIndex));
+end
+verifyTrue(testCase, auditNegativeStatus.duplicate_rejected);
+verifyTrue(testCase, auditNegativeStatus.missing_rejected);
+verifyTrue(testCase, auditNegativeStatus.extra_rejected);
+verifyTrue(testCase, auditNegativeStatus.changed_value_rejected);
+verifyTrue(testCase, auditNegativeStatus.symlink_ancestor_rejected);
+verifyEqual(testCase, auditNegativeStatus.simulation_call_count, 0);
 verifyEqual(testCase, string(find_system("type", "block_diagram")), loadedBefore);
 verifyFalse(testCase, isfolder(expectedRunDir));
 end

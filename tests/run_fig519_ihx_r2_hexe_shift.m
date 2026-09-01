@@ -16,7 +16,13 @@ if string(runDir) == "__a3_test_hooks__"
         "testExclusiveDirectoryCreation", ...
             @() testExclusiveDirectoryCreation(hookRoot), ...
         "testThrownCallArtifactTruthfulness", ...
-            @() testThrownCallArtifactTruthfulness(hookRoot));
+            @() testThrownCallArtifactTruthfulness(hookRoot), ...
+        "testCallGateFiniteReplacement", ...
+            @(kind) testCallGateFiniteReplacement(hookRoot, kind), ...
+        "testRawExclusivePublicationAttack", ...
+            @(kind) testRawExclusivePublicationAttack(hookRoot, kind), ...
+        "testExactAuditNegativeValidation", ...
+            @() testExactAuditNegativeValidation(hookRoot));
     return
 end
 
@@ -32,11 +38,16 @@ candidatePath = fullfile(runDir, "candidate.slx");
 auditPath = fullfile(runDir, "patch_audit.json");
 sourcePath = fullfile(repoRoot, "data", "provenance", "baselines", ...
     "f8bcd83", "final_steady_24a.slx");
-assertRegularFile(candidatePath, "candidate model");
-assertRegularFile(auditPath, "candidate patch audit");
-assertRegularFile(sourcePath, "captured immutable source model");
+[invocationBinding, auditByteHash] = bindInvocationInputs( ...
+    runDir, candidatePath, auditPath, sourcePath, repoRoot);
+assertInvocationBindings(invocationBinding, runDir, candidatePath, ...
+    auditPath, sourcePath);
 audit = jsondecode(fileread(auditPath));
-validatePatchAuditIdentity(audit, candidatePath, sourcePath, repoRoot);
+candidateFrozenHash = string(audit.candidate_sha256);
+assertInvocationHashes(invocationBinding, auditByteHash, ...
+    candidateFrozenHash, auditPath, candidatePath, sourcePath);
+validatePatchAuditIdentity(audit, candidatePath, sourcePath, repoRoot, ...
+    invocationBinding);
 referenceSeries(repoRoot);
 
 runPath = fullfile(runDir, "run");
@@ -55,8 +66,16 @@ startRecord = struct( ...
     "rerun_forbidden", true);
 assertRunArtifactsBound(runIdentity, runPath, candidateIdentity, ...
     candidatePath, auditIdentity, auditPath);
+assertInvocationBindings(invocationBinding, runDir, candidatePath, ...
+    auditPath, sourcePath);
+assertInvocationHashes(invocationBinding, auditByteHash, ...
+    candidateFrozenHash, auditPath, candidatePath, sourcePath);
 writeExclusiveText(fullfile(runPath, "experiment_started.json"), ...
     string(jsonencode(startRecord, PrettyPrint=true)) + newline);
+assertInvocationBindings(invocationBinding, runDir, candidatePath, ...
+    auditPath, sourcePath);
+assertInvocationHashes(invocationBinding, auditByteHash, ...
+    candidateFrozenHash, auditPath, candidatePath, sourcePath);
 
 identityBefore = identitySnapshot(audit, sourcePath, candidatePath, repoRoot);
 runResult = struct();
@@ -67,6 +86,10 @@ candidateCurvesWritten = false;
 referenceCurvesWritten = false;
 
 disp("BEGIN_A3_500")
+assertInvocationBindings(invocationBinding, runDir, candidatePath, ...
+    auditPath, sourcePath);
+assertInvocationHashes(invocationBinding, auditByteHash, ...
+    candidateFrozenHash, auditPath, candidatePath, sourcePath);
 try
     runResult = run_steady53_case(candidatePath, 500, true);
     callReturned = true;
@@ -74,13 +97,21 @@ catch exception
     runnerException = exception;
     runResult = thrownCallResult(exception);
 end
+try
+    assertInvocationBindings(invocationBinding, runDir, candidatePath, ...
+        auditPath, sourcePath);
+    assertInvocationHashes(invocationBinding, auditByteHash, ...
+        candidateFrozenHash, auditPath, candidatePath, sourcePath);
+catch exception
+    runnerException = appendException(runnerException, exception);
+end
 
 rawPath = fullfile(runPath, "raw_result.mat");
 candidateCsv = fullfile(runPath, "candidate_curves.csv");
 referenceCsv = fullfile(runPath, "reference_curves.csv");
 [rawWritten, candidateCurvesWritten, runnerException] = ...
     persistReturnedCallArtifacts(runPath, runResult, callReturned, ...
-        rawPath, candidateCsv, runnerException, ...
+        rawPath, candidateCsv, runnerException, runIdentity, ...
         @() assertRunArtifactsBound(runIdentity, runPath, candidateIdentity, ...
             candidatePath, auditIdentity, auditPath));
 try
@@ -125,7 +156,8 @@ writeExclusiveText(fullfile(runPath, "run_status.json"), ...
     string(jsonencode(status, PrettyPrint=true)) + newline);
 end
 
-function validatePatchAuditIdentity(audit, candidatePath, sourcePath, repoRoot)
+function validatePatchAuditIdentity(audit, candidatePath, sourcePath, repoRoot, ...
+        invocationBinding)
 expectedSource = ...
     "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391";
 requiredText = struct( ...
@@ -150,6 +182,24 @@ if string(audit.source_sha256) ~= expectedSource || ...
     error("fig519a3run:PatchHashMismatch", ...
         "Source or candidate hash does not match the A3 patch audit.");
 end
+expectedSourceRelative = ...
+    "data/provenance/baselines/f8bcd83/final_steady_24a.slx";
+expectedCandidateRelative = ...
+    "tmp/fig519_ihx_r2_hexe_20260901_A3/candidate.slx";
+if string(audit.source_repository_relative_path) ~= expectedSourceRelative || ...
+        string(audit.source_absolute_path) ~= canonicalPath(sourcePath) || ...
+        string(audit.candidate_repository_relative_path) ~= ...
+            expectedCandidateRelative || ...
+        string(audit.candidate_absolute_path) ~= canonicalPath(candidatePath) || ...
+        string(audit.publication_identity.run_directory_file_key) ~= ...
+            invocationBinding.run_dir.file_key || ...
+        string(audit.publication_identity.candidate_file_key) ~= ...
+            invocationBinding.candidate.file_key || ...
+        string(audit.publication_identity.audit_file_key) ~= ...
+            invocationBinding.audit.file_key
+    error("fig519a3run:PublicationIdentityMismatch", ...
+        "Candidate/source paths or publication file keys do not match A3.");
+end
 if audit.paper_reproduced || audit.author_initial_state_identified || ...
         audit.formal_promotion || audit.changed_state_count ~= 2 || ...
         audit.unchanged_state_count ~= 38 || audit.state_count ~= 40 || ...
@@ -167,6 +217,7 @@ if abs(audit.anchor_K - 1200.0000000000000) > 1e-12 || ...
 end
 validateChangedStates(audit.changed_states);
 validateStateInventory(audit.state_initial_conditions);
+validateStateInventoryValues(audit.state_initial_conditions);
 if ~audit.solver_contract.unchanged || ...
         audit.solver_contract.parameter_count ~= 37 || ...
         ~audit.semantic_snapshot.unchanged || ~audit.model_workspace.unchanged || ...
@@ -175,6 +226,14 @@ if ~audit.solver_contract.unchanged || ...
     error("fig519a3run:PatchInventoryIncomplete", ...
         "Patch solver, semantic, workspace, runtime, or protected audit is incomplete.");
 end
+if string(audit.protected_manifest_sha256) ~= ...
+        "33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64"
+    error("fig519a3run:ProtectedManifestIdentityMismatch", ...
+        "The protected manifest SHA-256 does not match the fixed manifest.");
+end
+validateExactRuntimeSet(audit.runtime_dependencies, repoRoot);
+validateExactProtectedSet(audit.protected_files, repoRoot);
+validateExactFormalSet(audit.formal_files, repoRoot);
 validateUnchangedRecords(audit.runtime_dependencies, repoRoot, ...
     "runtime dependency");
 validateUnchangedRecords(audit.protected_files, repoRoot, "protected file");
@@ -223,6 +282,122 @@ expected = sort([ ...
 if ~isequal(paths, expected)
     error("fig519a3run:StateInventoryPathMismatch", ...
         "The two changed inventory paths do not match A3.");
+end
+end
+
+function validateStateInventoryValues(states)
+for index = 1:numel(states)
+    if states(index).unchanged && ...
+            string(states(index).source_expression) ~= ...
+            string(states(index).candidate_expression)
+        error("fig519a3run:UnchangedStateValueMismatch", ...
+            "An unchanged state has different source/candidate expressions.");
+    end
+end
+expectedSource = [ ...
+    "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator"; ...
+    "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator"];
+expectedCandidate = [ ...
+    "candidate/IHX/IHX_region_2/T_c1_average_Integrator"; ...
+    "candidate/IHX/IHX_region_2/T_c2_out_Integrator"];
+expectedOld = [1245.8184669844006; 1393.6037139151003];
+expectedNew = [1052.2147530693003; 1200.0000000000000];
+for index = 1:2
+    match = find(string({states.source_path}) == expectedSource(index));
+    if numel(match) ~= 1 || states(match).unchanged || ...
+            string(states(match).candidate_path) ~= expectedCandidate(index) || ...
+            abs(str2double(string(states(match).source_expression)) - ...
+                expectedOld(index)) > 1e-12 || ...
+            abs(str2double(string(states(match).candidate_expression)) - ...
+                expectedNew(index)) > 1e-12 || ...
+            abs((str2double(string(states(match).candidate_expression)) - ...
+                str2double(string(states(match).source_expression))) - ...
+                (-193.6037139151003)) > 1e-12
+        error("fig519a3run:StateInventoryValueMismatch", ...
+            "A target state old/new value or candidate path differs from A3.");
+    end
+end
+end
+
+function validateExactRuntimeSet(records, repoRoot)
+names = ["HeXe_property_simulink.m"; "Lithium_property_simulink.m"; ...
+    "hexe_compressor_lookup.mat"; "radiator_table.mat"; ...
+    "turbine_table1.mat"; "turbine_table2.mat"; "paper54_constants.m"; ...
+    "sys_param_rad_fixed.m"; "start.m"];
+relatives = "data/provenance/baselines/f8bcd83/runtime/" + names;
+validateExactNameSet(string({records.name}).', names, "runtime dependency");
+validateExactNameSet(string({records.repository_relative_path}).', ...
+    relatives, "runtime repository-relative path");
+for index = 1:numel(records)
+    expected = resolveCapturedPath(repoRoot, ...
+        string(records(index).repository_relative_path));
+    if string(records(index).absolute_path) ~= canonicalPath(expected)
+        error("fig519a3run:RuntimeAbsolutePathMismatch", ...
+            "A runtime absolute path is not derived from the fixed allowlist.");
+    end
+end
+end
+
+function validateExactProtectedSet(records, repoRoot)
+manifestPath = fullfile(repoRoot, "data", "provenance", "baselines", ...
+    "f8bcd83", "protected_manifest_recovery.csv");
+assertNoSymlinkAncestors(manifestPath, repoRoot);
+assertRegularFile(manifestPath, "fixed protected manifest");
+if sha256File(manifestPath) ~= ...
+        "33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64"
+    error("fig519a3run:ProtectedManifestHashMismatch", ...
+        "The fixed protected manifest bytes changed.");
+end
+manifest = readtable(manifestPath, TextType="string", ...
+    VariableNamingRule="preserve");
+if height(manifest) ~= 34
+    error("fig519a3run:ProtectedManifestShape", ...
+        "The fixed protected manifest must have 34 rows.");
+end
+expectedNames = manifest.original_path;
+validateExactNameSet(string({records.name}).', expectedNames, "protected name");
+for index = 1:numel(records)
+    row = find(manifest.original_path == string(records(index).name));
+    if numel(row) ~= 1
+        error("fig519a3run:ProtectedRecordMismatch", ...
+            "A protected record name is absent from the fixed manifest.");
+    end
+    expectedPath = string(manifest.resolved_path(row));
+    if string(records(index).repository_relative_path) ~= ...
+                relativeIfWithinRepo(expectedPath, repoRoot) || ...
+            string(records(index).absolute_path) ~= canonicalPath(expectedPath) || ...
+            string(records(index).before_sha256) ~= manifest.resolved_sha256(row) || ...
+            string(records(index).after_sha256) ~= manifest.resolved_sha256(row)
+        error("fig519a3run:ProtectedRecordMismatch", ...
+            "A protected record is not derived from the fixed manifest.");
+    end
+end
+end
+
+function validateExactFormalSet(records, repoRoot)
+expected = ["final_steady_24a.slx"; "final_dynamic_24a.slx"; ...
+    "HeXe_property_simulink.m"; "Lithium_property_simulink.m"; ...
+    "hexe_compressor_lookup.mat"; "radiator_table.mat"; ...
+    "turbine_table1.mat"; "turbine_table2.mat"];
+validateExactNameSet(string({records.repository_relative_path}).', ...
+    expected, "formal root path");
+for index = 1:numel(records)
+    filePath = fullfile(repoRoot, string(records(index).repository_relative_path));
+    if string(records(index).absolute_path) ~= lexicalAbsolute(filePath)
+        error("fig519a3run:FormalAbsolutePathMismatch", ...
+            "A formal absolute path is not derived from the fixed allowlist.");
+    end
+end
+end
+
+function validateExactNameSet(actual, expected, label)
+actual = string(actual(:));
+expected = string(expected(:));
+if numel(unique(actual)) ~= numel(actual) || ...
+        numel(unique(expected)) ~= numel(expected) || ...
+        ~isequal(sort(actual), sort(expected))
+    error("fig519a3run:ExactSetMismatch", ...
+        "%s set is duplicated, missing, or contains extras.", label);
 end
 end
 
@@ -304,6 +479,7 @@ if ~isContainedLexically(filePath, repoRoot)
     error("fig519a3run:CapturedPathOutsideRepo", ...
         "Captured dependency escaped repoRoot.");
 end
+assertNoSymlinkAncestors(filePath, repoRoot);
 end
 
 function writePowerAndStateCurves(filePath, result)
@@ -412,17 +588,56 @@ if numel(time) < 2 || numel(reactor) ~= numel(time) || ...
 end
 end
 
-function saveRawExclusive(rawPath, runResult, runPath)
+function saveRawExclusive(rawPath, runResult, runPath, expectedRunIdentity)
+assertSameIdentity(expectedRunIdentity, runPath, "raw result parent");
 stagingDir = fullfile(runPath, ".raw_" + string(java.util.UUID.randomUUID()));
 createDirectoryExclusive(stagingDir);
-stagingIdentity = pathIdentity(stagingDir, "directory");
-cleanup = onCleanup(@() cleanupEmptyRawStaging(stagingDir, stagingIdentity));
+stagingDirectoryIdentity = pathIdentity(stagingDir, "directory");
+directoryCleanup = onCleanup(@() cleanupEmptyRawStaging( ...
+    stagingDir, stagingDirectoryIdentity));
 stagingPath = fullfile(stagingDir, "raw_result.mat");
 save(stagingPath, "runResult", "-v7.3");
 assertRegularFile(stagingPath, "staged raw result");
-moveFileExclusive(stagingPath, rawPath);
-clear cleanup
-cleanupEmptyRawStaging(stagingDir, stagingIdentity);
+stagingIdentity = pathIdentity(stagingPath, "file");
+clear directoryCleanup
+stagingCleanup = onCleanup(@() cleanupKnownRawStaging( ...
+    stagingDir, stagingDirectoryIdentity, stagingPath, stagingIdentity));
+assertSameIdentity(expectedRunIdentity, runPath, "raw publication parent");
+try
+    java.nio.file.Files.createLink(nioPath(rawPath), nioPath(stagingPath), ...
+        javaArray("java.nio.file.attribute.FileAttribute", 0));
+catch exception
+    if isfile(rawPath) || isfolder(rawPath) || isSymbolicLink(rawPath)
+        error("fig519a3run:OutputExists", ...
+            "Refusing to overwrite '%s'.", rawPath);
+    end
+    rethrow(exception)
+end
+publishedIdentity = pathIdentity(rawPath, "file");
+assertSameIdentity(stagingIdentity, rawPath, "published raw hard link");
+assertSameIdentity(expectedRunIdentity, runPath, "raw publication parent");
+delete(stagingPath);
+assertSameIdentity(publishedIdentity, rawPath, "published raw result");
+cleanupEmptyRawStaging(stagingDir, stagingDirectoryIdentity);
+clear stagingCleanup
+end
+
+function cleanupKnownRawStaging(stagingDir, expectedDirectoryIdentity, ...
+        stagingPath, expectedFileIdentity)
+cleanupKnownRawStagingFile(stagingPath, expectedFileIdentity);
+cleanupEmptyRawStaging(stagingDir, expectedDirectoryIdentity);
+end
+
+function cleanupKnownRawStagingFile(stagingPath, expectedIdentity)
+if ~isfile(stagingPath) || isSymbolicLink(stagingPath)
+    return
+end
+try
+    assertSameIdentity(expectedIdentity, stagingPath, "raw staging file");
+    delete(stagingPath);
+catch
+    % Preserve unexpected or replaced paths as evidence.
+end
 end
 
 function cleanupEmptyRawStaging(stagingDir, expectedIdentity)
@@ -438,21 +653,6 @@ try
     end
 catch
     % Preserve unexpected or replaced paths as evidence; never recurse.
-end
-end
-
-function moveFileExclusive(sourcePath, destinationPath)
-options = javaArray("java.nio.file.CopyOption", 1);
-options(1) = java.nio.file.StandardCopyOption.ATOMIC_MOVE;
-try
-    java.nio.file.Files.move(nioPath(sourcePath), nioPath(destinationPath), options);
-catch exception
-    if isfile(destinationPath) || isfolder(destinationPath) || ...
-            isSymbolicLink(destinationPath)
-        error("fig519a3run:OutputExists", ...
-            "Refusing to overwrite '%s'.", destinationPath);
-    end
-    rethrow(exception)
 end
 end
 
@@ -489,7 +689,7 @@ end
 
 function [rawWritten, curvesWritten, runnerException] = ...
         persistReturnedCallArtifacts(runPath, runResult, callReturned, ...
-        rawPath, candidateCsv, runnerException, identityGate)
+        rawPath, candidateCsv, runnerException, runIdentity, identityGate)
 rawWritten = false;
 curvesWritten = false;
 if ~callReturned
@@ -497,7 +697,7 @@ if ~callReturned
 end
 try
     identityGate();
-    saveRawExclusive(rawPath, runResult, runPath);
+    saveRawExclusive(rawPath, runResult, runPath, runIdentity);
     rawWritten = true;
 catch exception
     runnerException = appendException(runnerException, exception);
@@ -611,6 +811,84 @@ end
 assertNoSymlinkAncestors(repoRoot, repoRoot);
 end
 
+function [binding, auditByteHash] = bindInvocationInputs( ...
+        runDir, candidatePath, auditPath, sourcePath, repoRoot)
+binding = struct( ...
+    "run_ancestors", bindDirectoryAncestors(runDir, repoRoot), ...
+    "run_dir", pathIdentity(runDir, "directory"), ...
+    "candidate", pathIdentity(candidatePath, "file"), ...
+    "audit", pathIdentity(auditPath, "file"), ...
+    "source", pathIdentity(sourcePath, "file"));
+auditByteHash = sha256File(auditPath);
+if sha256File(sourcePath) ~= ...
+        "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
+    error("fig519a3run:SourceHashMismatch", ...
+        "The captured immutable source model changed before audit parsing.");
+end
+end
+
+function records = bindDirectoryAncestors(pathValue, stopAt)
+pathValue = lexicalAbsolute(pathValue);
+stopAt = lexicalAbsolute(stopAt);
+if pathValue ~= stopAt && ~startsWith(pathValue, stopAt + filesep)
+    error("fig519a3run:AncestorBindingOutsideRoot", ...
+        "Invocation path is not below the captured repository root.");
+end
+paths = strings(0, 1);
+probe = pathValue;
+while true
+    paths(end + 1, 1) = probe; %#ok<AGROW>
+    if probe == stopAt
+        break
+    end
+    parent = string(fileparts(probe));
+    if parent == probe
+        error("fig519a3run:AncestorBindingIncomplete", ...
+            "Invocation ancestor chain did not reach repoRoot.");
+    end
+    probe = parent;
+end
+paths = flip(paths);
+records = repmat(struct("path", "", "identity", struct()), ...
+    numel(paths), 1);
+for index = 1:numel(paths)
+    records(index) = struct("path", paths(index), ...
+        "identity", pathIdentity(paths(index), "directory"));
+end
+end
+
+function assertInvocationBindings(binding, runDir, candidatePath, ...
+        auditPath, sourcePath)
+for index = 1:numel(binding.run_ancestors)
+    assertSameIdentity(binding.run_ancestors(index).identity, ...
+        binding.run_ancestors(index).path, "run ancestor");
+end
+assertSameIdentity(binding.run_dir, runDir, "candidate run directory");
+assertSameIdentity(binding.candidate, candidatePath, "candidate model");
+assertSameIdentity(binding.audit, auditPath, "patch audit");
+assertSameIdentity(binding.source, sourcePath, "immutable source model");
+end
+
+function assertInvocationHashes(binding, auditByteHash, candidateFrozenHash, ...
+        auditPath, candidatePath, sourcePath)
+assertSameIdentity(binding.audit, auditPath, "patch audit hash input");
+if sha256File(auditPath) ~= auditByteHash
+    error("fig519a3run:AuditBytesChanged", ...
+        "Patch audit bytes changed after first binding.");
+end
+assertSameIdentity(binding.candidate, candidatePath, "candidate hash input");
+if sha256File(candidatePath) ~= candidateFrozenHash
+    error("fig519a3run:CandidateHashChanged", ...
+        "Candidate bytes differ from the frozen audit candidate SHA-256.");
+end
+assertSameIdentity(binding.source, sourcePath, "source hash input");
+if sha256File(sourcePath) ~= ...
+        "0532e9ddf2deb7ef5e40cc1b8e619c44ea7afd36b00d807d118f4cd812a5a391"
+    error("fig519a3run:SourceHashChanged", ...
+        "Immutable source bytes changed at the formal call gate.");
+end
+end
+
 function runDir = validateExistingRunDirectory(runDir, tmpRoot)
 runDir = string(runDir);
 if ~startsWith(runDir, filesep)
@@ -682,8 +960,13 @@ end
 attributes = java.nio.file.Files.readAttributes(nioPath(pathValue), ...
     "basic:fileKey,isRegularFile,isDirectory,isSymbolicLink", ...
     javaArray("java.nio.file.LinkOption", 0));
+unix = java.nio.file.Files.readAttributes(nioPath(pathValue), ...
+    "unix:dev,ino,mode", javaArray("java.nio.file.LinkOption", 0));
 identity = struct("absolute_path", lexicalAbsolute(pathValue), ...
-    "file_key", string(attributes.get("fileKey")), "kind", string(kind));
+    "canonical_path", canonicalPath(pathValue), ...
+    "file_key", string(attributes.get("fileKey")), ...
+    "device", string(unix.get("dev")), ...
+    "inode", string(unix.get("ino")), "kind", string(kind));
 if strlength(identity.file_key) == 0 || identity.file_key == "null"
     error("fig519a3run:FileKeyUnavailable", ...
         "Filesystem identity is unavailable for %s.", pathValue);
@@ -693,7 +976,9 @@ end
 function assertSameIdentity(expected, pathValue, label)
 actual = pathIdentity(pathValue, expected.kind);
 if actual.absolute_path ~= expected.absolute_path || ...
-        actual.file_key ~= expected.file_key
+        actual.canonical_path ~= expected.canonical_path || ...
+        actual.file_key ~= expected.file_key || ...
+        actual.device ~= expected.device || actual.inode ~= expected.inode
     error("fig519a3run:PathIdentityChanged", ...
         "%s identity changed: %s", label, pathValue);
 end
@@ -704,8 +989,11 @@ try
     permissions = java.nio.file.attribute.PosixFilePermissions.fromString("rwx------");
     attributes = javaArray("java.nio.file.attribute.FileAttribute", 1);
     attributes(1) = java.nio.file.attribute.PosixFilePermissions.asFileAttribute(permissions);
-catch
-    attributes = javaArray("java.nio.file.attribute.FileAttribute", 0);
+catch exception
+    unavailable = MException("fig519a3run:PosixModeUnavailable", ...
+        "Could not construct the mandatory POSIX 0700 directory attribute.");
+    unavailable = addCause(unavailable, exception);
+    throw(unavailable)
 end
 try
     java.nio.file.Files.createDirectory(nioPath(directoryPath), attributes);
@@ -715,6 +1003,17 @@ catch exception
             "The one-shot directory already exists: '%s'.", directoryPath);
     end
     rethrow(exception)
+end
+assertPosixDirectoryMode0700(directoryPath);
+end
+
+function assertPosixDirectoryMode0700(directoryPath)
+attributes = java.nio.file.Files.readAttributes(nioPath(directoryPath), ...
+    "unix:mode", javaArray("java.nio.file.LinkOption", 0));
+mode = double(attributes.get("mode"));
+if bitand(mode, 511) ~= 448
+    error("fig519a3run:DirectoryModeMismatch", ...
+        "Exclusive directory mode must be exactly POSIX 0700.");
 end
 end
 
@@ -860,6 +1159,7 @@ writeExclusiveText(candidatePath, "test-only candidate locator");
 writeExclusiveText(auditPath, "test-only audit locator");
 runPath = fullfile(sandbox.path, "run");
 createDirectoryExclusive(runPath);
+runIdentity = pathIdentity(runPath, "directory");
 rawPath = fullfile(runPath, "raw_result.mat");
 candidateCsv = fullfile(runPath, "candidate_curves.csv");
 referenceCsv = fullfile(runPath, "reference_curves.csv");
@@ -868,7 +1168,7 @@ injected = MException("fig519a3run:InjectedCallFailure", ...
 runResult = thrownCallResult(injected);
 [rawWritten, curvesWritten, runnerException] = ...
     persistReturnedCallArtifacts(runPath, runResult, false, rawPath, ...
-        candidateCsv, injected, @failUnexpectedPersistence);
+        candidateCsv, injected, runIdentity, @failUnexpectedPersistence);
 if rawWritten || curvesWritten || isfile(rawPath) || isfile(candidateCsv)
     error("fig519a3run:HookSyntheticArtifactCreated", ...
         "A thrown call created a synthetic raw or candidate curve artifact.");
@@ -895,6 +1195,211 @@ status.all_artifact_locators_existed_at_write = locatorExists;
 delete(statusPath);
 end
 
+function status = testCallGateFiniteReplacement(repoRoot, kind)
+sandbox = createHookSandbox(repoRoot);
+cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
+runDir = fullfile(sandbox.path, "candidate_run");
+createDirectoryExclusive(runDir);
+candidatePath = fullfile(runDir, "candidate.slx");
+auditPath = fullfile(runDir, "patch_audit.json");
+sourcePath = fullfile(repoRoot, "data", "provenance", "baselines", ...
+    "f8bcd83", "final_steady_24a.slx");
+writeExclusiveText(candidatePath, "test-only candidate bytes");
+writeExclusiveText(auditPath, "test-only audit bytes");
+binding = struct( ...
+    "run_ancestors", bindDirectoryAncestors(runDir, repoRoot), ...
+    "run_dir", pathIdentity(runDir, "directory"), ...
+    "candidate", pathIdentity(candidatePath, "file"), ...
+    "audit", pathIdentity(auditPath, "file"), ...
+    "source", pathIdentity(sourcePath, "file"));
+displacedPath = fullfile(sandbox.path, "displaced_" + kind);
+switch string(kind)
+    case "run_dir"
+        movePathNoReplace(runDir, displacedPath);
+        createDirectoryExclusive(runDir);
+        cleanupReplacement = onCleanup(@() restoreDisplacedDirectory( ...
+            runDir, displacedPath)); %#ok<NASGU>
+    case "candidate"
+        movePathNoReplace(candidatePath, displacedPath);
+        writeExclusiveText(candidatePath, "replacement candidate bytes");
+        cleanupReplacement = onCleanup(@() restoreDisplacedFile( ...
+            candidatePath, displacedPath)); %#ok<NASGU>
+    case "audit"
+        movePathNoReplace(auditPath, displacedPath);
+        writeExclusiveText(auditPath, "replacement audit bytes");
+        cleanupReplacement = onCleanup(@() restoreDisplacedFile( ...
+            auditPath, displacedPath)); %#ok<NASGU>
+    otherwise
+        error("fig519a3run:HookKindInvalid", ...
+            "Unknown finite-replacement hook kind: %s", kind);
+end
+[rejected, errorId] = captureExpectedFailure(@() ...
+    assertInvocationBindings(binding, runDir, candidatePath, auditPath, sourcePath));
+if ~rejected
+    error("fig519a3run:HookReplacementAccepted", ...
+        "The call gate accepted a finite replacement of %s.", kind);
+end
+status = struct("test_only", true, "simulation_call_count", 0, ...
+    "rejected_before_call", true, "error_id", errorId);
+end
+
+function status = testRawExclusivePublicationAttack(repoRoot, kind)
+sandbox = createHookSandbox(repoRoot);
+cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
+runPath = fullfile(sandbox.path, "run");
+createDirectoryExclusive(runPath);
+runIdentity = pathIdentity(runPath, "directory");
+rawPath = fullfile(runPath, "raw_result.mat");
+sentinelPath = fullfile(sandbox.path, "sentinel.txt");
+sentinel = "owned sentinel bytes";
+writeExclusiveText(sentinelPath, sentinel);
+displacedPath = fullfile(sandbox.path, "displaced_run");
+switch string(kind)
+    case "existing_file"
+        writeExclusiveText(rawPath, sentinel);
+    case "symlink"
+        java.nio.file.Files.createSymbolicLink( ...
+            nioPath(rawPath), nioPath(sentinelPath), ...
+            javaArray("java.nio.file.attribute.FileAttribute", 0));
+    case "parent_replacement"
+        movePathNoReplace(runPath, displacedPath);
+        createDirectoryExclusive(runPath);
+    otherwise
+        error("fig519a3run:HookKindInvalid", ...
+            "Unknown raw-publication attack hook kind: %s", kind);
+end
+runResult = struct("success", false, "test_only", true);
+[rejected, errorId] = captureExpectedFailure(@() ...
+    saveRawExclusive(rawPath, runResult, runPath, runIdentity));
+if ~rejected
+    error("fig519a3run:HookRawOverwriteAccepted", ...
+        "Raw publication accepted attack kind %s.", kind);
+end
+switch string(kind)
+    case "existing_file"
+        unchanged = string(fileread(rawPath)) == sentinel;
+        delete(rawPath);
+    case "symlink"
+        unchanged = isSymbolicLink(rawPath) && ...
+            string(fileread(sentinelPath)) == sentinel;
+        delete(rawPath);
+    case "parent_replacement"
+        unchanged = ~isfile(rawPath) && ~isfolder(rawPath) && ...
+            ~isSymbolicLink(rawPath);
+        rmdir(runPath);
+        movePathNoReplace(displacedPath, runPath);
+end
+status = struct("test_only", true, "simulation_call_count", 0, ...
+    "overwrite_rejected", true, "original_unchanged", unchanged, ...
+    "error_id", errorId);
+end
+
+function status = testExactAuditNegativeValidation(repoRoot)
+[duplicateRejected, ~] = captureExpectedFailure(@() ...
+    validateExactNameSet(["a"; "a"], ["a"; "b"], "hook duplicate"));
+[missingRejected, ~] = captureExpectedFailure(@() ...
+    validateExactNameSet("a", ["a"; "b"], "hook missing"));
+[extraRejected, ~] = captureExpectedFailure(@() ...
+    validateExactNameSet(["a"; "b"; "c"], ["a"; "b"], "hook extra"));
+states = hookStateInventory();
+states(39).candidate_expression = "1052.2147530694";
+[changedValueRejected, ~] = captureExpectedFailure(@() ...
+    validateStateInventoryValues(states));
+sandbox = createHookSandbox(repoRoot);
+cleanup = onCleanup(@() cleanupHookSandbox(sandbox)); %#ok<NASGU>
+realParent = fullfile(sandbox.path, "real_parent");
+createDirectoryExclusive(realParent);
+filePath = fullfile(realParent, "fixture.txt");
+writeExclusiveText(filePath, "fixture");
+linkParent = fullfile(sandbox.path, "link_parent");
+java.nio.file.Files.createSymbolicLink( ...
+    nioPath(linkParent), nioPath(realParent), ...
+    javaArray("java.nio.file.attribute.FileAttribute", 0));
+relative = relativeIfWithinRepo(fullfile(linkParent, "fixture.txt"), repoRoot);
+[symlinkRejected, ~] = captureExpectedFailure(@() ...
+    resolveCapturedPath(repoRoot, relative));
+delete(linkParent);
+delete(filePath);
+rmdir(realParent);
+status = struct("test_only", true, "simulation_call_count", 0, ...
+    "duplicate_rejected", duplicateRejected, ...
+    "missing_rejected", missingRejected, "extra_rejected", extraRejected, ...
+    "changed_value_rejected", changedValueRejected, ...
+    "symlink_ancestor_rejected", symlinkRejected);
+end
+
+function states = hookStateInventory()
+states = repmat(struct("source_path", "", "candidate_path", "", ...
+    "source_expression", "", "candidate_expression", "", ...
+    "unchanged", true), 40, 1);
+for index = 1:38
+    path = "final_steady_24a/hook/state_" + string(index);
+    states(index) = struct("source_path", path, ...
+        "candidate_path", replace(path, "final_steady_24a/", "candidate/"), ...
+        "source_expression", string(index), ...
+        "candidate_expression", string(index), "unchanged", true);
+end
+states(39) = struct("source_path", ...
+    "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator", ...
+    "candidate_path", ...
+    "candidate/IHX/IHX_region_2/T_c1_average_Integrator", ...
+    "source_expression", "1245.8184669844006", ...
+    "candidate_expression", "1052.2147530693003", "unchanged", false);
+states(40) = struct("source_path", ...
+    "final_steady_24a/IHX/IHX_region_2/T_c2_out_Integrator", ...
+    "candidate_path", ...
+    "candidate/IHX/IHX_region_2/T_c2_out_Integrator", ...
+    "source_expression", "1393.6037139151003", ...
+    "candidate_expression", "1200.0000000000000", "unchanged", false);
+end
+
+function [failed, errorId] = captureExpectedFailure(callback)
+failed = false;
+errorId = "";
+try
+    callback();
+catch exception
+    failed = true;
+    errorId = string(exception.identifier);
+end
+end
+
+function movePathNoReplace(sourcePath, destinationPath)
+java.nio.file.Files.move(nioPath(sourcePath), nioPath(destinationPath), ...
+    javaArray("java.nio.file.CopyOption", 0));
+end
+
+function restoreDisplacedFile(replacementPath, displacedPath)
+try
+    if isfile(replacementPath) || isSymbolicLink(replacementPath)
+        delete(replacementPath);
+    end
+    if isfile(displacedPath) && ~isSymbolicLink(displacedPath)
+        movePathNoReplace(displacedPath, replacementPath);
+    end
+catch
+    % Preserve unexpected test state for forensic inspection.
+end
+end
+
+function restoreDisplacedDirectory(replacementPath, displacedPath)
+try
+    if isfolder(replacementPath) && ~isSymbolicLink(replacementPath)
+        listing = dir(replacementPath);
+        names = string({listing.name});
+        if ~any(~ismember(names, [".", ".."]))
+            rmdir(replacementPath);
+        end
+    end
+    if isfolder(displacedPath) && ~isSymbolicLink(displacedPath) && ...
+            ~isfolder(replacementPath)
+        movePathNoReplace(displacedPath, replacementPath);
+    end
+catch
+    % Preserve unexpected test state for forensic inspection.
+end
+end
+
 function failUnexpectedPersistence()
 error("fig519a3run:HookUnexpectedPersistence", ...
     "The persistence gate ran for a thrown-call outcome.");
@@ -916,29 +1421,31 @@ if ~isfolder(sandbox.path) || isSymbolicLink(sandbox.path)
 end
 try
     assertSameIdentity(sandbox.identity, sandbox.path, "hook sandbox");
-    listing = dir(sandbox.path);
-    names = string({listing.name});
-    children = names(~ismember(names, [".", ".."]));
-    for index = 1:numel(children)
-        child = fullfile(sandbox.path, children(index));
-        if isSymbolicLink(child) || isfolder(child)
-            if isfolder(child) && ~isSymbolicLink(child)
-                childListing = dir(child);
-                childNames = string({childListing.name});
-                if ~any(~ismember(childNames, [".", ".."]))
-                    rmdir(child);
-                end
-            end
-        elseif isfile(child)
-            delete(child);
-        end
-    end
-    listing = dir(sandbox.path);
-    names = string({listing.name});
-    if ~any(~ismember(names, [".", ".."]))
-        rmdir(sandbox.path);
-    end
+    cleanupHookOwnedDirectory(sandbox.path, 3);
 catch
     % Retain untrusted or replaced test paths; never delete recursively.
+end
+end
+
+function cleanupHookOwnedDirectory(directoryPath, remainingDepth)
+if remainingDepth < 0 || ~isfolder(directoryPath) || ...
+        isSymbolicLink(directoryPath)
+    return
+end
+listing = dir(directoryPath);
+names = string({listing.name});
+children = names(~ismember(names, [".", ".."]));
+for index = 1:numel(children)
+    child = fullfile(directoryPath, children(index));
+    if isSymbolicLink(child) || isfile(child)
+        delete(child);
+    elseif isfolder(child)
+        cleanupHookOwnedDirectory(child, remainingDepth - 1);
+    end
+end
+listing = dir(directoryPath);
+names = string({listing.name});
+if ~any(~ismember(names, [".", ".."]))
+    rmdir(directoryPath);
 end
 end
