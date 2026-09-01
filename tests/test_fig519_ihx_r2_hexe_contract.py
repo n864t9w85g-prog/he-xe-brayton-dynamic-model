@@ -4,7 +4,7 @@ import ast
 import subprocess
 import sys
 import unittest
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from pathlib import Path
 
 from tests import fig519_ihx_r2_hexe_contract as contract
@@ -48,6 +48,21 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         )
         with self.assertRaises(TypeError):
             candidate["delta_K"] = Decimal("0")
+
+    def test_candidate_is_independent_of_ambient_decimal_precision(self):
+        for precision in (16, 8):
+            with self.subTest(precision=precision), localcontext() as context:
+                context.prec = precision
+                candidate = contract.candidate_contract()
+                self.assertEqual(candidate["delta_K"], Decimal("-193.6037139151003"))
+                self.assertEqual(
+                    candidate["new_average_K"], Decimal("1052.2147530693003")
+                )
+                self.assertEqual(
+                    candidate["new_outlet_K"], Decimal("1200.0000000000000")
+                )
+                self.assertEqual(candidate["old_gap_K"], Decimal("147.7852469306997"))
+                self.assertEqual(candidate["new_gap_K"], Decimal("147.7852469306997"))
 
     def test_directions_thresholds_and_promotion_flags_are_exact_and_immutable(self):
         self.assertEqual(

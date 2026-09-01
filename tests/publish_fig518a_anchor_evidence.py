@@ -152,14 +152,18 @@ def _sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def _source_payloads() -> tuple[bytes, bytes]:
+def _validated_pdf() -> bytes:
     pdf = _read_regular(PDF_PATH, "source PDF")
-    page = _read_regular(SOURCE_PAGE, "source page")
     if _sha256(pdf) != PDF_SHA256:
         raise PublicationError("source PDF hash differs from the immutable contract")
+    return pdf
+
+
+def _validated_initial_page() -> bytes:
+    page = _read_regular(SOURCE_PAGE, "source page")
     if _sha256(page) != PAGE_SHA256:
         raise PublicationError("source page hash differs from the immutable contract")
-    return pdf, page
+    return page
 
 
 def _json_bytes(value: dict[str, object]) -> bytes:
@@ -218,20 +222,69 @@ def _artifact_payloads(page: bytes) -> dict[str, bytes]:
     return payloads
 
 
-def _fsync_directory(path: Path) -> None:
-    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+def _fsync_directory_fd(descriptor: int) -> None:
+    opened = os.fstat(descriptor)
+    if not stat.S_ISDIR(opened.st_mode):
+        raise PublicationError("fsync target descriptor is not a directory")
+    os.fsync(descriptor)
+
+
+def _entry_stat(directory_descriptor: int, name: str):
     try:
-        opened = os.fstat(descriptor)
-        if not stat.S_ISDIR(opened.st_mode):
-            raise PublicationError(f"fsync target is not a directory: {path}")
-        os.fsync(descriptor)
+        return os.stat(name, dir_fd=directory_descriptor, follow_symlinks=False)
+    except FileNotFoundError:
+        return None
+
+
+def _open_directory_at(directory_descriptor: int, name: str, label: str) -> int:
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(name, flags, dir_fd=directory_descriptor)
+    opened = os.fstat(descriptor)
+    if not stat.S_ISDIR(opened.st_mode):
+        os.close(descriptor)
+        raise PublicationError(f"{label} is not a directory")
+    return descriptor
+
+
+def _read_regular_at(directory_descriptor: int, name: str, label: str) -> bytes:
+    before = _entry_stat(directory_descriptor, name)
+    if before is None or not stat.S_ISREG(before.st_mode):
+        raise PublicationError(f"{label} is missing or not a regular file")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(name, flags, dir_fd=directory_descriptor)
+    opened = os.fstat(descriptor)
+    if not stat.S_ISREG(opened.st_mode) or (opened.st_dev, opened.st_ino) != (
+        before.st_dev,
+        before.st_ino,
+    ):
+        os.close(descriptor)
+        raise PublicationError(f"{label} changed during safe open")
+    chunks = []
+    try:
+        while True:
+            chunk = os.read(descriptor, 1024 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
     finally:
         os.close(descriptor)
+    after = _entry_stat(directory_descriptor, name)
+    if after is None or (after.st_dev, after.st_ino, after.st_size) != (
+        opened.st_dev,
+        opened.st_ino,
+        opened.st_size,
+    ):
+        raise PublicationError(f"{label} changed while reading")
+    payload = b"".join(chunks)
+    if len(payload) != opened.st_size:
+        raise PublicationError(f"{label} size changed while reading")
+    return payload
 
 
-def _write_exclusive(path: Path, payload: bytes) -> None:
+def _write_exclusive(target: tuple[int, str], payload: bytes) -> None:
+    directory_descriptor, name = target
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
-    descriptor = os.open(path, flags, 0o600)
+    descriptor = os.open(name, flags, 0o600, dir_fd=directory_descriptor)
     try:
         offset = 0
         while offset < len(payload):
@@ -258,6 +311,15 @@ def _inventory(directory: Path) -> set[str]:
     return names
 
 
+def _inventory_fd(directory_descriptor: int) -> set[str]:
+    names = set(os.listdir(directory_descriptor))
+    for name in names:
+        entry_stat = _entry_stat(directory_descriptor, name)
+        if entry_stat is None or not stat.S_ISREG(entry_stat.st_mode):
+            raise PublicationError(f"unexpected non-regular publication entry: {name}")
+    return names
+
+
 def _verify_directory(directory: Path, payloads: dict[str, bytes]) -> None:
     expected_names = set(ARTIFACT_NAMES)
     actual_names = _inventory(directory)
@@ -272,28 +334,73 @@ def _verify_directory(directory: Path, payloads: dict[str, bytes]) -> None:
             raise PublicationError(f"published artifact differs from contract: {name}")
 
 
-def _exclusive_rename(source: Path, destination: Path) -> None:
-    """Rename a directory without ever replacing an existing destination."""
+def _verify_directory_fd(directory_descriptor: int, payloads: dict[str, bytes]) -> None:
+    expected_names = set(ARTIFACT_NAMES)
+    actual_names = _inventory_fd(directory_descriptor)
+    if actual_names != expected_names:
+        raise PublicationError(
+            f"publication inventory mismatch: expected {sorted(expected_names)}, "
+            f"got {sorted(actual_names)}"
+        )
+    for name in ARTIFACT_NAMES:
+        actual = _read_regular_at(directory_descriptor, name, f"published {name}")
+        if actual != payloads[name]:
+            raise PublicationError(f"published artifact differs from contract: {name}")
+
+
+def _exclusive_rename(
+    source_parent_descriptor: int,
+    source_name: str,
+    destination_parent_descriptor: int,
+    destination_name: str,
+) -> None:
+    """Rename relative to held parents without replacing an existing entry."""
     library = ctypes.CDLL(None, use_errno=True)
-    source_bytes = os.fsencode(source)
-    destination_bytes = os.fsencode(destination)
+    source_bytes = os.fsencode(source_name)
+    destination_bytes = os.fsencode(destination_name)
     result = None
     if sys.platform == "darwin" and hasattr(library, "renameatx_np"):
         function = library.renameatx_np
-        function.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+        function.argtypes = [
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_uint,
+        ]
         function.restype = ctypes.c_int
-        result = function(-2, source_bytes, -2, destination_bytes, 0x00000004)
+        result = function(
+            source_parent_descriptor,
+            source_bytes,
+            destination_parent_descriptor,
+            destination_bytes,
+            0x00000004,
+        )
     elif hasattr(library, "renameat2"):
         function = library.renameat2
-        function.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+        function.argtypes = [
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_uint,
+        ]
         function.restype = ctypes.c_int
-        result = function(-100, source_bytes, -100, destination_bytes, 0x00000001)
+        result = function(
+            source_parent_descriptor,
+            source_bytes,
+            destination_parent_descriptor,
+            destination_bytes,
+            0x00000001,
+        )
     else:
         raise PublicationError("platform lacks an exclusive directory-rename primitive")
     if result != 0:
         error_number = ctypes.get_errno()
         if error_number in (errno.EEXIST, errno.ENOTEMPTY):
-            raise PublicationError(f"destination appeared during publication: {destination}")
+            raise PublicationError(
+                f"destination appeared during publication: {destination_name}"
+            )
         raise PublicationError(
             f"exclusive publication rename failed: {os.strerror(error_number)}"
         )
@@ -309,46 +416,151 @@ def _parent_lock(parent: Path):
         raise PublicationError("durable parent changed during safe open")
     try:
         fcntl.flock(descriptor, fcntl.LOCK_EX)
-        yield
+        yield descriptor, opened
     finally:
         fcntl.flock(descriptor, fcntl.LOCK_UN)
         os.close(descriptor)
 
 
-def publish() -> dict[str, object]:
-    """Publish once, or validate an already matching immutable publication."""
-    _, page = _source_payloads()
-    payloads = _artifact_payloads(page)
+def _require_parent_identity(parent: Path, opened_parent) -> None:
+    current = _require_directory(parent, "durable parent")
+    if (current.st_dev, current.st_ino) != (opened_parent.st_dev, opened_parent.st_ino):
+        raise PublicationError("durable parent was replaced during publication")
+
+
+def _quarantine_unbound_destination(
+    parent_descriptor: int, destination_name: str
+) -> None:
+    """Preserve, rather than unlink, any destination not bound to owned staging.
+
+    POSIX has no portable rename-by-source-inode operation.  The transaction
+    therefore holds directory descriptors, checks the destination inode after
+    the exclusive rename, and exclusively moves any unbound destination aside.
+    A continuously mutating same-UID process can deny service, but no cleanup
+    here unlinks or overwrites its replacement.
+    """
+    for counter in range(32):
+        current = _entry_stat(parent_descriptor, destination_name)
+        if current is None:
+            return
+        quarantine_name = (
+            f".{destination_name}.rejected-{current.st_dev:x}-{current.st_ino:x}-{counter}"
+        )
+        if _entry_stat(parent_descriptor, quarantine_name) is not None:
+            continue
+        try:
+            _exclusive_rename(
+                parent_descriptor,
+                destination_name,
+                parent_descriptor,
+                quarantine_name,
+            )
+        except PublicationError:
+            if _entry_stat(parent_descriptor, destination_name) is None:
+                return
+            continue
+        _fsync_directory_fd(parent_descriptor)
+        if _entry_stat(parent_descriptor, destination_name) is None:
+            return
+    raise PublicationError(
+        "could not quarantine a concurrently replaced durable destination"
+    )
+
+
+def _payloads_from_durable_fd(durable_descriptor: int) -> dict[str, bytes]:
+    page = _read_regular_at(
+        durable_descriptor, "source_page_105.png", "durable source page"
+    )
+    if _sha256(page) != PAGE_SHA256:
+        raise PublicationError("durable source page hash differs from the contract")
+    return _artifact_payloads(page)
+
+
+def _publish() -> dict[str, object]:
+    _validated_pdf()
     durable = _absolute(DURABLE_ROOT)
     staging = staging_path(durable)
     _reject_symlink_components(durable)
     _reject_symlink_components(staging)
     _require_directory(durable.parent, "durable parent")
 
-    with _parent_lock(durable.parent):
-        if os.path.lexists(staging):
+    with _parent_lock(durable.parent) as (parent_descriptor, opened_parent):
+        stage_name = staging.name
+        destination_name = durable.name
+        if _entry_stat(parent_descriptor, stage_name) is not None:
             raise PublicationError(f"stale or unsafe staging path exists: {staging}")
-        if os.path.lexists(durable):
-            _verify_directory(durable, payloads)
+        if _entry_stat(parent_descriptor, destination_name) is not None:
+            durable_descriptor = _open_directory_at(
+                parent_descriptor, destination_name, "durable publication"
+            )
+            try:
+                payloads = _payloads_from_durable_fd(durable_descriptor)
+                _verify_directory_fd(durable_descriptor, payloads)
+                _require_parent_identity(durable.parent, opened_parent)
+            finally:
+                os.close(durable_descriptor)
             return _report()
 
-        os.mkdir(staging, 0o700)
-        staging_stat = _require_directory(staging, "publication staging")
-        _fsync_directory(durable.parent)
-        for name in ARTIFACT_NAMES[:-1]:
-            _write_exclusive(staging / name, payloads[name])
-        _write_exclusive(staging / "manifest.csv", payloads["manifest.csv"])
-        _fsync_directory(staging)
-        _verify_directory(staging, payloads)
-        current = _require_directory(staging, "publication staging")
-        if (current.st_dev, current.st_ino) != (staging_stat.st_dev, staging_stat.st_ino):
-            raise PublicationError("publication staging was replaced")
-        _reject_symlink_components(durable)
-        if os.path.lexists(durable):
-            raise PublicationError(f"destination appeared during publication: {durable}")
-        _exclusive_rename(staging, durable)
-        _fsync_directory(durable.parent)
-    return verify_only()
+        page = _validated_initial_page()
+        payloads = _artifact_payloads(page)
+        os.mkdir(stage_name, 0o700, dir_fd=parent_descriptor)
+        staging_descriptor = _open_directory_at(
+            parent_descriptor, stage_name, "publication staging"
+        )
+        opened_staging = os.fstat(staging_descriptor)
+        _fsync_directory_fd(parent_descriptor)
+        try:
+            for name in ARTIFACT_NAMES[:-1]:
+                _write_exclusive((staging_descriptor, name), payloads[name])
+            _write_exclusive(
+                (staging_descriptor, "manifest.csv"), payloads["manifest.csv"]
+            )
+            _fsync_directory_fd(staging_descriptor)
+            _verify_directory_fd(staging_descriptor, payloads)
+            _require_parent_identity(durable.parent, opened_parent)
+            current = _entry_stat(parent_descriptor, stage_name)
+            if current is None or (current.st_dev, current.st_ino) != (
+                opened_staging.st_dev,
+                opened_staging.st_ino,
+            ):
+                raise PublicationError("publication staging was replaced")
+            if _entry_stat(parent_descriptor, destination_name) is not None:
+                raise PublicationError(
+                    f"destination appeared during publication: {durable}"
+                )
+            _exclusive_rename(
+                parent_descriptor,
+                stage_name,
+                parent_descriptor,
+                destination_name,
+            )
+            _fsync_directory_fd(parent_descriptor)
+            committed = _entry_stat(parent_descriptor, destination_name)
+            if committed is None or (committed.st_dev, committed.st_ino) != (
+                opened_staging.st_dev,
+                opened_staging.st_ino,
+            ):
+                _quarantine_unbound_destination(
+                    parent_descriptor, destination_name
+                )
+                raise PublicationError(
+                    "exclusive commit did not bind the owned staging directory"
+                )
+            _verify_directory_fd(staging_descriptor, payloads)
+            _require_parent_identity(durable.parent, opened_parent)
+        finally:
+            os.close(staging_descriptor)
+    return _verify_only()
+
+
+def publish() -> dict[str, object]:
+    """Publish once, or validate an already matching immutable publication."""
+    try:
+        return _publish()
+    except PublicationError:
+        raise
+    except OSError as error:
+        raise PublicationError(f"publication filesystem failure: {error}") from error
 
 
 def _report() -> dict[str, object]:
@@ -361,18 +573,30 @@ def _report() -> dict[str, object]:
     }
 
 
-def verify_only() -> dict[str, object]:
-    """Recompute source and durable hashes without writing any filesystem state."""
-    _, page = _source_payloads()
+def _verify_only() -> dict[str, object]:
+    _validated_pdf()
     durable = _absolute(DURABLE_ROOT)
     staging = staging_path(durable)
     _reject_symlink_components(durable)
     _reject_symlink_components(staging)
     if os.path.lexists(staging):
         raise PublicationError(f"stale or unsafe staging path exists: {staging}")
+    page = _read_regular(durable / "source_page_105.png", "durable source page")
+    if _sha256(page) != PAGE_SHA256:
+        raise PublicationError("durable source page hash differs from the contract")
     payloads = _artifact_payloads(page)
     _verify_directory(durable, payloads)
     return _report()
+
+
+def verify_only() -> dict[str, object]:
+    """Recompute tracked PDF and durable hashes without filesystem writes."""
+    try:
+        return _verify_only()
+    except PublicationError:
+        raise
+    except OSError as error:
+        raise PublicationError(f"verification filesystem failure: {error}") from error
 
 
 def main(argv: list[str] | None = None) -> None:

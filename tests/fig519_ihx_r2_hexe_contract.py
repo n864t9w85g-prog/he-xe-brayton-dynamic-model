@@ -6,7 +6,7 @@ no model mutation, MATLAB invocation, or simulation.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from types import MappingProxyType
 
 
@@ -59,11 +59,13 @@ _FALSE_PROMOTION_FLAGS = MappingProxyType(
 
 def candidate_contract() -> Mapping[str, object]:
     """Return the immutable one-delta A3 candidate definition."""
-    delta = ANCHOR_K - OLD_OUTLET_K
-    new_average = OLD_AVERAGE_K + delta
-    new_outlet = OLD_OUTLET_K + delta
-    old_gap = OLD_OUTLET_K - OLD_AVERAGE_K
-    new_gap = new_outlet - new_average
+    with localcontext() as context:
+        context.prec = 34
+        delta = ANCHOR_K - OLD_OUTLET_K
+        new_average = OLD_AVERAGE_K + delta
+        new_outlet = OLD_OUTLET_K + delta
+        old_gap = OLD_OUTLET_K - OLD_AVERAGE_K
+        new_gap = new_outlet - new_average
     if new_outlet != ANCHOR_K or old_gap != new_gap:
         raise ContractError("A3 one-delta temperature identity is inconsistent")
     return MappingProxyType(

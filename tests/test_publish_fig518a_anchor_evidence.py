@@ -5,6 +5,7 @@ import csv
 import hashlib
 import io
 import json
+import multiprocessing
 import os
 import shutil
 import subprocess
@@ -20,13 +21,29 @@ from tests import publish_fig518a_anchor_evidence as publisher
 
 ROOT = Path(__file__).resolve().parents[1]
 REAL_PDF = ROOT / "空间锂冷堆He-Xe布雷顿循环发电系统优化设计与运行特性分析_徐驰.pdf"
-REAL_PAGE = ROOT / "tmp/steady53_recheck_20260827/paper-105.png"
+REAL_PAGE = ROOT / "data/provenance/steady53/fig5_18a/source_page_105.png"
+
+
+def _replace_staging_process(staging, preserved, go, done, token):
+    go.wait(10)
+    os.rename(staging, preserved)
+    os.mkdir(staging, 0o700)
+    (Path(staging) / "attacker-token").write_bytes(token)
+    done.set()
+
+
+def _replace_parent_process(parent, preserved, external, staging_name, go, done):
+    go.wait(10)
+    os.rename(parent, preserved)
+    os.symlink(external, parent, target_is_directory=True)
+    os.mkdir(Path(external) / staging_name, 0o700)
+    done.set()
 
 
 class Figure518aAnchorEvidencePublicationTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(dir=ROOT / "tmp")
-        self.work = Path(self.temporary.name)
+        self.temporary = tempfile.TemporaryDirectory()
+        self.work = Path(self.temporary.name).resolve()
         self.pdf = self.work / "paper.pdf"
         self.page_parent = self.work / "source"
         self.page_parent.mkdir()
@@ -111,8 +128,9 @@ class Figure518aAnchorEvidencePublicationTests(unittest.TestCase):
         with self.patched(), mock.patch.object(
             publisher, "_write_exclusive", side_effect=fail_second
         ):
-            with self.assertRaises(OSError):
+            with self.assertRaises(publisher.PublicationError) as raised:
                 publisher.publish()
+        self.assertIsInstance(raised.exception.__cause__, OSError)
         staging = publisher.staging_path(self.durable)
         self.assertTrue(staging.is_dir())
         retained = {item.name: item.read_bytes() for item in staging.iterdir()}
@@ -241,6 +259,132 @@ class Figure518aAnchorEvidencePublicationTests(unittest.TestCase):
             with self.assertRaises(publisher.PublicationError):
                 publisher.verify_only()
             self.assertEqual(after_mutation, self.snapshot())
+
+    def test_verify_only_wraps_filesystem_errors_as_publication_error(self):
+        with self.patched():
+            publisher.publish()
+            injected = OSError("injected verify filesystem failure")
+            with mock.patch.object(
+                publisher, "_verify_directory", side_effect=injected
+            ):
+                with self.assertRaises(publisher.PublicationError) as raised:
+                    publisher.verify_only()
+        self.assertIs(raised.exception.__cause__, injected)
+
+    def test_existing_publication_does_not_require_ignored_source_page(self):
+        with self.patched():
+            publisher.publish()
+            before = self.snapshot()
+            missing = self.work / "ignored-tmp-source-is-absent.png"
+            with mock.patch.object(publisher, "SOURCE_PAGE", missing):
+                publisher.publish()
+                publisher.verify_only()
+            self.assertEqual(before, self.snapshot())
+
+    def test_initial_publication_still_requires_the_hash_contracted_source_page(self):
+        missing = self.work / "missing-source-page.png"
+        with mock.patch.multiple(
+            publisher,
+            PDF_PATH=self.pdf,
+            SOURCE_PAGE=missing,
+            DURABLE_ROOT=self.durable,
+        ):
+            with self.assertRaises(publisher.PublicationError):
+                publisher.publish()
+        self.assertFalse(self.durable.exists())
+
+    def test_active_staging_replacement_is_quarantined_without_invalid_destination(self):
+        context = multiprocessing.get_context("fork")
+        go = context.Event()
+        done = context.Event()
+        staging = publisher.staging_path(self.durable)
+        preserved = self.durable_parent / ".fig5_18a.original-owned-staging"
+        token = b"active attacker replacement must be preserved"
+        competitor = context.Process(
+            target=_replace_staging_process,
+            args=(staging, preserved, go, done, token),
+        )
+        original = publisher._exclusive_rename
+
+        def replace_before_rename(*args):
+            go.set()
+            if not done.wait(10):
+                raise RuntimeError("competitor did not replace staging")
+            return original(*args)
+
+        competitor.start()
+        try:
+            with self.patched(), mock.patch.object(
+                publisher, "_exclusive_rename", side_effect=replace_before_rename
+            ):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish()
+        finally:
+            competitor.join(10)
+            if competitor.is_alive():
+                competitor.terminate()
+                competitor.join()
+        self.assertEqual(competitor.exitcode, 0)
+        self.assertFalse(self.durable.exists(), "invalid durable destination remained")
+        preserved_tokens = [
+            item for item in self.durable_parent.rglob("attacker-token")
+            if item.is_file() and item.read_bytes() == token
+        ]
+        self.assertEqual(len(preserved_tokens), 1, "attacker replacement was unlinked")
+        self.assertTrue(preserved.is_dir(), "owned staging moved by attacker was lost")
+
+    def test_active_parent_replacement_cannot_redirect_staged_writes(self):
+        context = multiprocessing.get_context("fork")
+        go = context.Event()
+        done = context.Event()
+        preserved_parent = self.work / "preserved-owned-parent"
+        external = self.work / "attacker-external"
+        external.mkdir()
+        staging_name = publisher.staging_path(self.durable).name
+        competitor = context.Process(
+            target=_replace_parent_process,
+            args=(
+                self.durable_parent,
+                preserved_parent,
+                external,
+                staging_name,
+                go,
+                done,
+            ),
+        )
+        original = publisher._write_exclusive
+        first = True
+
+        def replace_parent_before_first_write(*args):
+            nonlocal first
+            if first:
+                first = False
+                go.set()
+                if not done.wait(10):
+                    raise RuntimeError("competitor did not replace parent")
+            return original(*args)
+
+        competitor.start()
+        try:
+            with self.patched(), mock.patch.object(
+                publisher,
+                "_write_exclusive",
+                side_effect=replace_parent_before_first_write,
+            ):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.publish()
+        finally:
+            competitor.join(10)
+            if competitor.is_alive():
+                competitor.terminate()
+                competitor.join()
+        self.assertEqual(competitor.exitcode, 0)
+        self.assertTrue(self.durable_parent.is_symlink(), "attacker ancestor was unlinked")
+        self.assertFalse((external / "fig5_18a").exists())
+        escaped_artifacts = {
+            item.name for item in external.rglob("*") if item.is_file()
+        } & set(publisher.ARTIFACT_NAMES)
+        self.assertEqual(escaped_artifacts, set(), "payload escaped the held parent tree")
 
     def test_cli_stdout_and_validation_hold_in_normal_and_optimized_modes(self):
         code = (
