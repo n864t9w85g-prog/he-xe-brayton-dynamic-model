@@ -31,64 +31,79 @@ if sourceHashBefore ~= expectedSourceHash
 end
 runtimeBefore = runtimeIdentities(runtimeDir, repoRoot);
 protectedBefore = protectedIdentities(protectedPath, repoRoot);
+formalBefore = formalIdentities(repoRoot);
 
 createDirectoryExclusive(runDir);
+runIdentity = pathIdentity(runDir, "directory");
+stagingDir = createPrivateStagingDirectory(runDir);
+stagingIdentity = pathIdentity(stagingDir, "directory");
+stagingCandidatePath = fullfile(stagingDir, "candidate.slx");
 candidatePath = fullfile(runDir, "candidate.slx");
-copyFileExclusive(sourcePath, candidatePath)
-assertRegularFile(candidatePath, "candidate model");
-if sha256File(candidatePath) ~= sourceHashBefore
+copyFileExclusive(sourcePath, stagingCandidatePath)
+stagingCandidateIdentity = pathIdentity(stagingCandidatePath, "file");
+assertSameIdentity(runIdentity, runDir, "run directory");
+assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
+if sha256File(stagingCandidatePath) ~= sourceHashBefore
     error("fig519a3:CopyHashMismatch", ...
         "The candidate copy is not byte-identical before the API edit.");
 end
 
 oldFolder = string(pwd);
-folderCleanup = onCleanup(@() cd(oldFolder));
-cd(runDir);
 oldPath = path;
-pathCleanup = onCleanup(@() path(oldPath));
-addpath(runtimeDir, fullfile(repoRoot, "tests", "steady53"));
-
-baseSnapshot = captureBaseWorkspace();
-baseCleanup = onCleanup(@() restoreBaseWorkspace(baseSnapshot));
-startPath = fullfile(runtimeDir, "start.m");
-evalin("base", "run(" + matlabString(startPath) + ")");
-
 oldFileGeneration = Simulink.fileGenControl("getConfig");
-fileGenerationRoot = fullfile(runDir, "filegen");
-cacheFolder = fullfile(fileGenerationRoot, "cache");
-codegenFolder = fullfile(fileGenerationRoot, "codegen");
-fileGenerationCleanup = onCleanup(@() restoreFileGeneration(oldFileGeneration));
-Simulink.fileGenControl("set", "CacheFolder", cacheFolder, ...
-    "CodeGenFolder", codegenFolder, "createDir", true);
-activeFileGeneration = Simulink.fileGenControl("getConfig");
-if canonicalPath(activeFileGeneration.CacheFolder) ~= ...
-        canonicalPath(cacheFolder) || ...
-        canonicalPath(activeFileGeneration.CodeGenFolder) ~= ...
-        canonicalPath(codegenFolder)
-    error("fig519a3:FileGenerationConfigurationMismatch", ...
-        "Simulink did not activate the contained file-generation folders.");
-end
-
+baseSnapshot = captureStartupWorkspace();
 sourceModel = "final_steady_24a";
 model = "candidate";
 if bdIsLoaded(sourceModel) || bdIsLoaded(model)
     error("fig519a3:ModelAlreadyLoaded", ...
         "Source or candidate model is already loaded; refusing unsaved state.");
 end
+callerCleanup = onCleanup(@() restoreCallerState(sourceModel, model, ...
+    oldFileGeneration, baseSnapshot, oldFolder, oldPath));
+cd(runDir);
+addpath(runtimeDir, fullfile(repoRoot, "tests", "steady53"));
 
-sourceCleanup = onCleanup(@() closeWithoutSaving(sourceModel));
+startPath = fullfile(runtimeDir, "start.m");
+evalin("base", "run(" + matlabString(startPath) + ")");
+
+fileGenerationRoot = fullfile(runDir, "filegen");
+cacheFolder = fullfile(fileGenerationRoot, "cache");
+codegenFolder = fullfile(fileGenerationRoot, "codegen");
+createDirectoryExclusive(fileGenerationRoot);
+createDirectoryExclusive(cacheFolder);
+createDirectoryExclusive(codegenFolder);
+fileGenerationRootIdentity = pathIdentity(fileGenerationRoot, "directory");
+cacheIdentity = pathIdentity(cacheFolder, "directory");
+codegenIdentity = pathIdentity(codegenFolder, "directory");
+Simulink.fileGenControl("set", "CacheFolder", cacheFolder, ...
+    "CodeGenFolder", codegenFolder, "createDir", false);
+activeFileGeneration = Simulink.fileGenControl("getConfig");
+assertFileGeneration(activeFileGeneration, cacheFolder, codegenFolder, ...
+    runDir, fileGenerationRootIdentity, cacheIdentity, codegenIdentity);
+injectFailure("after_environment_setup", stagingDir);
+
+assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+    stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 load_system(sourcePath);
 assertLoadedFile(sourceModel, sourcePath);
+assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+    stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
+injectFailure("after_source_load");
 sourceStates = stateSnapshot(sourceModel);
 sourceSolver = solverSnapshot(sourceModel);
 sourceSemantic = semanticSnapshot(sourceModel);
 sourceWorkspace = modelWorkspaceSnapshot(sourceModel);
 closeWithoutSaving(sourceModel);
-clear sourceCleanup
 
-candidateCleanup = onCleanup(@() closeWithoutSaving(model));
-load_system(candidatePath);
-assertLoadedFile(model, candidatePath);
+assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+    stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+load_system(stagingCandidatePath);
+assertLoadedFile(model, stagingCandidatePath);
+assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+    stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 averageTarget = model + "/IHX/IHX_region_2/T_c1_average_Integrator";
 outletTarget = model + "/IHX/IHX_region_2/T_c2_out_Integrator";
 oldAverageK = numericInitialCondition(averageTarget);
@@ -118,16 +133,30 @@ end
 
 set_param(averageTarget, "InitialCondition", num2str(newAverageK, "%.17g"));
 set_param(outletTarget, "InitialCondition", num2str(newOutletK, "%.17g"));
-save_system(model, candidatePath);
+assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+    stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+save_system(model, stagingCandidatePath);
+assertSameIdentity(runIdentity, runDir, "run directory");
+assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
+stagingCandidateIdentity = pathIdentity(stagingCandidatePath, "file");
 closeWithoutSaving(model);
-clear candidateCleanup
+injectFailure("after_candidate_save", stagingCandidatePath, sourcePath);
 
 % Reopen the persisted bytes, perform the only diagram update, and audit
 % without saving again so compilation side effects cannot enter candidate.slx.
-candidateCleanup = onCleanup(@() closeWithoutSaving(model));
-load_system(candidatePath);
-assertLoadedFile(model, candidatePath);
+assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+    stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+load_system(stagingCandidatePath);
+assertLoadedFile(model, stagingCandidatePath);
+assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+    stagingDir, stagingCandidateIdentity, stagingCandidatePath);
 set_param(model, "SimulationCommand", "update")
+assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+    stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
+injectFailure("after_update");
 
 candidateStates = stateSnapshot(model);
 candidateSolver = solverSnapshot(model);
@@ -168,15 +197,32 @@ if abs(persistedAverageK - newAverageK) > 1e-12 || ...
         "The post-update candidate state values changed unexpectedly.");
 end
 closeWithoutSaving(model);
-clear candidateCleanup
-clear fileGenerationCleanup
-clear baseCleanup
+assertPathOperationIdentities(runIdentity, runDir, stagingIdentity, ...
+    stagingDir, stagingCandidateIdentity, stagingCandidatePath);
+assertFileGeneration(Simulink.fileGenControl("getConfig"), cacheFolder, ...
+    codegenFolder, runDir, fileGenerationRootIdentity, cacheIdentity, ...
+    codegenIdentity);
+restoreFileGeneration(oldFileGeneration);
+assertFileGenerationRestored(oldFileGeneration);
+restoreBaseWorkspace(baseSnapshot);
+
+injectFailure("before_candidate_publish", candidatePath);
+moveFileExclusive(stagingCandidatePath, candidatePath)
+candidateIdentity = pathIdentity(candidatePath, "file");
+if candidateIdentity.file_key ~= stagingCandidateIdentity.file_key
+    error("fig519a3:AtomicMoveIdentityChanged", ...
+        "Atomic publication changed the candidate file identity.");
+end
+assertSameIdentity(runIdentity, runDir, "run directory");
+assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
 
 sourceHashAfter = sha256File(sourcePath);
 runtimeAfter = runtimeIdentities(runtimeDir, repoRoot);
 protectedAfter = protectedIdentities(protectedPath, repoRoot);
+formalAfter = formalIdentities(repoRoot);
 assertIdentitySetUnchanged(runtimeBefore, runtimeAfter, "runtime dependency");
 assertIdentitySetUnchanged(protectedBefore, protectedAfter, "protected file");
+assertIdentitySetUnchanged(formalBefore, formalAfter, "formal root file");
 if sourceHashAfter ~= expectedSourceHash || sourceHashAfter ~= sourceHashBefore
     error("fig519a3:SourceChanged", ...
         "Candidate generation changed the immutable source model.");
@@ -186,6 +232,7 @@ candidateHash = sha256File(candidatePath);
 
 runtimeRecords = beforeAfterRecords(runtimeBefore, runtimeAfter);
 protectedRecords = beforeAfterRecords(protectedBefore, protectedAfter);
+formalRecords = beforeAfterFormalRecords(formalBefore, formalAfter);
 changedStates = [ ...
     struct("path", ...
         "final_steady_24a/IHX/IHX_region_2/T_c1_average_Integrator", ...
@@ -206,6 +253,7 @@ auditPath = fullfile(runDir, "patch_audit.json");
 auditChannel = openFileExclusive(auditPath);
 auditChannelCleanup = onCleanup(@() closeChannel(auditChannel));
 assertRegularFile(auditPath, "patch audit");
+injectFailure("after_audit_open", runDir, stagingDir);
 artifacts = artifactAudit(runDir, candidatePath, auditPath);
 fileGenerationSettings = struct( ...
     "cache_folder", canonicalPath(activeFileGeneration.CacheFolder), ...
@@ -252,7 +300,11 @@ audit = struct( ...
     "runtime_dependencies", runtimeRecords, ...
     "protected_manifest_sha256", sha256File(protectedPath), ...
     "protected_files", protectedRecords, ...
+    "formal_identity_schema", "repository_root_formal_identity_v1", ...
+    "formal_files", formalRecords, ...
     "file_generation_settings", fileGenerationSettings, ...
+    "threat_model", ...
+        "private_0700_random_staging_and_repeated_no_follow_file_key_gates_detect_finite_replacement_but_do_not_claim_protection_against_a_continuously_mutating_same_uid_adversary", ...
     "artifact_audit", artifacts, ...
     "update_diagram_count", 1, ...
     "paper_reproduced", false, ...
@@ -261,6 +313,7 @@ audit = struct( ...
 
 auditText = string(jsonencode(audit, PrettyPrint=true)) + newline;
 writeOpenChannel(auditChannel, auditText);
+injectFailure("after_audit_write");
 auditChannel.force(true);
 auditChannel.close();
 clear auditChannelCleanup
@@ -273,6 +326,9 @@ if persistedAuditHash ~= expectedAuditHash
         "(expected SHA256 %s, got %s).", ...
         expectedAuditHash, persistedAuditHash);
 end
+restoreCallerState(sourceModel, model, oldFileGeneration, baseSnapshot, ...
+    oldFolder, oldPath);
+clear callerCleanup
 end
 
 function repoRoot = validateRepoRoot(repoRoot)
@@ -414,7 +470,8 @@ maskRecords = strings(numel(blocks), 1);
 maskInventory = repmat(struct("path", "", "mask_enabled", "", ...
     "mask_type", ""), numel(blocks), 1);
 maskEnabledCount = 0;
-edges = strings(0, 1);
+lineInventory = repmat(struct("source", "", "destinations", strings(0, 1), ...
+    "canonical", ""), 0, 1);
 for index = 1:numel(blocks)
     relative = relativeBlockPath(blocks(index), model);
     maskEnabled = string(get_param(blocks(index), "Mask"));
@@ -445,38 +502,51 @@ lines = find_system(model, "FindAll", "on", "Type", "line");
 for index = 1:numel(lines)
     sourcePort = get_param(lines(index), "SrcPortHandle");
     destinationPorts = get_param(lines(index), "DstPortHandle");
-    if isempty(sourcePort) || sourcePort == -1 || isempty(destinationPorts)
-        continue
-    end
-    sourceBlock = string(get_param(sourcePort, "Parent"));
-    sourceNumber = string(get_param(sourcePort, "PortNumber"));
-    for destinationIndex = 1:numel(destinationPorts)
-        if destinationPorts(destinationIndex) == -1
-            continue
+    source = endpointIdentity(sourcePort, model, "<unconnected-source>");
+    if isempty(destinationPorts)
+        destinations = "<no-destination>";
+    else
+        destinations = strings(numel(destinationPorts), 1);
+        for destinationIndex = 1:numel(destinationPorts)
+            destinations(destinationIndex) = endpointIdentity( ...
+                destinationPorts(destinationIndex), model, ...
+                "<unconnected-destination>");
         end
-        destinationBlock = string(get_param( ...
-            destinationPorts(destinationIndex), "Parent"));
-        destinationNumber = string(get_param( ...
-            destinationPorts(destinationIndex), "PortNumber"));
-        edges(end + 1, 1) = ...
-            relativeBlockPath(sourceBlock, model) + ":" + sourceNumber + ...
-            "->" + relativeBlockPath(destinationBlock, model) + ":" + ...
-            destinationNumber; %#ok<AGROW>
     end
+    destinations = sort(destinations(:));
+    canonical = source + "->" + strjoin(destinations, ",");
+    lineInventory(end + 1, 1) = struct("source", source, ...
+        "destinations", destinations, "canonical", canonical); %#ok<AGROW>
 end
 portRecords = sort(portRecords);
-edges = sort(unique(edges));
+if ~isempty(lineInventory)
+    [~, order] = sort(string({lineInventory.canonical}));
+    lineInventory = lineInventory(order);
+end
+lineRecords = string({lineInventory.canonical}).';
 snapshot = struct( ...
     "block_count", numel(blockRecords), ...
     "port_owner_count", numel(portRecords), ...
-    "edge_count", numel(edges), ...
+    "line_count", numel(lineInventory), ...
+    "edge_count", sum(arrayfun(@(item) numel(item.destinations), ...
+        lineInventory)), ...
     "mask_enabled_count", maskEnabledCount, ...
     "mask_inventory", maskInventory, ...
     "mask_fingerprint", sha256Text(strjoin(maskRecords, newline)), ...
     "block_mask_fingerprint", ...
         sha256Text(strjoin(blockRecords, newline)), ...
     "port_fingerprint", sha256Text(strjoin(portRecords, newline)), ...
-    "line_fingerprint", sha256Text(strjoin(edges, newline)));
+    "line_inventory", lineInventory, ...
+    "line_fingerprint", sha256Text(strjoin(lineRecords, newline)));
+end
+
+function endpoint = endpointIdentity(portHandle, model, sentinel)
+if isempty(portHandle) || portHandle == -1
+    endpoint = sentinel;
+    return
+end
+endpoint = relativeBlockPath(string(get_param(portHandle, "Parent")), model) + ...
+    ":" + string(get_param(portHandle, "PortNumber"));
 end
 
 function snapshot = modelWorkspaceSnapshot(model)
@@ -538,6 +608,7 @@ if sha256File(manifestPath) ~= ...
     error("fig519a3:ProtectedManifestHashMismatch", ...
         "Protected recovery manifest identity changed.");
 end
+
 tableData = readtable(manifestPath, TextType="string", ...
     VariableNamingRule="preserve");
 required = ["original_path", "expected_sha256", "resolved_path", ...
@@ -567,6 +638,62 @@ for index = 1:height(tableData)
 end
 end
 
+function records = formalIdentities(repoRoot)
+fixed = ["final_steady_24a.slx"; "final_dynamic_24a.slx"; ...
+    "HeXe_property_simulink.m"; "Lithium_property_simulink.m"];
+matItems = dir(fullfile(repoRoot, "*.mat"));
+names = unique([fixed; sort(string({matItems.name}).')], "stable");
+records = repmat(struct("name", "", "repository_relative_path", "", ...
+    "exists", false, "absolute_path", "", "file_key", "", ...
+    "sha256", ""), numel(names), 1);
+for index = 1:numel(names)
+    filePath = fullfile(repoRoot, names(index));
+    exists = isfile(filePath) || isfolder(filePath) || isSymbolicLink(filePath);
+    if exists
+        assertNoSymlinkAncestors(filePath, repoRoot);
+        assertRegularFile(filePath, "formal root file");
+        identity = pathIdentity(filePath, "file");
+        absolutePath = identity.absolute_path;
+        fileKey = identity.file_key;
+        hash = sha256File(filePath);
+    else
+        absolutePath = string(java.io.File(filePath).getAbsolutePath());
+        fileKey = "";
+        hash = "";
+    end
+    records(index) = struct("name", names(index), ...
+        "repository_relative_path", names(index), "exists", exists, ...
+        "absolute_path", absolutePath, "file_key", fileKey, ...
+        "sha256", hash);
+end
+end
+
+function output = beforeAfterFormalRecords(before, after)
+if numel(before) ~= numel(after) || ...
+        ~isequal(string({before.repository_relative_path}), ...
+        string({after.repository_relative_path}))
+    error("fig519a3:FormalIdentitySetChanged", ...
+        "Formal root identity record names changed.");
+end
+output = repmat(struct("repository_relative_path", "", ...
+    "exists_before", false, "exists_after", false, ...
+    "absolute_path", "", "before_file_key", "", ...
+    "after_file_key", "", "before_sha256", "", "after_sha256", "", ...
+    "unchanged", false), numel(before), 1);
+for index = 1:numel(before)
+    unchanged = isequal(before(index), after(index));
+    output(index) = struct( ...
+        "repository_relative_path", before(index).repository_relative_path, ...
+        "exists_before", before(index).exists, ...
+        "exists_after", after(index).exists, ...
+        "absolute_path", before(index).absolute_path, ...
+        "before_file_key", before(index).file_key, ...
+        "after_file_key", after(index).file_key, ...
+        "before_sha256", before(index).sha256, ...
+        "after_sha256", after(index).sha256, "unchanged", unchanged);
+end
+end
+
 function output = beforeAfterRecords(before, after)
 if numel(before) ~= numel(after) || ...
         ~isequal(string({before.name}), string({after.name}))
@@ -592,30 +719,7 @@ end
 end
 
 function artifacts = artifactAudit(runDir, candidatePath, auditPath)
-items = dir(fullfile(runDir, "**", "*"));
-items = items(~[items.isdir]);
-records = repmat(struct("repository_relative_path", "", ...
-    "absolute_path", "", "regular_file", false, ...
-    "symlink", false, "contained", false), numel(items), 1);
-for index = 1:numel(items)
-    filePath = string(fullfile(items(index).folder, items(index).name));
-    javaPath = java.nio.file.Paths.get(char(filePath), ...
-        javaArray("java.lang.String", 0));
-    regular = isRegularFile(filePath);
-    symlink = java.nio.file.Files.isSymbolicLink(javaPath);
-    contained = isContained(filePath, runDir);
-    if ~regular || symlink || ~contained
-        error("fig519a3:UnsafeArtifact", ...
-            "Candidate artifact is non-regular, symlinked, or outside runDir.");
-    end
-    records(index) = struct( ...
-        "repository_relative_path", ...
-            replace(extractAfter(canonicalPath(filePath), ...
-            strlength(canonicalPath(runDir) + filesep)), filesep, "/"), ...
-        "absolute_path", canonicalPath(filePath), ...
-        "regular_file", regular, "symlink", symlink, ...
-        "contained", contained);
-end
+[files, directories] = walkArtifactTree(runDir, runDir);
 artifacts = struct( ...
     "candidate_regular_file", isRegularFile(candidatePath), ...
     "candidate_symlink", isSymbolicLink(candidatePath), ...
@@ -623,20 +727,73 @@ artifacts = struct( ...
     "audit_regular_file", isRegularFile(auditPath), ...
     "audit_symlink", isSymbolicLink(auditPath), ...
     "audit_contained", isContained(auditPath, runDir), ...
-    "all_paths_contained", all([records.contained]), ...
-    "all_files_regular", all([records.regular_file]), ...
-    "any_symlink", any([records.symlink]), ...
-    "files", records, ...
+    "all_paths_contained", all([files.contained]) && ...
+        all([directories.contained]), ...
+    "all_files_regular", all([files.regular_file]), ...
+    "all_directories_real", all([directories.real_directory]), ...
+    "any_symlink", any([files.symlink]) || any([directories.symlink]), ...
+    "files", files, "directories", directories, ...
     "raw_result_present", isfile(fullfile(runDir, "raw_result.mat")), ...
     "run_directory_present", isfolder(fullfile(runDir, "run")));
 if ~artifacts.candidate_regular_file || artifacts.candidate_symlink || ...
         ~artifacts.candidate_contained || ~artifacts.audit_regular_file || ...
         artifacts.audit_symlink || ~artifacts.audit_contained || ...
         ~artifacts.all_paths_contained || ~artifacts.all_files_regular || ...
+        ~artifacts.all_directories_real || ...
         artifacts.any_symlink || artifacts.raw_result_present || ...
         artifacts.run_directory_present
     error("fig519a3:ArtifactAuditFailed", ...
         "The zero-simulation candidate artifact audit failed.");
+end
+end
+
+function [files, directories] = walkArtifactTree(root, current)
+files = repmat(struct("repository_relative_path", "", ...
+    "absolute_path", "", "file_key", "", "regular_file", false, ...
+    "symlink", false, "contained", false), 0, 1);
+directories = repmat(struct("repository_relative_path", "", ...
+    "absolute_path", "", "file_key", "", "real_directory", false, ...
+    "symlink", false, "contained", false), 0, 1);
+stream = java.nio.file.Files.newDirectoryStream(nioPath(current));
+streamCleanup = onCleanup(@() stream.close());
+iterator = stream.iterator();
+children = strings(0, 1);
+while iterator.hasNext()
+    children(end + 1, 1) = string(iterator.next().toString()); %#ok<AGROW>
+end
+clear streamCleanup
+stream.close();
+children = sort(children);
+for index = 1:numel(children)
+    itemPath = children(index);
+    symlink = isSymbolicLink(itemPath);
+    contained = isContainedLexically(itemPath, root);
+    if symlink || ~contained
+        error("fig519a3:UnsafeArtifact", ...
+            "Artifact entries must be contained and must not be symlinks.");
+    end
+    relative = lexicalRelative(itemPath, root);
+    if isDirectoryNoFollow(itemPath)
+        identity = pathIdentity(itemPath, "directory");
+        directories(end + 1, 1) = struct( ...
+            "repository_relative_path", relative, ...
+            "absolute_path", identity.absolute_path, ...
+            "file_key", identity.file_key, "real_directory", true, ...
+            "symlink", false, "contained", true); %#ok<AGROW>
+        [nestedFiles, nestedDirectories] = walkArtifactTree(root, itemPath);
+        files = [files; nestedFiles]; %#ok<AGROW>
+        directories = [directories; nestedDirectories]; %#ok<AGROW>
+    elseif isRegularFile(itemPath)
+        identity = pathIdentity(itemPath, "file");
+        files(end + 1, 1) = struct( ...
+            "repository_relative_path", relative, ...
+            "absolute_path", identity.absolute_path, ...
+            "file_key", identity.file_key, "regular_file", true, ...
+            "symlink", false, "contained", true); %#ok<AGROW>
+    else
+        error("fig519a3:UnsafeArtifact", ...
+            "Artifact entries must be regular files or real directories.");
+    end
 end
 end
 
@@ -653,29 +810,83 @@ if bdIsLoaded(model)
 end
 end
 
+function restoreCallerState(sourceModel, model, fileGeneration, ...
+        baseSnapshot, folder, matlabPath)
+closeWithoutSaving(model);
+closeWithoutSaving(sourceModel);
+restoreFileGeneration(fileGeneration);
+restoreBaseWorkspace(baseSnapshot);
+cd(folder);
+path(matlabPath);
+end
+
 function restoreFileGeneration(config)
 Simulink.fileGenControl("set", "CacheFolder", config.CacheFolder, ...
     "CodeGenFolder", config.CodeGenFolder, "createDir", true);
 end
 
-function snapshot = captureBaseWorkspace()
-names = string(evalin("base", "who"));
-snapshot = repmat(struct("name", "", "value", []), numel(names), 1);
+function assertFileGeneration(config, cacheFolder, codegenFolder, runDir, ...
+        rootIdentity, cacheIdentity, codegenIdentity)
+if canonicalPath(config.CacheFolder) ~= canonicalPath(cacheFolder) || ...
+        canonicalPath(config.CodeGenFolder) ~= canonicalPath(codegenFolder) || ...
+        ~isContained(config.CacheFolder, runDir) || ...
+        ~isContained(config.CodeGenFolder, runDir)
+    error("fig519a3:FileGenerationConfigurationMismatch", ...
+        "Active file-generation folders are not the bound contained folders.");
+end
+assertSameIdentity(rootIdentity, fileparts(cacheFolder), ...
+    "file-generation root");
+assertSameIdentity(cacheIdentity, cacheFolder, "cache folder");
+assertSameIdentity(codegenIdentity, codegenFolder, "codegen folder");
+end
+
+function assertFileGenerationRestored(expected)
+actual = Simulink.fileGenControl("getConfig");
+if ~isequal(string(actual.CacheFolder), string(expected.CacheFolder)) || ...
+        ~isequal(string(actual.CodeGenFolder), string(expected.CodeGenFolder))
+    error("fig519a3:FileGenerationRestoreFailed", ...
+        "File-generation settings were not restored exactly.");
+end
+end
+
+function snapshot = captureStartupWorkspace()
+names = ["ETAT_table"; "N_design"; "PR_design"; "PR_table"; ...
+    "P_in_design"; "P_out_design"; "P_out_table"; "Power_design"; ...
+    "Power_table"; "T_in_design"; "T_out_design"; "T_out_table"; ...
+    "choke_m_ratio"; "common_valid_flow_ratio"; "coordinate_definition"; ...
+    "cp_hexe"; "description"; "eta_design"; "gamma_hexe"; ...
+    "m_ratio_bp"; "mdot_design"; "provenance"; "reference"; ...
+    "simulink_usage"; "speed_bp"; "surge_m_ratio"; ...
+    "valid_flow_ratio_by_speed"; "valid_mask"; "version"; ...
+    "A_rad"; "Cp_rad"; "M_rad"; "ans"; "epsilon"; "h_h"; ...
+    "out"; "theta"; "bp_er"; "bp_speed"; "table_mf"; "bp_mf"; ...
+    "table_eff"; "I_TAC"; "scriptDir"; "paper54"];
+base = Simulink.data.BaseWorkspace;
+accessor = base.getDataAccessor;
+snapshot = repmat(struct("name", "", "existed", false, "value", []), ...
+    numel(names), 1);
 for index = 1:numel(names)
     snapshot(index).name = names(index);
-    snapshot(index).value = evalin("base", names(index));
+    snapshot(index).existed = logical(base.exist(char(names(index))));
+    if snapshot(index).existed
+        identifiers = accessor.identifyByName(char(names(index)));
+        if isempty(identifiers)
+            error("fig519a3:BaseWorkspaceCaptureFailed", ...
+                "Could not capture startup variable %s.", names(index));
+        end
+        snapshot(index).value = accessor.getVariable(identifiers(1));
+    end
 end
 end
 
 function restoreBaseWorkspace(snapshot)
-expected = string({snapshot.name});
-current = string(evalin("base", "who"));
-created = setdiff(current, expected);
-for index = 1:numel(created)
-    evalin("base", "clear(" + matlabString(created(index)) + ")");
-end
+base = Simulink.data.BaseWorkspace;
 for index = 1:numel(snapshot)
-    assignin("base", snapshot(index).name, snapshot(index).value);
+    if snapshot(index).existed
+        base.assignin(char(snapshot(index).name), snapshot(index).value);
+    elseif base.exist(char(snapshot(index).name))
+        base.clear(char(snapshot(index).name));
+    end
 end
 end
 
@@ -709,16 +920,18 @@ end
 end
 
 function tf = isRegularFile(pathValue)
-javaPath = java.nio.file.Paths.get(char(pathValue), ...
-    javaArray("java.lang.String", 0));
+javaPath = nioPath(pathValue);
 tf = java.nio.file.Files.isRegularFile(javaPath, ...
-    javaArray("java.nio.file.LinkOption", 0));
+    noFollowOptions());
 end
 
 function tf = isSymbolicLink(pathValue)
-javaPath = java.nio.file.Paths.get(char(pathValue), ...
-    javaArray("java.lang.String", 0));
+javaPath = nioPath(pathValue);
 tf = java.nio.file.Files.isSymbolicLink(javaPath);
+end
+
+function tf = isDirectoryNoFollow(pathValue)
+tf = java.nio.file.Files.isDirectory(nioPath(pathValue), noFollowOptions());
 end
 
 function relative = relativeBlockPath(pathValue, model)
@@ -760,6 +973,18 @@ root = canonicalPath(root);
 tf = canonical ~= root && startsWith(canonical, root + filesep);
 end
 
+function tf = isContainedLexically(pathValue, root)
+pathValue = string(nioPath(pathValue).toAbsolutePath().normalize().toString());
+root = string(nioPath(root).toAbsolutePath().normalize().toString());
+tf = pathValue ~= root && startsWith(pathValue, root + filesep);
+end
+
+function relative = lexicalRelative(pathValue, root)
+relative = string(nioPath(root).toAbsolutePath().normalize().relativize( ...
+    nioPath(pathValue).toAbsolutePath().normalize()).toString());
+relative = replace(relative, filesep, "/");
+end
+
 function output = canonicalPath(pathValue)
 output = string(java.io.File(string(pathValue)).getCanonicalPath());
 end
@@ -784,6 +1009,31 @@ catch exception
     end
     rethrow(exception)
 end
+end
+
+function moveFileExclusive(sourcePath, candidatePath)
+try
+    java.nio.file.Files.createLink(nioPath(candidatePath), nioPath(sourcePath));
+    linkedIdentity = pathIdentity(candidatePath, "file");
+    sourceIdentity = pathIdentity(sourcePath, "file");
+    if linkedIdentity.file_key ~= sourceIdentity.file_key
+        error("fig519a3:AtomicPublishIdentityMismatch", ...
+            "Exclusive hard-link publication changed file identity.");
+    end
+    java.nio.file.Files.delete(nioPath(sourcePath));
+catch exception
+    if isfile(candidatePath) || isfolder(candidatePath) || ...
+            isSymbolicLink(candidatePath)
+        error("fig519a3:CandidateExists", ...
+            "Refusing to overwrite public candidate '%s'.", candidatePath);
+    end
+    rethrow(exception)
+end
+end
+
+function moveDirectoryExclusive(sourcePath, destinationPath)
+options = javaArray("java.nio.file.CopyOption", 0);
+java.nio.file.Files.move(nioPath(sourcePath), nioPath(destinationPath), options);
 end
 
 function channel = openFileExclusive(filePath)
@@ -841,14 +1091,166 @@ catch exception
 end
 end
 
-function hash = sha256File(filePath)
-[status, output] = system("shasum -a 256 " + shellQuote(filePath));
-if status ~= 0
-    error("fig519a3:HashFailed", ...
-        "Could not hash '%s': %s", filePath, output);
+function stagingDir = createPrivateStagingDirectory(runDir)
+for attempt = 1:16
+    stagingDir = fullfile(runDir, ".fig519a3-stage-" + ...
+        string(char(java.util.UUID.randomUUID)));
+    try
+        createDirectoryExclusive(stagingDir);
+        permissions = java.nio.file.attribute.PosixFilePermissions.fromString( ...
+            "rwx------");
+        java.nio.file.Files.setPosixFilePermissions(nioPath(stagingDir), permissions);
+        assertSameIdentity(pathIdentity(stagingDir, "directory"), stagingDir, ...
+            "private staging directory");
+        return
+    catch exception
+        if ~strcmp(exception.identifier, "fig519a3:RunDirExists")
+            rethrow(exception)
+        end
+    end
 end
-parts = split(strtrim(output));
-hash = string(parts(1));
+error("fig519a3:StagingCreationFailed", ...
+    "Could not create an exclusive randomized private staging directory.");
+end
+
+function identity = pathIdentity(pathValue, expectedKind)
+javaPath = nioPath(pathValue);
+if java.nio.file.Files.isSymbolicLink(javaPath)
+    error("fig519a3:SymlinkForbidden", ...
+        "Identity-bound paths must not be symlinks: %s", pathValue);
+end
+attributes = java.nio.file.Files.readAttributes(javaPath, ...
+    "basic:fileKey,isDirectory,isRegularFile", noFollowOptions());
+isDirectory = logical(attributes.get("isDirectory"));
+isRegular = logical(attributes.get("isRegularFile"));
+if (expectedKind == "directory" && ~isDirectory) || ...
+        (expectedKind == "file" && ~isRegular)
+    error("fig519a3:IdentityKindMismatch", ...
+        "Identity-bound path has the wrong kind: %s", pathValue);
+end
+fileKey = string(attributes.get("fileKey"));
+if strlength(fileKey) == 0 || fileKey == "null"
+    error("fig519a3:FileKeyUnavailable", ...
+        "A stable no-follow file key is required: %s", pathValue);
+end
+identity = struct("absolute_path", ...
+    string(javaPath.toAbsolutePath().normalize().toString()), ...
+    "file_key", fileKey, "kind", expectedKind);
+end
+
+function assertSameIdentity(expected, pathValue, label)
+actual = pathIdentity(pathValue, expected.kind);
+if actual.absolute_path ~= expected.absolute_path || ...
+        actual.file_key ~= expected.file_key
+    error("fig519a3:PathIdentityChanged", ...
+        "%s was replaced during candidate generation.", label);
+end
+end
+
+function assertPathOperationIdentities(runIdentity, runDir, ...
+        stagingIdentity, stagingDir, candidateIdentity, candidatePath)
+assertSameIdentity(runIdentity, runDir, "run directory");
+assertSameIdentity(stagingIdentity, stagingDir, "staging directory");
+assertSameIdentity(candidateIdentity, candidatePath, "staging candidate");
+end
+
+function injectFailure(point, varargin)
+key = "fig519a3_test_failure_point";
+if ~isappdata(0, key)
+    return
+end
+hook = getappdata(0, key);
+if (isstring(hook) || ischar(hook)) && string(hook) == string(point)
+    error("fig519a3:InjectedFailure", ...
+        "Deterministic zero-simulation test failure at %s.", point);
+end
+if ~isstruct(hook) || ~isfield(hook, "point") || ...
+        string(hook.point) ~= string(point)
+    return
+end
+action = string(hook.action);
+switch action
+    case "replace_staging_directory"
+        original = string(varargin{1});
+        displaced = original + ".replaced-" + ...
+            string(char(java.util.UUID.randomUUID));
+        moveDirectoryExclusive(original, displaced);
+        createDirectoryExclusive(original);
+    case "replace_hashed_candidate"
+        % Performed inside sha256File after the no-follow channel is open.
+    case "install_public_candidate"
+        publicPath = string(varargin{1});
+        channel = openFileExclusive(publicPath);
+        writeOpenChannel(channel, "replacement");
+        channel.close();
+    case "install_symlink_directory"
+        linkPath = fullfile(string(varargin{1}), ...
+            "injected-symlink-directory");
+        java.nio.file.Files.createSymbolicLink(nioPath(linkPath), ...
+            nioPath(string(varargin{2})), ...
+            javaArray("java.nio.file.attribute.FileAttribute", 0));
+    otherwise
+        error("fig519a3:InvalidTestHook", ...
+            "The zero-simulation test hook action is not allowlisted.");
+end
+end
+
+function injectHashReplacement(filePath)
+key = "fig519a3_test_failure_point";
+if ~isappdata(0, key)
+    return
+end
+hook = getappdata(0, key);
+if ~isstruct(hook) || ~isfield(hook, "point") || ...
+        string(hook.point) ~= "during_hash" || ...
+        string(hook.action) ~= "replace_hashed_candidate" || ...
+        ~endsWith(string(filePath), "candidate.slx")
+    return
+end
+displaced = string(filePath) + ".replaced-" + ...
+    string(char(java.util.UUID.randomUUID));
+moveFileExclusive(filePath, displaced);
+channel = openFileExclusive(filePath);
+writeOpenChannel(channel, "replacement");
+channel.close();
+end
+
+function javaPath = nioPath(pathValue)
+javaPath = java.nio.file.Paths.get(char(string(pathValue)), ...
+    javaArray("java.lang.String", 0));
+end
+
+function options = noFollowOptions()
+options = javaArray("java.nio.file.LinkOption", 1);
+options(1) = java.nio.file.LinkOption.NOFOLLOW_LINKS;
+end
+
+function hash = sha256File(filePath)
+before = pathIdentity(filePath, "file");
+options = javaArray("java.nio.file.OpenOption", 2);
+options(1) = java.nio.file.StandardOpenOption.READ;
+options(2) = java.nio.file.LinkOption.NOFOLLOW_LINKS;
+channel = java.nio.file.Files.newByteChannel(nioPath(filePath), options);
+cleanup = onCleanup(@() closeChannel(channel));
+injectHashReplacement(filePath);
+digest = java.security.MessageDigest.getInstance("SHA-256");
+buffer = java.nio.ByteBuffer.allocate(1024 * 1024);
+while true
+    count = channel.read(buffer);
+    if count < 0
+        break
+    end
+    if count == 0
+        continue
+    end
+    digest.update(buffer.array(), 0, count);
+    buffer.clear();
+end
+channel.close();
+clear cleanup
+assertSameIdentity(before, filePath, "hashed file");
+raw = digest.digest();
+hash = string(lower(reshape(dec2hex(typecast(raw, "uint8"), 2).', 1, [])));
 end
 
 function hash = sha256Text(text)
@@ -860,8 +1262,4 @@ else
     raw = digest.digest(int8(bytes));
 end
 hash = string(lower(reshape(dec2hex(typecast(raw, "uint8"), 2).', 1, [])));
-end
-
-function quoted = shellQuote(value)
-quoted = "'" + replace(string(value), "'", "'\''") + "'";
 end

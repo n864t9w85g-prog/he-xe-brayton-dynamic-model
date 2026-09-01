@@ -19,6 +19,13 @@ def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
     """Return findings for direct or string-indirected SLX archive editing."""
     lowered = source.lower()
     direct_patterns = {
+        "simulation call": r"(?<![a-z0-9_])sim\s*\(",
+        "subprocess primitive": (
+            r"(?<![a-z0-9_])(?:system|unix|dos|perl|pyrun|pyrunfile)\s*\("
+        ),
+        "dynamic execution primitive": (
+            r"(?<![a-z0-9_])(?:eval|feval|str2func|builtin)\s*\("
+        ),
         "generic XML API": r"\b(?:xml[a-z0-9_]*|matlab\.io\.xml(?:\.[a-z0-9_]+)+)\s*\(",
         "generic ZIP API": r"\b(?:zip|unzip|java\.util\.zip(?:\.[a-z0-9_]+)+)\s*\(",
         "archive extraction API": r"\b(?:untar|extractarchive|expandarchive)\s*\(",
@@ -45,6 +52,7 @@ def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
     for match in re.finditer(r'"((?:[^"]|"")*)"|\'((?:[^\']|\'\')*)\'', source):
         value = match.group(1) if match.group(1) is not None else match.group(2)
         literals.append(value.replace('""', '"').replace("''", "'").lower())
+    collapsed_literals = re.sub(r"\s+", "", "".join(literals))
 
     archive_command = re.compile(
         r"(?:^|[;&|]\s*)(?:(?:unzip|zip)\s+\S+|"
@@ -67,8 +75,45 @@ def _forbidden_slx_editing_intents(source: str) -> tuple[str, ...]:
         literal.startswith("simulink.blockdiagram.") for literal in literals
     ):
         findings.append("feval BlockDiagram method string")
+    if "javaobject" in identifiers and "java.util.zip." in collapsed_literals:
+        findings.append("concatenated javaObject ZIP class string")
+    if "readstruct" in identifiers and all(
+        token in collapsed_literals for token in ("filetype", "xml")
+    ):
+        findings.append("concatenated readstruct XML options")
+    if "simulink.blockdiagram." in collapsed_literals:
+        findings.append("concatenated BlockDiagram method string")
+
+    evalin_calls = len(re.findall(r"(?<![a-z0-9_])evalin\s*\(", lowered))
+    allowed_startup = len(
+        re.findall(
+            r'evalin\s*\(\s*"base"\s*,\s*"run\("\s*\+\s*'
+            r'matlabstring\(startpath\)\s*\+\s*"\)"\s*\)',
+            lowered,
+        )
+    )
+    if evalin_calls != allowed_startup:
+        findings.append("non-allowlisted evalin")
 
     return tuple(dict.fromkeys(findings))
+
+
+MALICIOUS_DYNAMIC_EXECUTION = {
+    "spaced sim": 'sim (model)',
+    "feval sim": 'feval("sim", model)',
+    "split feval sim": 'feval("s" + "im", model)',
+    "str2func sim": 'runner = str2func("s" + "im")',
+    "builtin sim": 'builtin("sim", model)',
+    "eval sim": 'eval("s" + "im(model)")',
+    "system primitive": 'system("true")',
+    "unix primitive": 'unix("true")',
+    "dos primitive": 'dos("true")',
+    "perl primitive": 'perl("tool.pl")',
+    "python primitive": 'pyrun("print(1)")',
+    "split zip class": 'javaObject("java.util." + "zip.ZipFile", path)',
+    "split XML": 'readstruct(path, "File" + "Type", "x" + "ml")',
+    "split BlockDiagram": 'feval("Simulink.Block" + "Diagram.modify", model)',
+}
 
 
 class Figure519IhxR2HexeContractTests(unittest.TestCase):
@@ -145,6 +190,25 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         )
         self.assertEqual(_forbidden_slx_editing_intents(legitimate), ())
 
+    def test_static_gate_rejects_dynamic_execution_and_concatenated_payloads(self):
+        for label, snippet in MALICIOUS_DYNAMIC_EXECUTION.items():
+            with self.subTest(label=label):
+                self.assertTrue(_forbidden_slx_editing_intents(snippet), snippet)
+
+    def test_real_generator_has_one_narrow_startup_evalin_and_no_other_dynamic_exec(self):
+        source = self._generator_source()
+        self.assertEqual(_forbidden_slx_editing_intents(source), ())
+        self.assertEqual(
+            len(re.findall(r'\bevalin\s*\(', source, re.IGNORECASE)), 1
+        )
+        self.assertIn(
+            'evalin("base", "run(" + matlabString(startPath) + ")")', source
+        )
+        self.assertNotRegex(
+            source,
+            r"(?i)\b(?:system|unix|dos|perl|pyrun|str2func|builtin|eval|feval)\s*\(",
+        )
+
     def test_a3_candidate_generator_freezes_counts_flags_and_candidate_only_save(self):
         source = self._generator_source()
         for literal in (
@@ -158,8 +222,11 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             '"paper_reproduced", false',
             '"author_initial_state_identified", false',
             '"formal_promotion", false',
-            "copyFileExclusive(sourcePath, candidatePath)",
-            "save_system(model, candidatePath)",
+            "createPrivateStagingDirectory",
+            "save_system(model, stagingCandidatePath)",
+            "moveFileExclusive(stagingCandidatePath, candidatePath)",
+            "assertSameIdentity(runIdentity",
+            "assertSameIdentity(stagingIdentity",
             'activeFileGeneration = Simulink.fileGenControl("getConfig")',
             "openFileExclusive(auditPath)",
             "writeOpenChannel(auditChannel",
@@ -168,6 +235,16 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
             'string(get_param(blocks(index), "MaskType"))',
             '"mask_inventory", maskInventory',
             '"mask_fingerprint", sha256Text(strjoin(maskRecords, newline))',
+            '"formal_identity_schema"',
+            '"formal_files"',
+            '"threat_model"',
+            '"line_inventory"',
+            '"file_key"',
+            '"fig519a3_test_failure_point"',
+            '"replace_hashed_candidate"',
+            '"replace_staging_directory"',
+            '"install_public_candidate"',
+            '"install_symlink_directory"',
         ):
             with self.subTest(literal=literal):
                 self.assertIn(literal, source)
@@ -175,8 +252,10 @@ class Figure519IhxR2HexeContractTests(unittest.TestCase):
         self.assertNotRegex(source, r'set_param\([^\n]*(?:final_steady|final_dynamic)')
         self.assertNotIn('copyfile(sourcePath, candidatePath, "f")', source)
         self.assertNotIn('fopen(filePath, "w"', source)
-        save_at = source.index("save_system(model, candidatePath)")
-        reopen_at = source.index("load_system(candidatePath)", save_at)
+        self.assertNotRegex(source, r"(?i)(?<![a-z0-9_])system\s*\(")
+        self.assertNotIn("shasum", source.lower())
+        save_at = source.index("save_system(model, stagingCandidatePath)")
+        reopen_at = source.index("load_system(stagingCandidatePath)", save_at)
         update_at = source.index(
             'set_param(model, "SimulationCommand", "update")', reopen_at
         )
