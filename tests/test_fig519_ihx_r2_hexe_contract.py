@@ -937,6 +937,48 @@ class Figure519IhxR2HexeOfflineAnalysisTests(unittest.TestCase):
             },
         ]
         source = ROOT / "data/provenance/baselines/f8bcd83/final_steady_24a.slx"
+        runtime = []
+        runtime_root = ROOT / "data/provenance/baselines/f8bcd83/runtime"
+        for name, digest in analysis.RUNTIME_HASHES.items():
+            path = runtime_root / name
+            runtime.append({
+                "name": name,
+                "repository_relative_path": path.relative_to(ROOT).as_posix(),
+                "absolute_path": str(path),
+                "before_sha256": digest, "after_sha256": digest,
+                "unchanged": True,
+            })
+        protected = []
+        with (ROOT / "data/provenance/baselines/f8bcd83/"
+              "protected_manifest_recovery.csv").open(newline="") as handle:
+            for row in csv.DictReader(handle):
+                path = Path(row["resolved_path"])
+                try:
+                    relative = path.relative_to(ROOT).as_posix()
+                except ValueError:
+                    relative = ""
+                protected.append({
+                    "name": row["original_path"],
+                    "repository_relative_path": relative,
+                    "absolute_path": str(path),
+                    "before_sha256": row["resolved_sha256"],
+                    "after_sha256": row["resolved_sha256"],
+                    "unchanged": True,
+                })
+        formal = []
+        for name in analysis.FORMAL_NAMES:
+            path = ROOT / name
+            exists = path.is_file() and not path.is_symlink()
+            digest = self._sha(path) if exists else ""
+            key = f"fixture:{name}" if exists else ""
+            formal.append({
+                "repository_relative_path": name,
+                "exists_before": exists, "exists_after": exists,
+                "absolute_path": str(path),
+                "before_file_key": key, "after_file_key": key,
+                "before_sha256": digest, "after_sha256": digest,
+                "unchanged": True,
+            })
         return {
             "patch_schema": "steady53_fig519_ihx_r2_hexe_shift_candidate_v1",
             "attempt_id": "20260901_A3",
@@ -974,9 +1016,9 @@ class Figure519IhxR2HexeOfflineAnalysisTests(unittest.TestCase):
                 "candidate": {"block_fingerprint": "a" * 64, "edge_fingerprint": "b" * 64},
             },
             "model_workspace": {"unchanged": True, "source": [], "candidate": []},
-            "runtime_dependencies": [{"unchanged": True} for _ in range(9)],
-            "protected_files": [{"unchanged": True} for _ in range(34)],
-            "formal_files": [],
+            "runtime_dependencies": runtime,
+            "protected_files": protected,
+            "formal_files": formal,
             "protected_manifest_sha256": (
                 "33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64"
             ),
@@ -1012,13 +1054,37 @@ class Figure519IhxR2HexeOfflineAnalysisTests(unittest.TestCase):
         )
         if not success:
             candidate_csv.unlink()
+        def snapshot(records):
+            return [{
+                "repository_relative_path": item["repository_relative_path"],
+                "sha256": item["before_sha256"],
+            } for item in records]
+        formal_snapshot = [{
+            "repository_relative_path": item["repository_relative_path"],
+            "exists": item["exists_before"],
+            "sha256": item["before_sha256"],
+        } for item in audit["formal_files"]]
+        protected_snapshot = []
+        for item in audit["protected_files"]:
+            path = Path(item["absolute_path"])
+            stat_result = path.stat()
+            protected_snapshot.append({
+                "name": item["name"], "resolved_path": str(path.resolve()),
+                "sha256": item["before_sha256"],
+                "file_key": f"fixture:{stat_result.st_dev}:{stat_result.st_ino}",
+                "device": str(stat_result.st_dev), "inode": str(stat_result.st_ino),
+            })
+        reference_snapshot = [
+            {"name": name, "sha256": digest}
+            for name, digest in analysis.BASELINE_HASHES.items()
+        ]
         identity = {
             "source_sha256": contract.SOURCE_MODEL_SHA256,
             "candidate_sha256": self._sha(candidate),
-            "runtime_dependencies": [],
-            "protected_files": [],
-            "formal_files": [],
-            "reference_curves": [],
+            "runtime_dependencies": snapshot(audit["runtime_dependencies"]),
+            "protected_files": protected_snapshot,
+            "formal_files": formal_snapshot,
+            "reference_curves": reference_snapshot,
         }
         status = {
             "run_schema": "steady53_fig519_ihx_r2_hexe_shift_run_v1",
@@ -1053,7 +1119,9 @@ class Figure519IhxR2HexeOfflineAnalysisTests(unittest.TestCase):
         (run_dir / "run/run_status.json").write_bytes(self._json_bytes(status))
         return run_dir
 
-    def _make_capture(self):
+    def _make_capture(self, run_dir: Path | None = None, *, archive: bool = True,
+                      exit_code: int | None = None,
+                      error_id: str = "", error_report: str = ""):
         capture = self.root / "capture"
         snapshot = capture / "repo_snapshot"
         immutable = {}
@@ -1067,26 +1135,99 @@ class Figure519IhxR2HexeOfflineAnalysisTests(unittest.TestCase):
             )
             path.write_bytes(payload)
             immutable[name] = path
+        exact_command = (
+            "python3 tmp/fig519_ihx_r2_hexe_20260901_A3_capture/"
+            "repo_snapshot/tests/execute_fig519_ihx_r2_hexe_a3_once.py --execute\n"
+        ).encode()
+        if exit_code is None:
+            exit_code = 0 if run_dir is not None else 99
+        execution = {
+            "execution_schema": "steady53_fig519_ihx_r2_hexe_a3_execution_v1",
+            "attempt_id": "20260901_A3",
+            "formal_command": exact_command.decode().rstrip("\n"),
+            "formal_command_sha256": hashlib.sha256(exact_command).hexdigest(),
+            "formal_command_invocation_count": 1,
+            "matlab_subprocess_start_count": 1 if run_dir is not None else 0,
+            "run_steady53_case_call_count": 1 if run_dir is not None else 0,
+            "retry_count": 0,
+            "formal_process_exit_code": exit_code,
+            "failure_stage": None if exit_code == 0 else "self_hash_or_subprocess_start",
+            "error_id": error_id or ("synthetic:preSimulationFailure" if exit_code else ""),
+            "error_report": error_report or ("synthetic pre-simulation failure" if exit_code else ""),
+            "paper_reproduced": False,
+            "author_initial_state_identified": False,
+            "formal_promotion": False,
+        }
         for name, payload in {
-            "command.txt": b"captured exact command\n",
+            "tracked_diff.patch": b"synthetic tracked diff\n",
+            "git_head.txt": ("d351579414ed94a6afa3acdc917c9cd70469182f\n").encode(),
+            "git_status_porcelain_v1_z.bin": b"",
+            "untracked_paths.json": self._json_bytes([]),
+            "preflight_status.json": self._json_bytes({
+                "attempt_id": "20260901_A3",
+                "formal_command_sha256": hashlib.sha256(exact_command).hexdigest(),
+                "formal_command_invocation_count": 0,
+                "run_steady53_case_call_count": 0,
+                "simulation_call_count": 0,
+            }),
+            "command.txt": exact_command,
             "stdout.log": b"BEGIN_A3_500\n",
-            "stderr.log": b"",
-            "formal_exit_code.txt": b"0\n",
+            "stderr.log": ((str(execution["error_report"]) + "\n").encode()
+                           if execution["error_report"] else b""),
+            "formal_exit_code.txt": f"{exit_code}\n".encode(),
             "formal_invocation.claim": b"20260901_A3\n",
-            "execution_record.json": self._json_bytes(
-                {
-                    "attempt_id": "20260901_A3",
-                    "formal_command_invocation_count": 1,
-                    "run_steady53_case_call_count": 1,
-                    "retry_count": 0,
-                }
-            ),
+            "execution_record.json": self._json_bytes(execution),
         }.items():
             (capture / name).write_bytes(payload)
         sums = "".join(
             f"{self._sha(path)}  {name}\n" for name, path in sorted(immutable.items())
         ).encode()
         (snapshot / "SHA256SUMS").write_bytes(sums)
+        if archive:
+            artifacts = []
+            for name in (
+                "formal_invocation.claim", "command.txt", "stdout.log", "stderr.log",
+                "formal_exit_code.txt", "execution_record.json",
+            ):
+                path = capture / name
+                artifacts.append({
+                    "identity": name,
+                    "location": "capture/" + name,
+                    "sha256": self._sha(path),
+                    "bytes": path.stat().st_size,
+                })
+            run_sources = {
+                "candidate_slx": "candidate.slx",
+                "patch_audit": "patch_audit.json",
+                "run_status": "run/run_status.json",
+                "raw_result": "run/raw_result.mat",
+                "candidate_curves": "run/candidate_curves.csv",
+                "reference_curves": "run/reference_curves.csv",
+            }
+            missing = []
+            for identity, relative in run_sources.items():
+                path = (run_dir / relative) if run_dir is not None else None
+                if path is not None and path.is_file():
+                    artifacts.append({
+                        "identity": identity,
+                        "location": "run/" + relative,
+                        "sha256": self._sha(path),
+                        "bytes": path.stat().st_size,
+                    })
+                else:
+                    missing.append(identity)
+            manifest = {
+                "manifest_schema": "steady53_fig519_ihx_r2_hexe_a3_consumed_execution_v1",
+                "attempt_id": "20260901_A3",
+                "invocation_claimed": True,
+                "formal_command": exact_command.decode().rstrip("\n"),
+                "formal_process_exit_code": exit_code,
+                "artifacts": sorted(artifacts, key=lambda item: item["identity"]),
+                "missing_run_artifacts": sorted(missing),
+            }
+            (capture / "consumed_execution_manifest.json").write_bytes(
+                self._json_bytes(manifest)
+            )
         return capture
 
     def test_a2_scientific_inputs_are_byte_identical_and_direction_behavior_is_frozen(self):
@@ -1199,7 +1340,7 @@ class Figure519IhxR2HexeOfflineAnalysisTests(unittest.TestCase):
 
     def test_publication_recovers_every_stage_and_is_idempotent(self):
         run_dir = self._make_run()
-        capture = self._make_capture()
+        capture = self._make_capture(run_dir)
         durable = self.root / "durable" / "ihx_r2_hexe_shift_A3"
         durable.parent.mkdir()
         history = durable.parent / "initial_state_counterfactual_history.json"
@@ -1245,7 +1386,7 @@ class Figure519IhxR2HexeOfflineAnalysisTests(unittest.TestCase):
 
     def test_publication_binds_raw_csv_capture_and_rejects_symlink_or_tamper(self):
         run_dir = self._make_run()
-        capture = self._make_capture()
+        capture = self._make_capture(run_dir)
         durable = self.root / "published" / "ihx_r2_hexe_shift_A3"
         durable.parent.mkdir()
         history = durable.parent / "initial_state_counterfactual_history.json"
@@ -1297,7 +1438,7 @@ class Figure519IhxR2HexeOfflineAnalysisTests(unittest.TestCase):
 
     def test_failed_run_publication_records_missing_curve_without_placeholder(self):
         run_dir = self._make_run(success=False)
-        capture = self._make_capture()
+        capture = self._make_capture(run_dir)
         durable = self.root / "failed-publication" / "ihx_r2_hexe_shift_A3"
         durable.parent.mkdir()
         history = durable.parent / "initial_state_counterfactual_history.json"
@@ -1313,6 +1454,160 @@ class Figure519IhxR2HexeOfflineAnalysisTests(unittest.TestCase):
             summary["missing_artifacts"]["candidate_curves.csv"],
             "not_generated_by_consumed_attempt",
         )
+
+    def test_publication_rejects_unarchived_execution_without_consumed_manifest(self):
+        run_dir = self._make_run()
+        capture = self._make_capture(run_dir, archive=False)
+        durable = self.root / "unconsumed" / "ihx_r2_hexe_shift_A3"
+        durable.parent.mkdir()
+        history = durable.parent / "initial_state_counterfactual_history.json"
+        self.assertFalse((capture / "consumed_execution_manifest.json").exists())
+        with self.assertRaises(analysis.PublicationError):
+            analysis.publish(run_dir, capture, durable, history)
+
+    def test_consumed_pre_simulation_failure_publishes_without_fake_run_artifacts(self):
+        capture = self._make_capture(None, exit_code=99)
+        run_dir = self.root / "absent-consumed-run"
+        durable = self.root / "pre-sim" / "ihx_r2_hexe_shift_A3"
+        durable.parent.mkdir()
+        history = durable.parent / "initial_state_counterfactual_history.json"
+        analysis.publish(run_dir, capture, durable, history)
+        analysis.verify_only(durable, history)
+        summary = json.loads((durable / "a3_summary.json").read_text())
+        self.assertEqual(summary["analysis"]["conclusion"], "numerical_or_physical_gate_failed")
+        self.assertEqual(summary["analysis"]["gate_failure_class"], "pre_simulation_infrastructure")
+        for forbidden in ("patch_audit.json", "run_status.json", "raw_result.mat",
+                          "candidate_curves.csv", "reference_curves.csv"):
+            self.assertFalse((durable / forbidden).exists())
+
+    def test_execution_manifest_binds_every_claim_and_nonzero_exit_never_promotes(self):
+        for name in ("formal_invocation.claim", "command.txt", "stdout.log",
+                     "stderr.log", "execution_record.json",
+                     "consumed_execution_manifest.json"):
+            with self.subTest(name=name):
+                run_dir = self._make_run()
+                capture = self._make_capture(run_dir)
+                path = capture / name
+                path.write_bytes(path.read_bytes() + b"tamper")
+                durable = self.root / ("tamper-" + name.replace(".", "-")) / "A3"
+                durable.parent.mkdir()
+                with self.assertRaises(analysis.PublicationError):
+                    analysis.publish(
+                        run_dir, capture, durable,
+                        durable.parent / "initial_state_counterfactual_history.json",
+                    )
+                shutil.rmtree(capture)
+        run_dir = self._make_run()
+        capture = self._make_capture(
+            run_dir, exit_code=99, error_id="synthetic:exit99",
+            error_report="formal process failed after the run",
+        )
+        durable = self.root / "exit99" / "A3"
+        durable.parent.mkdir()
+        analysis.publish(
+            run_dir, capture, durable,
+            durable.parent / "initial_state_counterfactual_history.json",
+        )
+        result = json.loads((durable / "analysis.json").read_text())
+        self.assertFalse(result["numerical_gate_passed"])
+        self.assertEqual(result["conclusion"], "numerical_or_physical_gate_failed")
+
+    def test_failure_subclasses_are_mechanical_and_exact(self):
+        cases = (
+            ("completed_model_failure", "Simulink:Engine:CompileError",
+             "compile failed while updating diagram", "compile"),
+            ("completed_model_failure", "HeXe:PropertyDomain",
+             "Virial property assertion", "property_domain"),
+            ("completed_model_failure", "Simulink:RuntimeError",
+             "integration stopped", "model_runtime"),
+            ("completed_incomplete_output", "", "", "incomplete_output"),
+        )
+        for experiment, error_id, report, expected in cases:
+            with self.subTest(expected=expected):
+                run_dir = self._make_run(success=False)
+                path = run_dir / "run/run_status.json"
+                status = json.loads(path.read_text())
+                status["experiment_status"] = experiment
+                status["candidate_error_id"] = error_id
+                status["candidate_error_report"] = report
+                path.write_bytes(self._json_bytes(status))
+                self.assertEqual(analysis.analyze(run_dir)["gate_failure_class"], expected)
+
+    def test_exact_audit_and_run_identity_sets_reject_missing_extra_or_duplicate(self):
+        mutations = (
+            ("runtime_dependencies", "pop"),
+            ("runtime_dependencies", "duplicate"),
+            ("protected_files", "pop"),
+            ("formal_files", "extra"),
+        )
+        for field, operation in mutations:
+            with self.subTest(field=field, operation=operation):
+                run_dir = self._make_run()
+                candidate = run_dir / "candidate.slx"
+                audit = json.loads((run_dir / "patch_audit.json").read_text())
+                if operation == "pop":
+                    audit[field].pop()
+                elif operation == "duplicate":
+                    audit[field][-1] = copy.deepcopy(audit[field][0])
+                else:
+                    audit[field].append(copy.deepcopy(audit[field][0]))
+                with self.assertRaises(analysis.PatchAuditError):
+                    analysis.validate_patch_audit(audit, candidate)
+        run_dir = self._make_run()
+        path = run_dir / "run/run_status.json"
+        status = json.loads(path.read_text())
+        status["identity_after"]["reference_curves"][0]["sha256"] = "0" * 64
+        with self.assertRaises(analysis.RunStatusError):
+            analysis.validate_run_status(status, run_dir)
+
+    def test_durable_capture_is_complete_and_verify_requires_canonical_history_sibling(self):
+        run_dir = self._make_run()
+        capture = self._make_capture(run_dir)
+        durable = self.root / "complete-capture" / "A3"
+        durable.parent.mkdir()
+        history = durable.parent / "initial_state_counterfactual_history.json"
+        analysis.publish(run_dir, capture, durable, history)
+        for name in analysis.CAPTURE_ROOT_FILES:
+            self.assertTrue((durable / name).is_file(), name)
+        for name in analysis.CAPTURE_EXECUTABLES:
+            self.assertTrue((durable / "captured" / name).is_file(), name)
+        alternate = durable.parent / "alternate_history.json"
+        alternate.write_bytes(history.read_bytes())
+        with self.assertRaises(analysis.VerificationError):
+            analysis.verify_only(durable, alternate)
+
+    def test_coordinated_analysis_summary_history_and_manifest_tamper_is_rederived(self):
+        run_dir = self._make_run()
+        capture = self._make_capture(run_dir)
+        durable = self.root / "coordinated" / "A3"
+        durable.parent.mkdir()
+        history_path = durable.parent / "initial_state_counterfactual_history.json"
+        analysis.publish(run_dir, capture, durable, history_path)
+        summary = json.loads((durable / "a3_summary.json").read_text())
+        summary["analysis"]["curves"]["reactor"]["paper_comparison"]["rmse_kW"] += 1.0
+        analysis_payload = self._json_bytes(summary["analysis"])
+        (durable / "analysis.json").write_bytes(analysis_payload)
+        summary["artifacts"]["analysis.json"] = {
+            "sha256": hashlib.sha256(analysis_payload).hexdigest(),
+            "bytes": len(analysis_payload),
+            "role": "captured_or_run_evidence",
+        }
+        summary_payload = self._json_bytes(summary)
+        (durable / "a3_summary.json").write_bytes(summary_payload)
+        history = json.loads(history_path.read_text())
+        history["attempts"][0]["summary"] = summary
+        history_payload = self._json_bytes(history)
+        history_path.write_bytes(history_payload)
+        files = {
+            path.relative_to(durable).as_posix(): path.read_bytes()
+            for path in durable.rglob("*")
+            if path.is_file() and path.name != analysis.MANIFEST_NAME
+        }
+        (durable / analysis.MANIFEST_NAME).write_bytes(
+            analysis._manifest_bytes(files, history_payload)
+        )
+        with self.assertRaises(analysis.VerificationError):
+            analysis.verify_only(durable, history_path)
 
     def test_analyzer_production_source_has_no_assert_and_optimized_validation_survives(self):
         source_path = Path(analysis.__file__)

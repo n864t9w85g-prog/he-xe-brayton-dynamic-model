@@ -38,6 +38,10 @@ INITIALIZATION_AUDIT_PATH = FIG519_DIR / "initialization_audit.json"
 REACTOR_HISTORY = FIG519_DIR / "reactor_ic_counterfactual.json"
 SOURCE_PATH = ROOT / "data/provenance/baselines/f8bcd83/final_steady_24a.slx"
 MODEL_BASELINE_DIR = FIG519_DIR / "model_baseline"
+RUNTIME_DIR = ROOT / "data/provenance/baselines/f8bcd83/runtime"
+PROTECTED_MANIFEST_PATH = (
+    ROOT / "data/provenance/baselines/f8bcd83/protected_manifest_recovery.csv"
+)
 
 PAPER_POINTS_SHA256 = "e63607ad0f599c84fe6980ed26e05c91902b7928a53fabf5bf4a95a3de0098f2"
 SIGNAL_CONTRACT_SHA256 = "de619fd27f0757dc88eb2c50e6da9eb282648735fab94b4015ebbcca430c5d05"
@@ -48,8 +52,29 @@ BASELINE_HASHES = MappingProxyType({
     "baseline_WT_sw.csv": "28b852e9b997af51a860905e53da096821ddfbdd310857d16e9df0761ca2ab23",
     "baseline_Wc_sw.csv": "f44a9bca2c006780f287e4f3a7199f63d26348cc18ad261d4ad89570b0e9ad5c",
 })
+RUNTIME_HASHES = MappingProxyType({
+    "HeXe_property_simulink.m": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+    "Lithium_property_simulink.m": "666a3a9d7bcb45e0e80afca4bd30e02bd19098ce72cc56bfe9a5f528c67b4c4f",
+    "hexe_compressor_lookup.mat": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+    "radiator_table.mat": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+    "turbine_table1.mat": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+    "turbine_table2.mat": "6ff94cce373b67a143e9a992ec693ef17a910440eb4218cdf796543ba48c8a38",
+    "paper54_constants.m": "545e9b7653b4a47759e746e33a52a184e69c1455911929ce096d1a6eb6558345",
+    "sys_param_rad_fixed.m": "bbdcf30dcd2fd7859092af0d85a79ed5dabc6da6c298f1d064ed11d612f30d5b",
+    "start.m": "0de14c8d7e56e22871800f0c84f6eccd5b00e34ae7c20a3501752f45a09effec",
+})
+FORMAL_NAMES = (
+    "final_steady_24a.slx", "final_dynamic_24a.slx",
+    "HeXe_property_simulink.m", "Lithium_property_simulink.m",
+    "hexe_compressor_lookup.mat", "radiator_table.mat",
+    "turbine_table1.mat", "turbine_table2.mat",
+)
 
 PAPER_ETA = 0.98
+EXACT_FORMAL_COMMAND = (
+    "python3 tmp/fig519_ihx_r2_hexe_20260901_A3_capture/"
+    "repo_snapshot/tests/execute_fig519_ihx_r2_hexe_a3_once.py --execute"
+)
 A2_DIRECTION_RULE = MappingProxyType({
     "input": "successive fixed digitized/model samples in increasing time",
     "threshold": "panel_power_allowance_kW",
@@ -73,8 +98,11 @@ CANDIDATE_COLUMNS = (
 )
 REFERENCE_COLUMNS = ("time_s", "reactor_W", "turbine_W", "compressor_W")
 CAPTURE_ROOT_FILES = (
+    "tracked_diff.patch", "git_head.txt", "git_status_porcelain_v1_z.bin",
+    "untracked_paths.json", "preflight_status.json",
     "command.txt", "stdout.log", "stderr.log", "formal_exit_code.txt",
     "formal_invocation.claim", "execution_record.json",
+    "consumed_execution_manifest.json",
 )
 CAPTURE_EXECUTABLES = (
     "tests/prepare_fig519_ihx_r2_hexe_a3.py",
@@ -94,11 +122,22 @@ RUN_FILES = MappingProxyType({
     "candidate_curves.csv": "run/candidate_curves.csv",
     "reference_curves.csv": "run/reference_curves.csv",
 })
+RUN_AUTHENTICITY_SOURCES = MappingProxyType({
+    "candidate_slx": "candidate.slx",
+    "patch_audit": "patch_audit.json",
+    "run_status": "run/run_status.json",
+    "raw_result": "run/raw_result.mat",
+    "candidate_curves": "run/candidate_curves.csv",
+    "reference_curves": "run/reference_curves.csv",
+})
 PUBLICATION_DATA_FILES = (
     "patch_audit.json", "run_status.json", "raw_result.mat",
     "candidate_curves.csv", "reference_curves.csv", "analysis.json",
     "command.txt", "stdout.log", "stderr.log", "formal_exit_code.txt",
     "formal_invocation.claim", "execution_record.json",
+    "tracked_diff.patch", "git_head.txt", "git_status_porcelain_v1_z.bin",
+    "untracked_paths.json", "preflight_status.json",
+    "consumed_execution_manifest.json",
     "captured/SHA256SUMS",
     *tuple("captured/" + name for name in CAPTURE_EXECUTABLES),
     "a3_summary.json",
@@ -139,6 +178,10 @@ class SignalContractError(A3AnalysisError):
 
 
 class PublicationError(A3AnalysisError):
+    pass
+
+
+class ExecutionAuthenticityError(PublicationError):
     pass
 
 
@@ -337,6 +380,95 @@ def _initialization_states() -> list[dict[str, object]]:
     return states
 
 
+def _exact_record_index(records: object, expected: set[str], label: str,
+                        *, name_key: str = "name") -> dict[str, dict[str, object]]:
+    if not isinstance(records, list) or len(records) != len(expected):
+        raise PatchAuditError(f"{label} identity count is not exact")
+    indexed: dict[str, dict[str, object]] = {}
+    for item in records:
+        if not isinstance(item, dict) or not isinstance(item.get(name_key), str):
+            raise PatchAuditError(f"{label} identity is malformed")
+        name = item[name_key]
+        if name in indexed:
+            raise PatchAuditError(f"{label} identity is duplicated: {name}")
+        indexed[name] = item
+    if set(indexed) != expected:
+        raise PatchAuditError(f"{label} identity set has missing or extra entries")
+    return indexed
+
+
+def _validate_audit_identities(audit: dict[str, object]) -> None:
+    runtime_rel = "data/provenance/baselines/f8bcd83/runtime/"
+    runtime = _exact_record_index(
+        audit.get("runtime_dependencies"), set(RUNTIME_HASHES), "runtime"
+    )
+    for name, digest in RUNTIME_HASHES.items():
+        item = runtime[name]
+        path = _regular_file(RUNTIME_DIR / name)
+        if (item.get("repository_relative_path") != runtime_rel + name or
+                Path(str(item.get("absolute_path"))) != path or
+                item.get("before_sha256") != digest or
+                item.get("after_sha256") != digest or
+                item.get("unchanged") is not True or
+                _hash(path.read_bytes()) != digest):
+            raise PatchAuditError(f"runtime identity mismatch: {name}")
+
+    manifest = _regular_file(PROTECTED_MANIFEST_PATH)
+    if _hash(manifest.read_bytes()) != (
+            "33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64"):
+        raise PatchAuditError("protected manifest bytes changed")
+    try:
+        with manifest.open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+    except (OSError, UnicodeDecodeError, csv.Error) as exc:
+        raise PatchAuditError("protected manifest is malformed") from exc
+    if len(rows) != 34 or len({row.get("original_path") for row in rows}) != 34:
+        raise PatchAuditError("protected manifest exact set changed")
+    expected_protected = {str(row["original_path"]) for row in rows}
+    protected = _exact_record_index(
+        audit.get("protected_files"), expected_protected, "protected"
+    )
+    for row in rows:
+        name = str(row["original_path"])
+        item = protected[name]
+        declared_path = Path(str(row["resolved_path"]))
+        path = _regular_file(declared_path, under=Path(declared_path.anchor))
+        try:
+            relative = path.relative_to(ROOT).as_posix()
+        except ValueError:
+            relative = ""
+        digest = str(row["resolved_sha256"])
+        if (item.get("repository_relative_path") != relative or
+                Path(str(item.get("absolute_path"))) != path or
+                item.get("before_sha256") != digest or
+                item.get("after_sha256") != digest or
+                item.get("unchanged") is not True or
+                _hash(path.read_bytes()) != digest):
+            raise PatchAuditError(f"protected identity mismatch: {name}")
+
+    formal = _exact_record_index(
+        audit.get("formal_files"), set(FORMAL_NAMES), "formal",
+        name_key="repository_relative_path",
+    )
+    for name in FORMAL_NAMES:
+        item = formal[name]
+        path = ROOT / name
+        exists = path.is_file() and not path.is_symlink()
+        digest = _hash(path.read_bytes()) if exists else ""
+        before_key = item.get("before_file_key")
+        after_key = item.get("after_file_key")
+        if (Path(str(item.get("absolute_path"))) != path or
+                item.get("exists_before") is not exists or
+                item.get("exists_after") is not exists or
+                item.get("before_sha256") != digest or
+                item.get("after_sha256") != digest or
+                item.get("unchanged") is not True or
+                (exists and (not isinstance(before_key, str) or not before_key or
+                             before_key != after_key)) or
+                (not exists and (before_key != "" or after_key != ""))):
+            raise PatchAuditError(f"formal identity mismatch: {name}")
+
+
 def validate_patch_audit(audit: object, candidate: Path) -> dict[str, object]:
     if not isinstance(audit, dict):
         raise PatchAuditError("patch audit must be an object")
@@ -464,16 +596,7 @@ def validate_patch_audit(audit: object, candidate: Path) -> dict[str, object]:
     if (not isinstance(workspace, dict) or workspace.get("unchanged") is not True or
             workspace.get("source") != workspace.get("candidate")):
         raise PatchAuditError("model workspace changed")
-    if (not isinstance(audit.get("runtime_dependencies"), list) or
-            len(audit["runtime_dependencies"]) != 9 or
-            any(not isinstance(item, dict) or item.get("unchanged") is not True
-                for item in audit["runtime_dependencies"])):
-        raise PatchAuditError("runtime dependency audit is incomplete")
-    if (not isinstance(audit.get("protected_files"), list) or
-            len(audit["protected_files"]) != 34 or
-            any(not isinstance(item, dict) or item.get("unchanged") is not True
-                for item in audit["protected_files"])):
-        raise PatchAuditError("34 protected identities are incomplete")
+    _validate_audit_identities(audit)
     if audit.get("protected_manifest_sha256") != (
             "33f7a4b4bbda5e47932ec9345e490a42b68d5a8636bf541891840c76fde6ed64"):
         raise PatchAuditError("protected manifest identity changed")
@@ -583,8 +706,58 @@ def validate_run_status(status: object, run_dir: Path) -> dict[str, object]:
     candidate = _regular_file(selected / "candidate.slx")
     audit = _read_json(selected / "patch_audit.json", error_type=RunStatusError)
     validated_audit = validate_patch_audit(audit, candidate)
-    if identity.get("candidate_sha256") != validated_audit["candidate_sha256"]:
+    def snapshot(records: object) -> list[dict[str, object]]:
+        if not isinstance(records, list):
+            raise RunStatusError("audit identity record set is malformed")
+        return [{
+            "repository_relative_path": item["repository_relative_path"],
+            "sha256": item["before_sha256"],
+        } for item in records]
+    expected_runtime = snapshot(validated_audit["runtime_dependencies"])
+    expected_formal = [{
+        "repository_relative_path": item["repository_relative_path"],
+        "exists": item["exists_before"],
+        "sha256": item["before_sha256"],
+    } for item in validated_audit["formal_files"]]
+    expected_reference = [{"name": name, "sha256": digest}
+                          for name, digest in BASELINE_HASHES.items()]
+    expected_fixed = {
+        "source_sha256": contract.SOURCE_MODEL_SHA256,
+        "candidate_sha256": validated_audit["candidate_sha256"],
+    }
+    if (set(identity) != {
+            "source_sha256", "candidate_sha256", "runtime_dependencies",
+            "protected_files", "formal_files", "reference_curves"} or
+            any(identity.get(key) != value for key, value in expected_fixed.items()) or
+            identity.get("runtime_dependencies") != expected_runtime or
+            identity.get("formal_files") != expected_formal or
+            identity.get("reference_curves") != expected_reference):
         raise RunStatusError("run candidate identity differs from patch audit")
+    protected_snapshot = identity.get("protected_files")
+    audit_protected = validated_audit["protected_files"]
+    if not isinstance(protected_snapshot, list) or len(protected_snapshot) != 34:
+        raise RunStatusError("run protected identity set differs from patch audit")
+    expected_protected = {item["name"]: item for item in audit_protected}
+    seen: set[str] = set()
+    for item in protected_snapshot:
+        if not isinstance(item, dict) or set(item) != {
+                "name", "resolved_path", "sha256", "file_key", "device", "inode"}:
+            raise RunStatusError("run protected identity record is malformed")
+        name = item.get("name")
+        if not isinstance(name, str) or name in seen or name not in expected_protected:
+            raise RunStatusError("run protected identity set is duplicated or changed")
+        seen.add(name)
+        expected = expected_protected[name]
+        path = Path(str(expected["absolute_path"]))
+        stat_result = os.stat(path, follow_symlinks=False)
+        if (item.get("resolved_path") != str(path.resolve(strict=True)) or
+                item.get("sha256") != expected["before_sha256"] or
+                not isinstance(item.get("file_key"), str) or not item["file_key"] or
+                str(item.get("device")) != str(stat_result.st_dev) or
+                str(item.get("inode")) != str(stat_result.st_ino)):
+            raise RunStatusError(f"run protected identity mismatch: {name}")
+    if seen != set(expected_protected):
+        raise RunStatusError("run protected identity set has missing entries")
     artifacts = _artifact_index(status, selected)
     allowed_artifacts = {
         "candidate_slx", "patch_audit", "raw_result",
@@ -699,6 +872,19 @@ def validate_analysis(result: object) -> dict[str, object]:
         raise A3AnalysisError("numerical gate must be boolean")
     if not passed and result["conclusion"] != "numerical_or_physical_gate_failed":
         raise A3AnalysisError("failed numerical gate has the wrong conclusion")
+    failure_classes = {
+        "pre_simulation_infrastructure", "compile", "property_domain",
+        "model_runtime", "incomplete_output",
+    }
+    if ((passed and result.get("gate_failure_class") is not None) or
+            (not passed and result.get("gate_failure_class") not in failure_classes) or
+            result.get("derived_electrical_paper_eta_formula") !=
+            "0.98*(WT_sw-Wc_sw)" or
+            result.get("direction_rule") != dict(DIRECTION_RULE) or
+            result.get("nonflat_thresholds_W") != {
+                name: float(value) for name, value in NONFLAT_THRESHOLDS_W.items()
+            }):
+        raise A3AnalysisError("analysis formula/rule/failure class changed")
     if passed:
         directions = result.get("directions")
         nonflat = result.get("nonflat")
@@ -712,6 +898,161 @@ def validate_analysis(result: object) -> dict[str, object]:
             raise A3AnalysisError("analysis conclusion is not mechanical")
     _finite_tree(result)
     return result
+
+
+def _verify_durable_scientific_derivation(durable: Path,
+                                          result: dict[str, object]) -> None:
+    execution = _read_json(durable / "execution_record.json", error_type=VerificationError)
+    if not isinstance(execution, dict):
+        raise VerificationError("durable execution record is malformed")
+    try:
+        exit_code = int(_regular_file(durable / "formal_exit_code.txt").read_text().strip())
+    except (UnicodeDecodeError, ValueError, PathValidationError) as exc:
+        raise VerificationError("durable formal exit code is malformed") from exc
+    if (_regular_file(durable / "command.txt").read_bytes() !=
+            (EXACT_FORMAL_COMMAND + "\n").encode() or
+            execution.get("formal_process_exit_code") != exit_code or
+            result.get("run_steady53_case_call_count") !=
+            execution.get("run_steady53_case_call_count") or
+            result.get("retry_count") != execution.get("retry_count")):
+        raise VerificationError("durable execution claims conflict with analysis")
+    if result["numerical_gate_passed"]:
+        if (exit_code != 0 or execution.get("matlab_subprocess_start_count") != 1 or
+                execution.get("run_steady53_case_call_count") != 1):
+            raise VerificationError("positive scientific result lacks exact execution proof")
+    else:
+        status_path = durable / "run_status.json"
+        if status_path.is_file() and not status_path.is_symlink():
+            status = _read_json(status_path, error_type=VerificationError)
+            audit = _read_json(durable / "patch_audit.json", error_type=VerificationError)
+            if (not isinstance(status, dict) or not isinstance(audit, dict) or
+                    result.get("gate_failure_class") !=
+                    _failure_subclass(status, {"exit_code": exit_code}) or
+                    result.get("candidate_sha256") != audit.get("candidate_sha256")):
+                raise VerificationError("failed analysis is not derived from run evidence")
+        elif (result.get("gate_failure_class") != "pre_simulation_infrastructure" or
+              result.get("candidate_sha256") is not None or
+              result.get("observed_error_id") != execution.get("error_id") or
+              result.get("observed_error_report") != execution.get("error_report") or
+              result.get("formal_process_exit_code") != exit_code):
+            raise VerificationError("pre-simulation analysis is not derived from execution evidence")
+        return
+    candidate = read_candidate_curves(durable / "candidate_curves.csv")
+    reference = _read_reference_curves(durable / "reference_curves.csv")
+    _validate_reference_identity(reference)
+    paper = _paper_points()
+    derived = [
+        PAPER_ETA * (turbine - compressor)
+        for turbine, compressor in zip(candidate["turbine_W"], candidate["compressor_W"])
+    ]
+    reference_electrical = [
+        PAPER_ETA * (turbine - compressor)
+        for turbine, compressor in zip(reference["turbine_W"], reference["compressor_W"])
+    ]
+    candidate_signals = {
+        "reactor": candidate["reactor_W"], "turbine": candidate["turbine_W"],
+        "compressor": candidate["compressor_W"],
+        "electrical_paper_eta": derived,
+    }
+    reference_signals = {
+        "reactor": reference["reactor_W"], "turbine": reference["turbine_W"],
+        "compressor": reference["compressor_W"],
+        "electrical_paper_eta": reference_electrical,
+    }
+    panels = {"reactor": "a", "turbine": "b", "compressor": "c",
+              "electrical_paper_eta": "d"}
+    directions: dict[str, list[str]] = {}
+    nonflat: dict[str, bool] = {}
+    curves: dict[str, dict[str, object]] = {}
+    for name, panel in panels.items():
+        comparison = _paper_comparison(
+            candidate["time_s"], candidate_signals[name], paper[panel]
+        )
+        change = _reference_change(
+            candidate["time_s"], candidate_signals[name], reference["time_s"],
+            reference_signals[name], NONFLAT_THRESHOLDS_W[name],
+        )
+        directions[name] = comparison["candidate_direction_sequence"]
+        nonflat[name] = bool(change["nonflat"])
+        curves[name] = {
+            "candidate_metrics": _metrics(candidate["time_s"], candidate_signals[name]),
+            "paper_comparison": comparison,
+            "reference_change": change,
+        }
+    conclusion = contract.classify(
+        True, {name: tuple(value) for name, value in directions.items()}, nonflat
+    )
+    if (result.get("directions") != directions or result.get("nonflat") != nonflat or
+            result.get("curves") != curves or
+            result.get("derived_electrical_paper_eta_W") != derived or
+            result.get("conclusion") != conclusion):
+        raise VerificationError("durable analysis is not derivable from captured CSV bytes")
+
+
+def _failure_subclass(status: dict[str, object] | None,
+                      evidence: dict[str, object] | None = None) -> str:
+    if status is None:
+        return "pre_simulation_infrastructure"
+    experiment = status.get("experiment_status")
+    if experiment == "completed_incomplete_output":
+        return "incomplete_output"
+    text = " ".join(str(status.get(key, "")) for key in (
+        "candidate_error_id", "candidate_error_report",
+        "runner_exception_id", "runner_exception_report",
+    )).lower()
+    if any(token in text for token in (
+            "hexe", "virial", "property", "domain", "correctedflow",
+            "corrected flow", "assertion")):
+        return "property_domain"
+    if any(token in text for token in (
+            "compile", "compilation", "update diagram", "updatediagram")):
+        return "compile"
+    if (experiment == "runner_or_hash_gate_failed" or
+            (evidence is not None and evidence.get("exit_code") != 0 and
+             status.get("run_steady53_case_returned") is not True)):
+        return "pre_simulation_infrastructure"
+    if (status.get("run_steady53_case_returned") is True and
+            status.get("candidate_final_time_s") != 500 and not text):
+        return "incomplete_output"
+    return "model_runtime"
+
+
+def _failure_result(*, failure_class: str, call_count: int, retry_count: int,
+                    candidate_sha256: str | None, error_id: str = "",
+                    error_report: str = "", exit_code: int | None = None,
+                    missing_run_artifacts: list[str] | None = None) -> dict[str, object]:
+    result = {
+        "analysis_schema": ANALYSIS_SCHEMA,
+        "attempt_id": contract.ATTEMPT_ID,
+        "anchor_identity": contract.ANCHOR_IDENTITY,
+        "counterfactual_question": (
+            "Does the frozen IHX region-2 He-Xe two-state common translation alone "
+            "pass all four predeclared Figure 5.19 direction/nonflat gates?"
+        ),
+        "numerical_gate_passed": False,
+        "gate_failure_class": failure_class,
+        "directions": {}, "nonflat": {},
+        "direction_rule": dict(DIRECTION_RULE),
+        "nonflat_thresholds_W": {
+            name: float(value) for name, value in NONFLAT_THRESHOLDS_W.items()
+        },
+        "curves": {},
+        "derived_electrical_paper_eta_formula": "0.98*(WT_sw-Wc_sw)",
+        "derived_electrical_paper_eta_W": [],
+        "conclusion": "numerical_or_physical_gate_failed",
+        "promotion": dict(PROMOTION),
+        "paper_reproduced": False,
+        "author_initial_state_identified": False,
+        "formal_promotion": False,
+        "run_steady53_case_call_count": call_count,
+        "retry_count": retry_count,
+        "candidate_sha256": candidate_sha256,
+        "observed_error_id": error_id,
+        "observed_error_report": error_report,
+        "formal_process_exit_code": exit_code,
+        "missing_run_artifacts": list(missing_run_artifacts or []),
+    }
+    return validate_analysis(result)
 
 
 def analyze(run_dir: Path) -> dict[str, object]:
@@ -808,7 +1149,7 @@ def analyze(run_dir: Path) -> dict[str, object]:
             "pass all four predeclared Figure 5.19 direction/nonflat gates?"
         ),
         "numerical_gate_passed": numerical_gate,
-        "gate_failure_class": None if numerical_gate else status["experiment_status"],
+        "gate_failure_class": None if numerical_gate else _failure_subclass(status),
         "directions": directions,
         "nonflat": nonflat,
         "direction_rule": dict(DIRECTION_RULE),
@@ -828,6 +1169,174 @@ def analyze(run_dir: Path) -> dict[str, object]:
         "candidate_sha256": audit["candidate_sha256"],
     }
     return validate_analysis(result)
+
+
+def _authenticity_record(identity: str, location: str, path: Path) -> dict[str, object]:
+    source = _regular_file(path)
+    return {
+        "identity": identity,
+        "location": location,
+        "sha256": _hash(source.read_bytes()),
+        "bytes": source.stat().st_size,
+    }
+
+
+def _execution_authenticity(capture_dir: Path, run_dir: Path) -> dict[str, object]:
+    try:
+        capture = _real_directory(Path(capture_dir), under=INVOCATION_ROOT)
+        selected = _safe_path(Path(run_dir), exists=False)
+    except PathValidationError as exc:
+        raise ExecutionAuthenticityError("capture or selected run path is unsafe") from exc
+    claim_payload = _regular_file(
+        capture / "formal_invocation.claim", under=capture
+    ).read_bytes()
+    if not claim_payload:
+        raise ExecutionAuthenticityError("formal invocation claim is empty")
+    command_payload = _regular_file(capture / "command.txt", under=capture).read_bytes()
+    if command_payload != (EXACT_FORMAL_COMMAND + "\n").encode():
+        raise ExecutionAuthenticityError("captured command is not the exact Task 5 command")
+    try:
+        exit_payload = _regular_file(
+            capture / "formal_exit_code.txt", under=capture
+        ).read_text(encoding="ascii")
+        if not exit_payload.endswith("\n") or exit_payload.strip() == "":
+            raise ValueError("missing exit code")
+        exit_code = int(exit_payload.strip())
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ExecutionAuthenticityError("formal exit code is malformed") from exc
+    try:
+        execution = json.loads(
+            _regular_file(capture / "execution_record.json", under=capture).read_text()
+        )
+        preflight = json.loads(
+            _regular_file(capture / "preflight_status.json", under=capture).read_text()
+        )
+        untracked = json.loads(
+            _regular_file(capture / "untracked_paths.json", under=capture).read_text()
+        )
+        consumed = json.loads(
+            _regular_file(
+                capture / "consumed_execution_manifest.json", under=capture
+            ).read_text()
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, PathValidationError) as exc:
+        raise ExecutionAuthenticityError("captured execution JSON is malformed/missing") from exc
+    if not isinstance(untracked, list):
+        raise ExecutionAuthenticityError("captured untracked path inventory is malformed")
+    git_head = _regular_file(capture / "git_head.txt", under=capture).read_text().strip()
+    if len(git_head) != 40 or any(character not in "0123456789abcdef" for character in git_head):
+        raise ExecutionAuthenticityError("captured Git HEAD is malformed")
+    _regular_file(capture / "tracked_diff.patch", under=capture)
+    _regular_file(capture / "git_status_porcelain_v1_z.bin", under=capture)
+    command_sha = _hash(command_payload)
+    if (not isinstance(preflight, dict) or
+            preflight.get("attempt_id") != contract.ATTEMPT_ID or
+            preflight.get("formal_command_sha256") != command_sha or
+            preflight.get("formal_command_invocation_count") != 0 or
+            preflight.get("run_steady53_case_call_count") != 0 or
+            preflight.get("simulation_call_count") != 0):
+        raise ExecutionAuthenticityError("preflight status conflicts with the exact command")
+    fixed_execution = {
+        "execution_schema": "steady53_fig519_ihx_r2_hexe_a3_execution_v1",
+        "attempt_id": contract.ATTEMPT_ID,
+        "formal_command": EXACT_FORMAL_COMMAND,
+        "formal_command_sha256": command_sha,
+        "formal_command_invocation_count": 1,
+        "retry_count": 0,
+        "formal_process_exit_code": exit_code,
+        "paper_reproduced": False,
+        "author_initial_state_identified": False,
+        "formal_promotion": False,
+    }
+    if not isinstance(execution, dict):
+        raise ExecutionAuthenticityError("execution record must be an object")
+    for key, expected in fixed_execution.items():
+        if execution.get(key) != expected:
+            raise ExecutionAuthenticityError(f"execution record mismatch: {key}")
+    for key in ("matlab_subprocess_start_count", "run_steady53_case_call_count"):
+        if type(execution.get(key)) is not int or execution[key] not in (0, 1):
+            raise ExecutionAuthenticityError(f"execution counter is invalid: {key}")
+    if (execution["run_steady53_case_call_count"] >
+            execution["matlab_subprocess_start_count"]):
+        raise ExecutionAuthenticityError("model call count exceeds subprocess starts")
+    if exit_code == 0:
+        if (execution.get("failure_stage") is not None or
+                execution.get("error_id") != "" or
+                execution.get("error_report") != ""):
+            raise ExecutionAuthenticityError("successful process carries a failure claim")
+    elif (not isinstance(execution.get("failure_stage"), str) or
+          not execution["failure_stage"] or
+          not isinstance(execution.get("error_id"), str) or
+          not execution["error_id"] or
+          not isinstance(execution.get("error_report"), str) or
+          not execution["error_report"]):
+        raise ExecutionAuthenticityError("failed process lacks truthful failure evidence")
+    if exit_code != 0:
+        stderr_payload = _regular_file(capture / "stderr.log", under=capture).read_bytes()
+        if str(execution["error_report"]).encode() not in stderr_payload:
+            raise ExecutionAuthenticityError("failure report is absent from captured stderr")
+
+    capture_identities = (
+        "formal_invocation.claim", "command.txt", "stdout.log", "stderr.log",
+        "formal_exit_code.txt", "execution_record.json",
+    )
+    actual = [
+        _authenticity_record(name, "capture/" + name, capture / name)
+        for name in capture_identities
+    ]
+    run_exists = os.path.lexists(selected)
+    if run_exists:
+        try:
+            selected = _real_directory(selected)
+        except PathValidationError as exc:
+            raise ExecutionAuthenticityError("consumed run directory is unsafe") from exc
+    missing_run: list[str] = []
+    for identity, relative in RUN_AUTHENTICITY_SOURCES.items():
+        path = selected / relative
+        if run_exists and os.path.lexists(path):
+            try:
+                actual.append(_authenticity_record(
+                    identity, "run/" + relative, _regular_file(path, under=selected)
+                ))
+            except PathValidationError as exc:
+                raise ExecutionAuthenticityError(
+                    f"consumed run artifact is unsafe: {identity}"
+                ) from exc
+        else:
+            missing_run.append(identity)
+    actual = sorted(actual, key=lambda item: item["identity"])
+    if (not isinstance(consumed, dict) or set(consumed) != {
+            "manifest_schema", "attempt_id", "invocation_claimed",
+            "formal_command", "formal_process_exit_code", "artifacts",
+            "missing_run_artifacts",
+        } or
+            consumed.get("manifest_schema") !=
+            "steady53_fig519_ihx_r2_hexe_a3_consumed_execution_v1" or
+            consumed.get("attempt_id") != contract.ATTEMPT_ID or
+            consumed.get("invocation_claimed") is not True or
+            consumed.get("formal_command") != EXACT_FORMAL_COMMAND or
+            consumed.get("formal_process_exit_code") != exit_code or
+            consumed.get("artifacts") != actual or
+            consumed.get("missing_run_artifacts") != sorted(missing_run)):
+        raise ExecutionAuthenticityError(
+            "consumed execution manifest does not exactly bind existing artifacts"
+        )
+    success_eligible = (
+        exit_code == 0 and execution["matlab_subprocess_start_count"] == 1 and
+        execution["run_steady53_case_call_count"] == 1 and run_exists and
+        not ({"candidate_slx", "patch_audit", "run_status", "raw_result",
+              "candidate_curves", "reference_curves"} & set(missing_run))
+    )
+    return {
+        "capture_dir": capture,
+        "run_dir": selected,
+        "run_exists": run_exists,
+        "exit_code": exit_code,
+        "execution_record": execution,
+        "consumed_manifest": consumed,
+        "success_eligible": success_eligible,
+        "missing_run_artifacts": sorted(missing_run),
+    }
 
 
 def _capture_files(capture_dir: Path) -> dict[str, bytes]:
@@ -851,10 +1360,9 @@ def _capture_files(capture_dir: Path) -> dict[str, bytes]:
         if _hash(path.read_bytes()) != parts[0]:
             raise PublicationError(f"captured immutable hash mismatch: {relative}")
         declared[parts[1]] = parts[0]
-    missing = set(CAPTURE_EXECUTABLES) - set(declared)
-    if missing:
+    if set(declared) != set(CAPTURE_EXECUTABLES):
         raise PublicationError(
-            "captured executable set is absent from SHA256SUMS: " + ", ".join(sorted(missing))
+            "captured executable SHA256SUMS set is not the exact nine-file allowlist"
         )
     analyzer_name = "tests/analyze_fig519_ihx_r2_hexe_shift.py"
     captured_analyzer = _regular_file(snapshot / analyzer_name, under=snapshot)
@@ -869,16 +1377,6 @@ def _capture_files(capture_dir: Path) -> dict[str, bytes]:
         output["captured/" + name] = _regular_file(
             snapshot / name, under=snapshot
         ).read_bytes()
-    try:
-        execution = json.loads(output["execution_record.json"])
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise PublicationError("captured execution record is malformed") from exc
-    if (not isinstance(execution, dict) or
-            execution.get("attempt_id") != contract.ATTEMPT_ID or
-            execution.get("formal_command_invocation_count") != 1 or
-            execution.get("run_steady53_case_call_count") != 1 or
-            execution.get("retry_count") != 0):
-        raise PublicationError("captured exact-once execution contract changed")
     return output
 
 
@@ -921,8 +1419,45 @@ def _manifest_bytes(files: dict[str, bytes], history_payload: bytes) -> bytes:
 
 
 def _planned(run_dir: Path, capture_dir: Path) -> tuple[dict[str, bytes], bytes]:
-    selected = _real_directory(Path(run_dir))
-    result = analyze(selected)
+    evidence = _execution_authenticity(Path(capture_dir), Path(run_dir))
+    selected = Path(evidence["run_dir"])
+    execution = evidence["execution_record"]
+    missing_identities = set(evidence["missing_run_artifacts"])
+    analyzable_run = evidence["run_exists"] and not (
+        {"candidate_slx", "patch_audit", "run_status"} & missing_identities
+    )
+    if analyzable_run:
+        result = analyze(selected)
+        status = _read_json(selected / "run/run_status.json", error_type=RunStatusError)
+        if not isinstance(status, dict):
+            raise PublicationError("consumed run status is malformed")
+        status_consistent = (
+            status.get("run_steady53_case_call_count") ==
+            execution["run_steady53_case_call_count"] and
+            status.get("retry_count") == execution["retry_count"]
+        )
+        if not evidence["success_eligible"] or not status_consistent:
+            result = _failure_result(
+                failure_class=_failure_subclass(status, evidence),
+                call_count=execution["run_steady53_case_call_count"],
+                retry_count=execution["retry_count"],
+                candidate_sha256=result.get("candidate_sha256"),
+                error_id=str(execution.get("error_id", "")),
+                error_report=str(execution.get("error_report", "")),
+                exit_code=int(evidence["exit_code"]),
+                missing_run_artifacts=list(evidence["missing_run_artifacts"]),
+            )
+    else:
+        result = _failure_result(
+            failure_class="pre_simulation_infrastructure",
+            call_count=execution["run_steady53_case_call_count"],
+            retry_count=execution["retry_count"],
+            candidate_sha256=None,
+            error_id=str(execution.get("error_id", "")),
+            error_report=str(execution.get("error_report", "")),
+            exit_code=int(evidence["exit_code"]),
+            missing_run_artifacts=list(evidence["missing_run_artifacts"]),
+        )
     files: dict[str, bytes] = {}
     missing: dict[str, str] = {}
     for public_name, relative in RUN_FILES.items():
@@ -932,7 +1467,7 @@ def _planned(run_dir: Path, capture_dir: Path) -> tuple[dict[str, bytes], bytes]
         else:
             missing[public_name] = "not_generated_by_consumed_attempt"
     required_run = {"patch_audit.json", "run_status.json"}
-    if required_run & set(missing):
+    if analyzable_run and required_run & set(missing):
         raise PublicationError("consumed runner evidence lacks patch audit or run status")
     files["analysis.json"] = _json_bytes(result)
     capture_files = _capture_files(Path(capture_dir))
@@ -1244,7 +1779,9 @@ def _validate_summary(summary: object) -> dict[str, object]:
                 for value in missing.values()) or
             set(missing) - set(RUN_FILES)):
         raise VerificationError("A3 summary artifact/missing sets are not exact")
-    if {"patch_audit.json", "run_status.json"} & set(missing):
+    if (summary["analysis"].get("gate_failure_class") !=
+            "pre_simulation_infrastructure" and
+            {"patch_audit.json", "run_status.json"} & set(missing)):
         raise VerificationError("A3 summary is missing required runner audit evidence")
     return summary
 
@@ -1273,6 +1810,11 @@ def _validate_history(history: object, summary: dict[str, object]) -> dict[str, 
 
 
 def verify_only(durable_dir: Path, history_path: Path) -> None:
+    expected_history = (
+        Path(durable_dir).parent / "initial_state_counterfactual_history.json"
+    )
+    if Path(history_path) != expected_history:
+        raise VerificationError("history path is not the canonical durable sibling")
     try:
         durable = _real_directory(Path(durable_dir), under=INVOCATION_ROOT)
         history_file = _regular_file(Path(history_path), under=durable.parent)
@@ -1302,6 +1844,12 @@ def verify_only(durable_dir: Path, history_path: Path) -> None:
         files[name] = _regular_file(durable / name, under=durable).read_bytes()
     if files["analysis.json"] != _json_bytes(summary["analysis"]):
         raise VerificationError("durable analysis differs from summary")
+    try:
+        _verify_durable_scientific_derivation(durable, summary["analysis"])
+    except A3AnalysisError as exc:
+        if isinstance(exc, VerificationError):
+            raise
+        raise VerificationError("durable scientific derivation is invalid") from exc
     artifacts = summary["artifacts"]
     for name in artifact_names:
         expected = _artifact_record(files[name], "captured_or_run_evidence")
