@@ -165,17 +165,19 @@ python3 -m unittest discover -s tests -p 'test_*.py' -v
 
 ## 数据溯源
 
-压气机变工况模型的来源经过专门审计，记录在 `data/provenance/compressor_map/`：
+压气机变工况模型的来源审计记录在 `data/provenance/compressor_map/`：
 
-- 离心压气机变工况算法采用 Michael R. Galvas, *FORTRAN Program for Predicting
-  Off-Design Performance of Centrifugal Compressors*, NASA TN D-7487, 1973
-  （论文参考文献 [162]）。仓库中同时保留原始提供的 FORTRAN/Python 实现快照
-  （`data/provenance/compressor_map/nasa_tn_d7487/original/`）与仓库内可运行的
-  独立复现（`tools/nasa_tn_d7487/compressor_program.py`），并用 SHA-256 校验和
-  区分两者，避免"修正实现"覆盖"原始证据快照"。
-- 压气机几何与设计工况的自洽性核对见 `压气机几何自洽说明_论文级.md`：论文
-  1 MWe 单轴方案的设计转速为 55090 rpm，据此修正了查表中曾经错误的
-  `N_design = 18732 rpm`。
+- 论文参考文献 [162] 是 Michael R. Galvas, *FORTRAN Program for Predicting
+  Off-Design Performance of Centrifugal Compressors*, NASA TN D-7487, 1973。仓库保留
+  该程序的证据快照和独立复现，但作者目标压气机仍有 13 项 D-7487 输入未解决，
+  因此该程序目前**没有生成当前运行表**。
+- 当前 `hexe_compressor_lookup.mat` 实际是 NASA TM X-2269 氩气异机数字化曲线经
+  表 5.2 锚点和相似律变换得到的 `4.0-nasa-tmx2269-candidate`。其元数据明确写着
+  “门禁通过前不激活”，但 `start.m` 仍无条件加载；不能把它称为作者表复现。
+- 当前第 5 章锚点是 `55090 rpm` 和 `PR=1.551/0.658=2.357142857...`。历史
+  `PR=1.92` 来自论文较早的表 2.1 设计语境，不能用于缩放表 5.2 查表。
+- 详细根因、历史版本和透平来源缺口见
+  `docs/2026-09-02-rotating-machinery-map-rootcause.md`。
 - `图5_34_对比分析_14000s.md` 记录了针对论文图 5.34（变反应性工况）的一次
   14000 s 动态仿真与论文曲线的对比分析。
 
