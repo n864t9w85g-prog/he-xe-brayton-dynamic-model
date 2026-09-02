@@ -8,6 +8,16 @@
 
 **Tech Stack:** MATLAB R2025a, Simulink official API, MATLAB unit tests, existing `tests/steady53/run_steady53_case.m`, JSON/CSV artifacts, Git and SHA256.
 
+**Python test runtime:** Use the workspace Python 3.12 runtime and the standard-library
+`unittest` runner.  On this host set:
+
+```bash
+PROJECT_PYTHON=/Users/ikunsredemptionmac/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3
+```
+
+Do not use the system Python 3.9 or `pytest`; the former lacks the project image
+dependency and the latter is not installed in the approved runtime.
+
 ---
 
 ## File structure
@@ -39,28 +49,29 @@
 - [ ] **Step 1: Write the failing manifest test**
 
 ```python
-import hashlib, json
+import hashlib, json, unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROV = ROOT / "data/provenance/rotating_machinery/recovered_20260902"
 
-def test_recovered_sources_match_manifest():
-    manifest = json.loads((PROV / "manifest.json").read_text())
-    assert manifest["schema"] == "rotating_map_recovery_v1"
-    assert len(manifest["files"]) == 5
-    for item in manifest["files"]:
-        path = PROV / item["repository_path"]
-        assert path.is_file()
-        assert path.stat().st_size == item["size_bytes"]
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item["sha256"]
-        assert item["evidence_level"] in {"warning", "negative"}
-        assert item["author_original"] is False
+class RecoveredSourceManifestTests(unittest.TestCase):
+    def test_recovered_sources_match_manifest(self):
+        manifest = json.loads((PROV / "manifest.json").read_text())
+        self.assertEqual(manifest["schema"], "rotating_map_recovery_v1")
+        self.assertEqual(len(manifest["files"]), 5)
+        for item in manifest["files"]:
+            path = PROV / item["repository_path"]
+            self.assertTrue(path.is_file())
+            self.assertEqual(path.stat().st_size, item["size_bytes"])
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), item["sha256"])
+            self.assertIn(item["evidence_level"], {"warning", "negative"})
+            self.assertIs(item["author_original"], False)
 ```
 
 - [ ] **Step 2: Run the test and confirm the missing-manifest failure**
 
-Run: `python3 -m pytest tests/test_rotating_map_recovery_manifest.py -q`
+Run: `"$PROJECT_PYTHON" -m unittest tests.test_rotating_map_recovery_manifest -q`
 
 Expected: FAIL because `manifest.json` does not exist.
 
@@ -101,7 +112,7 @@ State explicitly:
 
 - [ ] **Step 5: Run the manifest test**
 
-Run: `python3 -m pytest tests/test_rotating_map_recovery_manifest.py -q`
+Run: `"$PROJECT_PYTHON" -m unittest tests.test_rotating_map_recovery_manifest -q`
 
 Expected: `1 passed`.
 
@@ -341,7 +352,7 @@ Run:
 
 ```bash
 /Applications/MATLAB_R2025a.app/bin/matlab -batch "addpath('tests'); r=runtests('tests/test_run_rotating_map_candidate_batch.m'); assertSuccess(r)"
-python3 -m pytest tests/test_analyze_rotating_map_candidate_batch.py -q
+"$PROJECT_PYTHON" -m unittest tests.test_analyze_rotating_map_candidate_batch -q
 ```
 
 Expected: FAIL because the runner/analyzer do not exist.
@@ -372,7 +383,7 @@ Run:
 
 ```bash
 /Applications/MATLAB_R2025a.app/bin/matlab -batch "addpath('tests','tests/steady53'); run_rotating_map_candidate_batch(pwd,fullfile(pwd,'tmp','rotating_map_candidate_A_20260902'),500)"
-python3 tests/analyze_rotating_map_candidate_batch.py --run-root tmp/rotating_map_candidate_A_20260902 --stop-time 500
+"$PROJECT_PYTHON" tests/analyze_rotating_map_candidate_batch.py --run-root tmp/rotating_map_candidate_A_20260902 --stop-time 500
 ```
 
 Expected: four run-status records and one deterministic Gate 2 decision. Do not rerun a completed case merely to improve its outcome.
@@ -400,7 +411,7 @@ Run only when Gate 2 names one winner:
 
 ```bash
 /Applications/MATLAB_R2025a.app/bin/matlab -batch "addpath('tests','tests/steady53'); run_rotating_map_candidate_batch(pwd,fullfile(pwd,'tmp','rotating_map_candidate_A_20260902'),14000)"
-python3 tests/analyze_rotating_map_candidate_batch.py --run-root tmp/rotating_map_candidate_A_20260902 --stop-time 14000
+"$PROJECT_PYTHON" tests/analyze_rotating_map_candidate_batch.py --run-root tmp/rotating_map_candidate_A_20260902 --stop-time 14000
 ```
 
 Expected: one 14000 s result for the selected case; no other case is run.
@@ -429,7 +440,7 @@ The report must contain:
 Run:
 
 ```bash
-python3 -m pytest tests/test_rotating_map_recovery_manifest.py tests/test_analyze_rotating_map_candidate_batch.py -q
+"$PROJECT_PYTHON" -m unittest tests.test_rotating_map_recovery_manifest tests.test_analyze_rotating_map_candidate_batch -q
 /Applications/MATLAB_R2025a.app/bin/matlab -batch "addpath('tests'); r=runtests({'tests/test_audit_rotating_map_candidates.m','tests/test_build_rotating_map_candidate_bundles.m','tests/test_create_rotating_map_candidate_models.m','tests/test_run_rotating_map_candidate_batch.m'}); assertSuccess(r)"
 git diff --check
 git status --short
