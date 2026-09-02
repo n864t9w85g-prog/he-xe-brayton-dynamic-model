@@ -1,0 +1,58 @@
+kind,relative_path,block_type,parameter,root_expression,frozen_expression,evidence_grade,note
+dialog_parameter,Constant14,Constant,Value,1087e3,1000.21e3,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_1/T_c1_average_Integrator,Integrator,InitialCondition,1443.60349829696,1458.2400006378589,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_1/T_c2_out_Integrator,Integrator,InitialCondition,1515.3290923116,1522.8762873625776,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_1/T_h1_average_Integrator,Integrator,InitialCondition,1564.01069953215,1566.8123914550606,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_1/T_h2_out_Integrator,Integrator,InitialCondition,1540.40908992628,1544.6784341826062,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_1/T_wall_Integrator,Integrator,InitialCondition,1551.96956830957,1555.9547816852855,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_2/T_c1_average_Integrator,Integrator,InitialCondition,1204.66196143791,1245.8184669844006,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_2/T_c2_out_Integrator,Integrator,InitialCondition,1371.87790428232,1393.6037139151003,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_2/T_h1_average_Integrator,Integrator,InitialCondition,1485.38420890167,1494.0696022025936,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_2/T_h2_out_Integrator,Integrator,InitialCondition,1430.35932787712,1443.4607702226581,✅,Direct read-only SLX parameter difference
+dialog_parameter,IHX/IHX_region_2/T_wall_Integrator,Integrator,InitialCondition,1457.31102570257,1469.2436410947309,✅,Direct read-only SLX parameter difference
+dialog_parameter,TAC/Constant,Constant,Value,66100,55090,✅,Direct read-only SLX parameter difference
+dialog_parameter,Unit Delay1,UnitDelay,InitialCondition,11.97,11.982029,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_1/T_c1_average_Integrator,Integrator,InitialCondition,572.56009740267,545.7329915378557,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_1/T_c2_out_Integrator,Integrator,InitialCondition,649.464235397723,611.57676479754946,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_1/T_h1_average_Integrator,Integrator,InitialCondition,621.311806865348,594.86709308142633,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_1/T_h2_out_Integrator,Integrator,InitialCondition,544.63182351282,528.91021598735142,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_1/T_wall_Integrator,Integrator,InitialCondition,573.383820073926,546.44198026309198,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_1/h_h,Constant,Value,1625,1384.3,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_2/T_c1_average_Integrator,Integrator,InitialCondition,424.423159326648,418.75053506849412,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_2/T_c2_out_Integrator,Integrator,InitialCondition,495.655959407993,479.88921827813124,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_2/T_h1_average_Integrator,Integrator,InitialCondition,471.153329226755,465.7869648085188,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_2/T_h2_out_Integrator,Integrator,InitialCondition,397.67483494069,402.66371363139297,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_2/T_wall_Integrator,Integrator,InitialCondition,425.212725493541,419.42925508558875,✅,Direct read-only SLX parameter difference
+dialog_parameter,precooler/precooler_2/h_h,Constant,Value,1625,1384.3,✅,Direct read-only SLX parameter difference
+dialog_parameter,reactor/Integrator,Integrator,InitialCondition,550778890.53327,509563538.35378009,✅,Direct read-only SLX parameter difference
+dialog_parameter,reactor/Integrator1,Integrator,InitialCondition,1236852048.79452,1144297134.5374382,✅,Direct read-only SLX parameter difference
+dialog_parameter,reactor/Integrator2,Integrator,InitialCondition,300924412.039844,278405927.94625711,✅,Direct read-only SLX parameter difference
+dialog_parameter,reactor/Integrator3,Integrator,InitialCondition,240897022.420673,222870449.79609099,✅,Direct read-only SLX parameter difference
+dialog_parameter,reactor/Integrator4,Integrator,InitialCondition,16829815.1438146,15570422.720039152,✅,Direct read-only SLX parameter difference
+dialog_parameter,reactor/Integrator5,Integrator,InitialCondition,1236686.99781921,1144144.4343794831,✅,Direct read-only SLX parameter difference
+dialog_parameter,reactor/Integrator6,Integrator,InitialCondition,2876189.11152751,2660960.9141046703,✅,Direct read-only SLX parameter difference
+dialog_parameter,reactor/Integrator7,Integrator,InitialCondition,1731.28178355466,1721.8648882133552,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_1/T_c1_average_Integrator,Integrator,InitialCondition,925.806289288139,973.10015023326082,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_1/T_c2_out_Integrator,Integrator,InitialCondition,1037.44601859351,1098.0332200511998,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_1/T_h1_average_Integrator,Integrator,InitialCondition,1032.83256745114,1035.4335921350307,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_1/T_h2_out_Integrator,Integrator,InitialCondition,921.173944973069,910.48054303365655,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_1/T_wall_Integrator,Integrator,InitialCondition,979.319428424215,1004.3258841003104,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_1/h_c,Constant,Value,460,882.72525429148993,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_1/h_h,Constant,Value,460,886.0743852714885,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_2/T_c1_average_Integrator,Integrator,InitialCondition,702.613837679092,723.37593583663499,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_2/T_c2_out_Integrator,Integrator,InitialCondition,814.166559982758,848.16708041554273,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_2/T_h1_average_Integrator,Integrator,InitialCondition,809.582867595475,785.65225660536589,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_2/T_h2_out_Integrator,Integrator,InitialCondition,697.991790217874,660.82397017724622,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_2/T_wall_Integrator,Integrator,InitialCondition,756.098352685598,754.57305466037838,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_2/h_c,Constant,Value,460,882.72525429148993,✅,Direct read-only SLX parameter difference
+dialog_parameter,recuperator/MannRegion_2/h_h,Constant,Value,460,886.0743852714885,✅,Direct read-only SLX parameter difference
+dialog_parameter,rediator/A1,Gain,Gain,10,,✅,Direct read-only SLX parameter difference
+dialog_parameter,rediator/Subsystem/Constant2,Constant,Value,A_rad,1113,✅,Direct read-only SLX parameter difference
+dialog_parameter,rediator/Subsystem/Constant3,Constant,Value,M_rad,5744,✅,Direct read-only SLX parameter difference
+dialog_parameter,rediator/Subsystem/Constant5,Constant,Value,h_h,9.755,✅,Direct read-only SLX parameter difference
+dialog_parameter,rediator/T_rad_Integrator,Integrator,InitialCondition,590.007692583906,416.60796744255316,✅,Direct read-only SLX parameter difference
+solver_parameter,<model>,BlockDiagram,StopTime,800,14000,✅,Direct read-only configSet0.xml difference
+root_only_block,TAC/From,From,<block presence>,present,absent,✅,Structural difference; not included in the 53 value differences
+root_only_block,TAC/From1,From,<block presence>,present,absent,✅,Structural difference; not included in the 53 value differences
+root_only_block,TAC/Goto,Goto,<block presence>,present,absent,✅,Structural difference; not included in the 53 value differences
+root_only_block,TAC/Goto1,Goto,<block presence>,present,absent,✅,Structural difference; not included in the 53 value differences
