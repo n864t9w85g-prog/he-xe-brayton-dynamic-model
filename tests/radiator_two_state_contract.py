@@ -6,6 +6,8 @@ from dataclasses import dataclass
 import hashlib
 import math
 from pathlib import Path
+from types import MappingProxyType
+from typing import Mapping
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,45 +16,62 @@ PAPER = ROOT / "空间锂冷堆He-Xe布雷顿循环发电系统优化设计与�
 POINTS_CSV = ROOT / "data/provenance/steady53/fig5_18d/paper_curve/points.csv"
 POINTS_PROVENANCE = POINTS_CSV.with_name("provenance.json")
 
-INPUT_HASHES = {
+INPUT_HASHES: Mapping[str, str] = MappingProxyType({
     "spec": "6bfab38ab3a3979b9ce1a38ef3cf162c464898c6ec1b4699a0dddb40c185898b",
     "paper": "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a",
     "points_csv": "6aed804bf1ac57832055dab34483bdcb25567a5b902e5b3c6b85cb7129e8849b",
     "points_provenance": "fe35a863731ff5394095f5d268a988cb45120a1382db9fd53bc0599e8f98e0cd",
-}
-_INPUT_PATHS = {
-    "spec": SPEC, "paper": PAPER, "points_csv": POINTS_CSV,
+})
+_INPUT_PATHS: Mapping[str, Path] = MappingProxyType({
+    "spec": SPEC,
+    "paper": PAPER,
+    "points_csv": POINTS_CSV,
     "points_provenance": POINTS_PROVENANCE,
-}
+})
 
 EXPECTED_HEADER = ("x_px", "wall_y_px", "outlet_y_px", "time_s", "wall_K", "outlet_K")
 TIN_K = 609.58
 TEMPERATURE_ALLOWANCE_K = 3.0
 TIME_ALLOWANCE_S = 2.0
-FALSE_FLAGS = {
+FALSE_FLAGS: Mapping[str, bool] = MappingProxyType({
     "paper_reproduced": False,
     "author_parameter_identified": False,
     "formal_promotion": False,
-}
+})
 PROTECTED_RELATIVE_PATHS = (
-    "final_steady_24a.slx", "HeXe_property_simulink.m", "Lithium_property_simulink.m",
-    "hexe_compressor_lookup.mat", "radiator_table.mat", "turbine_table1.mat", "turbine_table2.mat",
+    "final_steady_24a.slx",
+    "HeXe_property_simulink.m",
+    "Lithium_property_simulink.m",
+    "hexe_compressor_lookup.mat",
+    "radiator_table.mat",
+    "turbine_table1.mat",
+    "turbine_table2.mat",
 )
 
 
 @dataclass(frozen=True)
 class Sample:
-    x_px: float; wall_y_px: float; outlet_y_px: float; time_s: float; wall_K: float; outlet_K: float
+    x_px: float
+    wall_y_px: float
+    outlet_y_px: float
+    time_s: float
+    wall_K: float
+    outlet_K: float
 
 
 @dataclass(frozen=True)
 class Case:
-    case_id: str; flow_id: str; m_dot_kg_s: float; energy_path: str
+    case_id: str
+    flow_id: str
+    m_dot_kg_s: float
+    energy_path: str
 
 
 @dataclass(frozen=True)
 class Evidence:
-    header: tuple[str, ...]; samples: tuple[Sample, ...]; source_hashes: dict[str, str]
+    header: tuple[str, ...]
+    samples: tuple[Sample, ...]
+    source_hashes: Mapping[str, str]
 
 
 class EvidenceContractError(RuntimeError):
@@ -99,6 +118,7 @@ def parse_points(path: Path, expected_sha256: str | None) -> tuple[Sample, ...]:
 
 
 def verify_input_contract(points_path: Path = POINTS_CSV) -> Evidence:
+    points_path = Path(points_path)
     source_hashes = {}
     for key, expected in INPUT_HASHES.items():
         path = POINTS_CSV if key == "points_csv" else _INPUT_PATHS[key]
@@ -109,7 +129,7 @@ def verify_input_contract(points_path: Path = POINTS_CSV) -> Evidence:
         _require(actual == expected, f"input_sha256 key={key}; expected={expected}; actual={actual}")
         source_hashes[key] = actual
     samples = parse_points(points_path, INPUT_HASHES["points_csv"])
-    return Evidence(EXPECTED_HEADER, samples, source_hashes)
+    return Evidence(EXPECTED_HEADER, samples, MappingProxyType(source_hashes))
 
 
 CASES = (

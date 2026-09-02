@@ -1,5 +1,4 @@
 import csv
-import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,16 +13,19 @@ class RadiatorTwoStateContractTests(unittest.TestCase):
             return list(csv.reader(handle))
 
     def test_repository_input_and_case_contract(self):
-        evidence = contract.verify_input_contract()
+        evidence = contract.verify_input_contract(str(contract.POINTS_CSV))
         self.assertEqual(evidence.header, contract.EXPECTED_HEADER)
         self.assertEqual(len(evidence.samples), 12)
         self.assertEqual(evidence.samples[0].time_s, 4.62962962962963)
         self.assertEqual(evidence.samples[-1].time_s, 187.96296296296296)
-        self.assertEqual(tuple(case.case_id for case in contract.CASES), (
-            "project_flow__inlet_cp",
-            "project_flow__integral_enthalpy",
-            "energy_closure_flow__inlet_cp",
-            "energy_closure_flow__integral_enthalpy",
+        self.assertEqual(tuple(
+            (case.case_id, case.flow_id, case.m_dot_kg_s, case.energy_path)
+            for case in contract.CASES
+        ), (
+            ("project_flow__inlet_cp", "project_flow", 6.95, "inlet_cp"),
+            ("project_flow__integral_enthalpy", "project_flow", 6.95, "integral_enthalpy"),
+            ("energy_closure_flow__inlet_cp", "energy_closure_flow", 7.134146337, "inlet_cp"),
+            ("energy_closure_flow__integral_enthalpy", "energy_closure_flow", 7.134146337, "integral_enthalpy"),
         ))
         self.assertEqual(set(evidence.source_hashes), set(contract.INPUT_HASHES))
 
@@ -31,6 +33,18 @@ class RadiatorTwoStateContractTests(unittest.TestCase):
         snapshot = contract.snapshot_protected_files()
         self.assertEqual(tuple(snapshot), contract.PROTECTED_RELATIVE_PATHS)
         self.assertTrue(all(len(digest) == 64 for digest in snapshot.values()))
+        for relative, digest in snapshot.items():
+            self.assertEqual(digest, contract.sha256(contract.ROOT / relative))
+
+    def test_frozen_mappings_reject_item_assignment(self):
+        with self.assertRaises(TypeError):
+            contract.INPUT_HASHES["spec"] = "changed"
+        with self.assertRaises(TypeError):
+            contract.FALSE_FLAGS["formal_promotion"] = True
+        evidence = contract.verify_input_contract()
+        with self.assertRaises(TypeError):
+            evidence.source_hashes["spec"] = "changed"
+        self.assertEqual(dict(evidence.source_hashes), dict(contract.INPUT_HASHES))
 
     def test_modified_curve_is_rejected_by_frozen_digest(self):
         with tempfile.TemporaryDirectory() as folder:
