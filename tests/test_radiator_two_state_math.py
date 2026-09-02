@@ -98,6 +98,17 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
         )
         self.assertEqual(model.solve_nnls(boundary), model.Solution(0, 2, 1))
 
+    def test_unrestricted_and_nnls_accept_small_but_full_rank_systems(self):
+        scaled = (
+            model.Coefficient(0, 0, 1, 1e-7, 0.0, 2e-6),
+            model.Coefficient(1, 1, 2, 0.0, 1e-7, 3e-6),
+        )
+        for solution in (model.solve_unrestricted(scaled), model.solve_nnls(scaled)):
+            with self.subTest(solution=solution):
+                self.assertAlmostEqual(solution.C_fluid_J_K, 20.0, places=10)
+                self.assertAlmostEqual(solution.UA_W_K, 30.0, places=10)
+                self.assertAlmostEqual(solution.sse_J2, 0.0, places=30)
+
     def test_corner_range_straddles_zero_and_discards_nonpositive_duration(self):
         first, second = _sample(0, 280, 300), _sample(2, 300, 320)
         row = model.interval_coefficient(first, second, 600, 2, _inlet_cp)

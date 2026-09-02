@@ -187,8 +187,7 @@ def solve_unrestricted(rows: Iterable[Coefficient]) -> Solution:
     materialized = _validated_rows(rows)
     aa, ab, bb, ad, bd = _normal_terms(materialized)
     determinant = aa * bb - ab * ab
-    scale = max(abs(aa * bb), abs(ab * ab), 1.0)
-    if not math.isfinite(determinant) or determinant <= ZERO_TOLERANCE * scale:
+    if not math.isfinite(determinant) or determinant <= 0.0:
         raise ValueError("rank-deficient interval system")
     capacity = (ad * bb - bd * ab) / determinant
     ua = (bd * aa - ad * ab) / determinant
@@ -199,7 +198,7 @@ def solve_nnls(rows: Iterable[Coefficient]) -> Solution:
     """Analytic non-negative least squares over interior, axes, and origin."""
     materialized = _validated_rows(rows)
     aa, _ab, bb, ad, bd = _normal_terms(materialized)
-    if aa <= ZERO_TOLERANCE or bb <= ZERO_TOLERANCE:
+    if aa <= 0.0 or bb <= 0.0:
         raise ValueError("NNLS boundary denominator is rank-deficient")
     unrestricted = solve_unrestricted(materialized)
     candidates = [_solution(materialized, 0.0, 0.0)]
