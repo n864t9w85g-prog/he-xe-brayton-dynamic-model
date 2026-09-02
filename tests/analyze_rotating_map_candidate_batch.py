@@ -161,8 +161,8 @@ def analyze(run_root: Path | str, stop_time: float = 500.0):
 
     change_rank = {"C1": 1, "C2": 1, "C3": 2}
     eligible.sort(key=lambda case_id: (
-        cases[case_id]["median_normalized_absolute_error"],
         change_rank[case_id],
+        cases[case_id]["median_normalized_absolute_error"],
         CASE_ORDER.index(case_id),
     ))
     winner = eligible[0] if eligible else None

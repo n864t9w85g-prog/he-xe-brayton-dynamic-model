@@ -90,6 +90,16 @@ class RotatingMapGateTests(unittest.TestCase):
         })
         self.assertEqual(decision["winner"], "C1")
 
+    def test_single_map_candidate_precedes_slightly_better_joint_case(self):
+        targets = subject.TABLE52_TARGETS
+        c2 = {name: value * 1.05 for name, value in targets.items()}
+        c3 = {name: value * 1.049 for name, value in targets.items()}
+        decision = self._run({
+            "C2": {"values": c2},
+            "C3": {"values": c3},
+        })
+        self.assertEqual(decision["winner"], "C2")
+
 
 if __name__ == "__main__":
     unittest.main()
