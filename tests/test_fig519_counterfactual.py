@@ -13,6 +13,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -419,7 +420,7 @@ class Figure519CounterfactualTests(unittest.TestCase):
 
     def test_cli_accepts_the_plan_relative_run_directory_in_verify_only_mode(self):
         completed = subprocess.run(
-            ["python3", "tests/analyze_fig519_counterfactual.py",
+            [sys.executable, "tests/analyze_fig519_counterfactual.py",
              "tmp/fig519_reactor_ic_20260831_A1", "--verify-only"],
             cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             timeout=30,
