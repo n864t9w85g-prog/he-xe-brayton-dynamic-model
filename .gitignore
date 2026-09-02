@@ -1,5 +1,6 @@
 # Local agent/session state
 .workbuddy/
+.worktrees/
 
 # Generated MATLAB/Simulink build artifacts
 slprj/
