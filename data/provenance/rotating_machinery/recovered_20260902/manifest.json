@@ -1,0 +1,62 @@
+{
+  "schema": "rotating_map_recovery_v1",
+  "captured_local_date": "2026-09-02",
+  "author_original_recovered": false,
+  "files": [
+    {
+      "original_path": "/Users/ikunsredemptionmac/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/wxid_5q2nqi6ad2fd12_3a86/msg/file/2026-07/透平机程序 .7z",
+      "repository_path": "source/透平机程序.7z",
+      "size_bytes": 259026,
+      "mtime_local": "2026-07-14T20:02:54+08:00",
+      "sha256": "d0460bcbdb004dcdb447c37c5cf59e230511d1591af7d51e939f944545c35a98",
+      "role": "recovered NASA D-8063 based turbine substitute package",
+      "evidence_level": "warning",
+      "author_original": false,
+      "limitations": "Uses substitute NASA geometry and PD/XK calibration; contains an incorrect 4.572 kg/s design-flow assertion."
+    },
+    {
+      "original_path": "/Users/ikunsredemptionmac/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/wxid_5q2nqi6ad2fd12_3a86/msg/file/2026-07/透平建模思路(1).docx",
+      "repository_path": "source/透平建模思路(1).docx",
+      "size_bytes": 985739,
+      "mtime_local": "2026-07-14T21:08:12+08:00",
+      "sha256": "0589e0f16107bdcd10f263b986aaea9607118ea31786b2daa580c0329c749f3b",
+      "role": "recovered turbine modeling rationale document",
+      "evidence_level": "warning",
+      "author_original": false,
+      "limitations": "Describes a reconstruction workflow but does not establish Xu-author provenance for any lookup matrix."
+    },
+    {
+      "original_path": "/Users/ikunsredemptionmac/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/wxid_5q2nqi6ad2fd12_3a86/msg/file/2026-08/HeXe40_Xu2022_v2_stage9.zip",
+      "repository_path": "source/HeXe40_Xu2022_v2_stage9.zip",
+      "size_bytes": 2661194,
+      "mtime_local": "2026-08-24T17:20:36+08:00",
+      "sha256": "eaf3c5d88a5b5ca15d1877dfcffee57c81d11c19159e6645dcf1e03ac44b0468",
+      "role": "recovered staged He-Xe lookup reconstruction package",
+      "evidence_level": "negative",
+      "author_original": false,
+      "limitations": "Recovered reconstruction package only; no chain of custody to Xu's author-original lookup arrays."
+    },
+    {
+      "original_path": "/Users/ikunsredemptionmac/Downloads/查表数据草稿一/Xu2022_PaperStyle_Equivalent_Lookup.mat",
+      "repository_path": "source/Xu2022_PaperStyle_Equivalent_Lookup.mat",
+      "size_bytes": 3934320,
+      "mtime_local": "2026-08-24T09:58:28+08:00",
+      "sha256": "f482a6a7388986727e09dd8b01b7614e1274952777c0b105f29827b96550eda6",
+      "role": "sole approved paper-style equivalent candidate for C0-C3 temporary experiments",
+      "evidence_level": "warning",
+      "author_original": false,
+      "limitations": "Xu steady anchors with He-Xe scaling and Gallo 2007 BRU curve shape; 100%-110% speed region is linear extrapolation."
+    },
+    {
+      "original_path": "/Users/ikunsredemptionmac/Downloads/查表数据草稿一/FULL_PROVENANCE.md",
+      "repository_path": "source/FULL_PROVENANCE.md",
+      "size_bytes": 10131,
+      "mtime_local": "2026-08-24T09:59:46+08:00",
+      "sha256": "83d3823f0b2db307a11e5a55b0d1459d43e9cdd439578594ebe88fab1a6eed76",
+      "role": "recovered candidate-package provenance narrative",
+      "evidence_level": "warning",
+      "author_original": false,
+      "limitations": "Documents the candidate reconstruction chain; it is not independent evidence that the arrays are author-original."
+    }
+  ]
+}
