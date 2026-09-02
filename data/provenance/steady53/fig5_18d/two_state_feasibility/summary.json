@@ -1,0 +1,154 @@
+{
+  "Tin_K": 609.58,
+  "author_parameter_identified": false,
+  "case_count": 4,
+  "cases": [
+    {
+      "all_intervals_locally_compatible": false,
+      "case_enum": "reading_sensitive",
+      "case_id": "project_flow__inlet_cp",
+      "energy_path": "inlet_cp",
+      "equivalent_mass_kg": null,
+      "favorable_sign_gate": {
+        "conflict": false,
+        "favorable_plateau_UA_required_W_K": 10565.536513138488,
+        "favorable_rising_UA_upper_W_K": 8968.58962458506,
+        "plateau_consistent": true,
+        "sign_class_preserved": false,
+        "strict_positive_ratio_conflict": true
+      },
+      "flow_id": "project_flow",
+      "m_dot_kg_s": 6.95,
+      "nnls_solution": {
+        "C_fluid_J_K": 0.0,
+        "UA_W_K": 10649.25126807072,
+        "sse_J2": 25544832146199.254
+      },
+      "nominal_sign_gate": {
+        "conflict": true,
+        "plateau_UA_required_W_K": 10965.07510259663,
+        "plateau_consistent": true,
+        "platform_equation_inconsistent": false,
+        "rising_UA_upper_W_K": 8763.18876949011,
+        "strict_positive_ratio_conflict": true
+      },
+      "unrestricted_solution": {
+        "C_fluid_J_K": -721979.8809198975,
+        "UA_W_K": 10959.114323611351,
+        "sse_J2": 117913062782.49638
+      }
+    },
+    {
+      "all_intervals_locally_compatible": false,
+      "case_enum": "reading_sensitive",
+      "case_id": "project_flow__integral_enthalpy",
+      "energy_path": "integral_enthalpy",
+      "equivalent_mass_kg": null,
+      "favorable_sign_gate": {
+        "conflict": false,
+        "favorable_plateau_UA_required_W_K": 10852.24146374352,
+        "favorable_rising_UA_upper_W_K": 9347.788864361095,
+        "plateau_consistent": true,
+        "sign_class_preserved": false,
+        "strict_positive_ratio_conflict": true
+      },
+      "flow_id": "project_flow",
+      "m_dot_kg_s": 6.95,
+      "nnls_solution": {
+        "C_fluid_J_K": 0.0,
+        "UA_W_K": 10955.413356159404,
+        "sse_J2": 24635319702695.05
+      },
+      "nominal_sign_gate": {
+        "conflict": true,
+        "plateau_UA_required_W_K": 11267.037745962538,
+        "plateau_consistent": true,
+        "platform_equation_inconsistent": false,
+        "rising_UA_upper_W_K": 9129.72951881044,
+        "strict_positive_ratio_conflict": true
+      },
+      "unrestricted_solution": {
+        "C_fluid_J_K": -708782.6498547285,
+        "UA_W_K": 11259.612355885462,
+        "sse_J2": 129473358803.54411
+      }
+    },
+    {
+      "all_intervals_locally_compatible": false,
+      "case_enum": "reading_sensitive",
+      "case_id": "energy_closure_flow__inlet_cp",
+      "energy_path": "inlet_cp",
+      "equivalent_mass_kg": null,
+      "favorable_sign_gate": {
+        "conflict": false,
+        "favorable_plateau_UA_required_W_K": 10845.479656639813,
+        "favorable_rising_UA_upper_W_K": 9206.22026162442,
+        "plateau_consistent": true,
+        "sign_class_preserved": false,
+        "strict_positive_ratio_conflict": true
+      },
+      "flow_id": "energy_closure_flow",
+      "m_dot_kg_s": 7.134146337,
+      "nnls_solution": {
+        "C_fluid_J_K": 0.0,
+        "UA_W_K": 10931.412507323646,
+        "sse_J2": 26916430822541.414
+      },
+      "nominal_sign_gate": {
+        "conflict": true,
+        "plateau_UA_required_W_K": 11255.604370952467,
+        "plateau_consistent": true,
+        "platform_equation_inconsistent": false,
+        "rising_UA_upper_W_K": 8995.377130978046,
+        "strict_positive_ratio_conflict": true
+      },
+      "unrestricted_solution": {
+        "C_fluid_J_K": -741109.3701945886,
+        "UA_W_K": 11249.48565590736,
+        "sse_J2": 124244261199.085
+      }
+    },
+    {
+      "all_intervals_locally_compatible": false,
+      "case_enum": "reading_sensitive",
+      "case_id": "energy_closure_flow__integral_enthalpy",
+      "energy_path": "integral_enthalpy",
+      "equivalent_mass_kg": null,
+      "favorable_sign_gate": {
+        "conflict": false,
+        "favorable_plateau_UA_required_W_K": 11139.781106015156,
+        "favorable_rising_UA_upper_W_K": 9595.466717371382,
+        "plateau_consistent": true,
+        "sign_class_preserved": false,
+        "strict_positive_ratio_conflict": true
+      },
+      "flow_id": "energy_closure_flow",
+      "m_dot_kg_s": 7.134146337,
+      "nnls_solution": {
+        "C_fluid_J_K": 0.0,
+        "UA_W_K": 11245.686628081363,
+        "sse_J2": 25958083215177.508
+      },
+      "nominal_sign_gate": {
+        "conflict": true,
+        "plateau_UA_required_W_K": 11565.567779021492,
+        "plateau_consistent": true,
+        "platform_equation_inconsistent": false,
+        "rising_UA_upper_W_K": 9371.629698478026,
+        "strict_positive_ratio_conflict": true
+      },
+      "unrestricted_solution": {
+        "C_fluid_J_K": -727562.4669338497,
+        "UA_W_K": 11557.945646730963,
+        "sse_J2": 136425273247.14471
+      }
+    }
+  ],
+  "formal_promotion": false,
+  "interval_count_per_case": 11,
+  "paper_reproduced": false,
+  "result_enum": "constant_positive_two_state_nominally_infeasible_but_reading_sensitive",
+  "schema": "radiator_two_state_feasibility_v1",
+  "temperature_allowance_K": 3.0,
+  "time_allowance_s": 2.0
+}

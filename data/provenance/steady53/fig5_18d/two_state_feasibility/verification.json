@@ -1,0 +1,38 @@
+{
+  "all_checks_passed": true,
+  "author_parameter_identified": false,
+  "formal_promotion": false,
+  "paper_reproduced": false,
+  "protected_hashes": {
+    "HeXe_property_simulink.m": "2490785cba7ae3d1f9bb4d4e52621f7b925945aab0f4f93e1a71b504783f5cf2",
+    "Lithium_property_simulink.m": "f0c2aad44e8701212e924371fe027d7b3814a32cd5df3a32f8a0ccf09abb7f1c",
+    "final_steady_24a.slx": "a93cd94b6c5a0c941fe9eed40d8aea779019cbdb26fe2558df65f7c81c9dc159",
+    "hexe_compressor_lookup.mat": "f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579",
+    "radiator_table.mat": "3f6e8a08f6ec9253b84d07f8eff11d2b093f785bafcfde515f2c6af4ec263304",
+    "turbine_table1.mat": "10e72638374c530e2032d9bfe39b060d4181b0467bf69e03196efa0b90c4971d",
+    "turbine_table2.mat": "cda85dc4480a7723a0ef52bda0fb6f2795e14dfe1167ac74b38a8d64d5b58c33"
+  },
+  "result_enum": "constant_positive_two_state_nominally_infeasible_but_reading_sensitive",
+  "run_output_hashes": {
+    "corner_ranges.csv": "ece0c88ae66e4a793f34d06f935e85872cbccae9d6126351ae75aad396399ad7",
+    "intervals.csv": "153a0f15c2ab3efd4df0dda7a6690b6d3a7f010ca704b516479081c5555e4c1f",
+    "protected_after.json": "cc069259773442fcfa92ff49aa9514671c4d17f5da919c58aa931822a2bcbfce",
+    "protected_before.json": "cc069259773442fcfa92ff49aa9514671c4d17f5da919c58aa931822a2bcbfce",
+    "report.md": "23ad02fb0e568d24f645a83aa80530d0d4ae46fd3d1f99699e9456a1b92f1c98",
+    "source_hashes.json": "c51b3014d3225434254149cb38fe4704b0f1f8ad00353f94770a9b07f589592d",
+    "summary.json": "e49b6b77b21485ab03c0075f0ea0d77de17a80b10589694b6b359f76235abfad"
+  },
+  "schema": "radiator_two_state_verification_v1",
+  "source_hashes": {
+    "data/provenance/steady53/fig5_18d/paper_curve/points.csv": "6aed804bf1ac57832055dab34483bdcb25567a5b902e5b3c6b85cb7129e8849b",
+    "data/provenance/steady53/fig5_18d/paper_curve/provenance.json": "fe35a863731ff5394095f5d268a988cb45120a1382db9fd53bc0599e8f98e0cd",
+    "docs/superpowers/specs/2026-09-02-radiator-two-state-feasibility-design.md": "6bfab38ab3a3979b9ce1a38ef3cf162c464898c6ec1b4699a0dddb40c185898b",
+    "tests/radiator_two_state_contract.py": "6676c48cdbbff9f3d90270d40ffd509c959c278eb4c34a46108ac8ecba9f816e",
+    "tests/radiator_two_state_math.py": "ef46e99dd9721619498ecc5c91fd0928a14b618b131188cd78701d5ec86ba33e",
+    "tests/run_radiator_two_state_feasibility.py": "360e85011da664d290c1f99bae5a8e2bb8b2acfd02fce432a7fe929f8ec6c32b",
+    "空间锂冷堆He-Xe布雷顿循环发电系统优化设计与运行特性分析_徐驰.pdf": "983bfc23712221f30202a47875cbe34c9559edf79b9c332aa20931b6075e4e7a"
+  },
+  "verified_case_count": 4,
+  "verified_interval_count": 44,
+  "verifier_sha256": "14a59882a9f30a776d2f9a020a506ce5f2676a88fa951b395970fc19c95a0396"
+}
