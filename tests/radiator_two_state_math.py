@@ -14,6 +14,10 @@ QFunction = Callable[[float, float, float], float]
 ZERO_TOLERANCE = 1e-12
 
 
+class RankDeficiencyError(ValueError):
+    """Raised only when the two-column least-squares problem is non-unique."""
+
+
 @dataclass(frozen=True)
 class Coefficient:
     interval_index: int
@@ -255,14 +259,14 @@ def _qr_unrestricted_solution(rows: tuple[Coefficient, ...]) -> Solution:
     first_scale = max(abs(value) for value in first)
     second_scale = max(abs(value) for value in second)
     if first_scale == 0.0 or second_scale == 0.0:
-        raise ValueError("rank-deficient interval system has a zero column")
+        raise RankDeficiencyError("rank-deficient interval system has a zero column")
     first_scaled = tuple(value / first_scale for value in first)
     second_scaled = tuple(value / second_scale for value in second)
     if _columns_are_exactly_collinear(first_scaled, second_scaled):
-        raise ValueError("rank-deficient interval system has collinear columns")
+        raise RankDeficiencyError("rank-deficient interval system has collinear columns")
     r11 = _norm(first_scaled, "QR first-column norm")
     if r11 == 0.0:
-        raise ValueError("rank-deficient interval system")
+        raise RankDeficiencyError("rank-deficient interval system")
     q1 = tuple(value / r11 for value in first_scaled)
     r12 = _dot(q1, second_scaled, "QR first projection")
     residual = tuple(value - r12 * basis for value, basis in zip(second_scaled, q1))
@@ -270,8 +274,12 @@ def _qr_unrestricted_solution(rows: tuple[Coefficient, ...]) -> Solution:
     r12 = math.fsum((r12, correction))
     residual = tuple(value - correction * basis for value, basis in zip(residual, q1))
     r22 = _norm(residual, "QR second-column norm")
-    if r22 == 0.0:
-        raise ValueError("rank-deficient interval system")
+    second_norm = _norm(second_scaled, "QR original second-column norm")
+    rank_floor = math.ulp(1.0) * max(len(rows), 2) * max(
+        r11, second_norm, 1.0
+    )
+    if r22 <= rank_floor:
+        raise RankDeficiencyError("rank-deficient interval system")
     q2 = tuple(value / r22 for value in residual)
     observed = tuple(row.D_J for row in rows)
     y1 = _dot(q1, observed, "QR first right-hand projection")
@@ -302,7 +310,7 @@ def solve_nnls(rows: Iterable[Coefficient]) -> Solution:
     candidates.extend(candidate for candidate in (capacity_axis, ua_axis) if candidate)
     try:
         unrestricted = solve_unrestricted(materialized)
-    except ValueError:
+    except RankDeficiencyError:
         unrestricted = None
     if (
         unrestricted
@@ -364,12 +372,21 @@ def nominal_sign_gate(rows: Iterable[Coefficient]) -> Mapping[str, float | bool]
         for row in materialized
         if row.A_K > ZERO_TOLERANCE and row.B_K_s > 0.0
     ]
-    plateau = [
-        row.D_J / row.B_K_s
-        for row in materialized
-        if abs(row.A_K) <= ZERO_TOLERANCE and row.B_K_s > 0.0
-    ]
-    return _gate(rising, plateau, "")
+    plateau = []
+    platform_equation_inconsistent = False
+    for row in materialized:
+        if abs(row.A_K) > ZERO_TOLERANCE:
+            continue
+        if row.B_K_s == 0.0:
+            if row.D_J != 0.0:
+                platform_equation_inconsistent = True
+            continue
+        plateau.append(row.D_J / row.B_K_s)
+    gate = _gate(rising, plateau, "")
+    values = dict(gate)
+    values["platform_equation_inconsistent"] = platform_equation_inconsistent
+    values["conflict"] = bool(gate["conflict"]) or platform_equation_inconsistent
+    return MappingProxyType(values)
 
 
 def _shift(sample: contract.Sample, outlet_delta: float, wall_delta: float, time_delta: float) -> contract.Sample:

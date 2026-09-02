@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError, fields
 import math
 import unittest
+from unittest import mock
 
 from tests import radiator_two_state_contract as contract
 from tests import radiator_two_state_math as model
@@ -141,6 +142,38 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
         )
         self.assertEqual(model.solve_nnls(collinear), model.Solution(0.0, 3.0, 0.0))
 
+    def test_qr_numerical_rank_threshold_and_nnls_boundary_fallback(self):
+        epsilon = math.ulp(1.0)
+        rows = (
+            model.Coefficient(0, 0, 1, 1.0, 1.0, 3.0),
+            model.Coefficient(1, 1, 2, 1.0, 1.0 + epsilon, 3.0 + 2.0 * epsilon),
+        )
+        with self.assertRaises(model.RankDeficiencyError):
+            model.solve_unrestricted(rows)
+        first = model.solve_nnls(rows)
+        second = model.solve_nnls(rows)
+        self.assertEqual(first, second)
+        self.assertTrue(first.C_fluid_J_K == 0.0 or first.UA_W_K == 0.0)
+
+    def test_nnls_only_swallows_rank_deficiency_from_qr(self):
+        rows = (
+            model.Coefficient(0, 0, 1, 0.0, 1.0, 2.0),
+            model.Coefficient(1, 1, 2, 0.0, 2.0, 4.0),
+        )
+        with mock.patch.object(
+            model,
+            "_qr_unrestricted_solution",
+            side_effect=ValueError("synthetic numerical failure"),
+        ):
+            with self.assertRaisesRegex(ValueError, "synthetic numerical failure"):
+                model.solve_nnls(rows)
+        with mock.patch.object(
+            model,
+            "_qr_unrestricted_solution",
+            side_effect=model.RankDeficiencyError("synthetic rank failure"),
+        ):
+            self.assertEqual(model.solve_nnls(rows), model.Solution(0.0, 2.0, 0.0))
+
     def test_corner_range_straddles_zero_and_discards_nonpositive_duration(self):
         first, second = _sample(0, 280, 300), _sample(2, 300, 320)
         row = model.interval_coefficient(first, second, 600, 2, _inlet_cp)
@@ -191,6 +224,28 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
                 gate = model.nominal_sign_gate(rows)
                 self.assertTrue(gate["conflict"])
         self.assertFalse(model.nominal_sign_gate(inconsistent_plateaus)["plateau_consistent"])
+
+    def test_platform_equations_do_not_ignore_nonpositive_or_zero_B_rows(self):
+        rising_and_platform = (
+            model.Coefficient(0, 0, 1, 1.0, 1.0, 4.0),
+            model.Coefficient(1, 1, 2, 0.0, 1.0, 3.0),
+        )
+        negative_B = rising_and_platform + (
+            model.Coefficient(2, 2, 3, 0.0, -1.0, 3.0),
+        )
+        zero_B_nonzero_D = rising_and_platform + (
+            model.Coefficient(2, 2, 3, 0.0, 0.0, 1.0),
+        )
+        zero_B_zero_D = rising_and_platform + (
+            model.Coefficient(2, 2, 3, 0.0, 0.0, 0.0),
+        )
+        self.assertTrue(model.nominal_sign_gate(negative_B)["conflict"])
+        nonzero_gate = model.nominal_sign_gate(zero_B_nonzero_D)
+        self.assertTrue(nonzero_gate["platform_equation_inconsistent"])
+        self.assertTrue(nonzero_gate["conflict"])
+        zero_gate = model.nominal_sign_gate(zero_B_zero_D)
+        self.assertFalse(zero_gate["platform_equation_inconsistent"])
+        self.assertFalse(zero_gate["conflict"])
 
     def test_favorable_gate_is_not_robust_when_corner_changes_sign_class(self):
         samples = (
