@@ -181,20 +181,72 @@ def analyze(run_root: Path | str, stop_time: float = 500.0):
     }
 
 
+def analyze_long_run(run_root: Path | str, stop_time: float = 14000.0):
+    run_root = Path(run_root).resolve()
+    stop_time = float(stop_time)
+    if stop_time != 14000.0:
+        raise ValueError("Gate 3 analysis accepts only the approved 14000 s run")
+    decision_path = run_root / "gate2_decision.json"
+    if not decision_path.is_file():
+        raise RuntimeError("Gate 2 decision is required before Gate 3")
+    decision = json.loads(decision_path.read_text(encoding="utf-8"))
+    winner = decision.get("winner")
+    if not decision.get("eligible_for_14000") or winner not in CASE_ORDER[1:]:
+        raise RuntimeError("Gate 2 did not authorize a valid winner")
+    loaded = _read_case(run_root, winner, stop_time)
+    if loaded is None:
+        raise RuntimeError(f"Missing 14000 s evidence for {winner}")
+    metrics = _metrics(*loaded, stop_time)
+    errors = [
+        item["normalized_absolute_error"]
+        for item in metrics["signals"].values()
+    ]
+    all_within_one = bool(errors) and all(error <= 0.01 + 1e-12 for error in errors)
+    completed_clear = metrics["hard_gate_passed"]
+    # The whole-system warm-initialized run is not the independent-component
+    # experiment described in thesis Section 5.3.1.  End-point agreement
+    # therefore cannot establish reproduction of the published transients.
+    protocol_comparable = False
+    return {
+        "schema": "rotating_map_gate3_result_v1",
+        "requested_stop_time_s": stop_time,
+        "winner": winner,
+        "completed_and_domain_clear": completed_clear,
+        "median_normalized_absolute_error": (
+            statistics.median(errors) if errors else None
+        ),
+        "maximum_normalized_absolute_error": max(errors) if errors else None,
+        "targets_within_one_percent": sum(error <= 0.01 + 1e-12 for error in errors),
+        "target_count": len(errors),
+        "all_targets_within_one_percent": all_within_one,
+        "paper_curve_protocol_comparable": protocol_comparable,
+        "paper_reproduced": completed_clear and all_within_one and protocol_comparable,
+        "case": metrics,
+        "formal_promotion": False,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--stop-time", type=float, required=True)
     args = parser.parse_args(argv)
-    decision = analyze(args.run_root, args.stop_time)
-    output = args.run_root / "gate2_decision.json"
+    if args.stop_time == 500.0:
+        decision = analyze(args.run_root, args.stop_time)
+        output = args.run_root / "gate2_decision.json"
+    elif args.stop_time == 14000.0:
+        decision = analyze_long_run(args.run_root, args.stop_time)
+        output = args.run_root / "gate3_result.json"
+    else:
+        parser.error("--stop-time must be 500 or 14000")
     output.write_text(
         json.dumps(decision, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
         encoding="utf-8",
     )
     print(json.dumps({
-        "eligible_for_14000": decision["eligible_for_14000"],
-        "winner": decision["winner"],
+        "eligible_for_14000": decision.get("eligible_for_14000"),
+        "winner": decision.get("winner"),
+        "paper_reproduced": decision.get("paper_reproduced"),
     }, ensure_ascii=False))
 
 

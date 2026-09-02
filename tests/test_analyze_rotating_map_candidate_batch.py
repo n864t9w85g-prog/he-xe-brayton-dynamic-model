@@ -9,12 +9,12 @@ from tests import analyze_rotating_map_candidate_batch as subject
 
 class RotatingMapGateTests(unittest.TestCase):
     def _write_case(self, root, case_id, values, *, final=500.0,
-                    success=True, lookup_clear=True):
-        case_dir = root / "runs" / case_id / "500s"
+                    success=True, lookup_clear=True, stop_time=500.0):
+        case_dir = root / "runs" / case_id / f"{stop_time:g}s"
         case_dir.mkdir(parents=True)
         status = {
             "case_id": case_id,
-            "requested_stop_time_s": 500.0,
+            "requested_stop_time_s": stop_time,
             "success": success,
             "final_valid_time_s": final,
             "lookup_assertion_clear": lookup_clear,
@@ -99,6 +99,23 @@ class RotatingMapGateTests(unittest.TestCase):
             "C3": {"values": c3},
         })
         self.assertEqual(decision["winner"], "C2")
+
+    def test_long_run_reports_completion_without_claiming_curve_reproduction(self):
+        targets = subject.TABLE52_TARGETS
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "gate2_decision.json").write_text(json.dumps({
+                "eligible_for_14000": True,
+                "winner": "C2",
+            }))
+            values = {name: value * 1.02 for name, value in targets.items()}
+            self._write_case(root, "C2", values, final=14000.0,
+                             stop_time=14000.0)
+            result = subject.analyze_long_run(root, 14000.0)
+        self.assertTrue(result["completed_and_domain_clear"])
+        self.assertFalse(result["all_targets_within_one_percent"])
+        self.assertFalse(result["paper_curve_protocol_comparable"])
+        self.assertFalse(result["paper_reproduced"])
 
 
 if __name__ == "__main__":
