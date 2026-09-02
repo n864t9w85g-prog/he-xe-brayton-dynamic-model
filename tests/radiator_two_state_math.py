@@ -69,38 +69,68 @@ def cp_nak_J_kgK(temperature_K: float) -> float:
     """NaK specific heat capacity in J/(kg K)."""
     if not _finite(temperature_K):
         raise ValueError("temperature must be finite")
-    return 1000.0 * (
-        1.061 - 3.694e-4 * temperature_K + 4.615e-8 * temperature_K**2
-        + 1.509e-10 * temperature_K**3
-    )
+    try:
+        result = 1000.0 * (
+            1.061 - 3.694e-4 * temperature_K + 4.615e-8 * temperature_K**2
+            + 1.509e-10 * temperature_K**3
+        )
+    except OverflowError as exc:
+        raise ValueError("NaK cp polynomial overflow") from exc
+    if not math.isfinite(result):
+        raise ValueError("NaK cp polynomial is nonfinite")
+    return result
 
 
 def h_nak_J_kg(temperature_K: float) -> float:
     """Analytic integral of :func:`cp_nak_J_kgK`, with zero constant."""
     if not _finite(temperature_K):
         raise ValueError("temperature must be finite")
-    return 1000.0 * (
-        1.061 * temperature_K - 3.694e-4 * temperature_K**2 / 2.0
-        + 4.615e-8 * temperature_K**3 / 3.0
-        + 1.509e-10 * temperature_K**4 / 4.0
-    )
+    try:
+        result = 1000.0 * (
+            1.061 * temperature_K - 3.694e-4 * temperature_K**2 / 2.0
+            + 4.615e-8 * temperature_K**3 / 3.0
+            + 1.509e-10 * temperature_K**4 / 4.0
+        )
+    except OverflowError as exc:
+        raise ValueError("NaK enthalpy polynomial overflow") from exc
+    if not math.isfinite(result):
+        raise ValueError("NaK enthalpy polynomial is nonfinite")
+    return result
 
 
 def q_inlet_cp_W(tin_K: float, tout_K: float, m_dot_kg_s: float) -> float:
     if not _finite(tin_K, tout_K, m_dot_kg_s):
         raise ValueError("energy inputs must be finite")
-    return m_dot_kg_s * cp_nak_J_kgK(tin_K) * (tin_K - tout_K)
+    try:
+        result = m_dot_kg_s * cp_nak_J_kgK(tin_K) * (tin_K - tout_K)
+    except OverflowError as exc:
+        raise ValueError("inlet-cp energy overflow") from exc
+    if not math.isfinite(result):
+        raise ValueError("inlet-cp energy is nonfinite")
+    return result
 
 
 def q_integral_enthalpy_W(tin_K: float, tout_K: float, m_dot_kg_s: float) -> float:
     if not _finite(tin_K, tout_K, m_dot_kg_s):
         raise ValueError("energy inputs must be finite")
-    return m_dot_kg_s * (h_nak_J_kg(tin_K) - h_nak_J_kg(tout_K))
+    try:
+        result = m_dot_kg_s * (h_nak_J_kg(tin_K) - h_nak_J_kg(tout_K))
+    except OverflowError as exc:
+        raise ValueError("integral-enthalpy energy overflow") from exc
+    if not math.isfinite(result):
+        raise ValueError("integral-enthalpy energy is nonfinite")
+    return result
 
 
 ENERGY_FUNCTIONS: Mapping[str, QFunction] = MappingProxyType({
     "inlet_cp": q_inlet_cp_W,
     "integral_enthalpy": q_integral_enthalpy_W,
+})
+CASE_ENUMS = frozenset({
+    "robustly_infeasible",
+    "reading_sensitive",
+    "conditionally_feasible",
+    "full_interval_inconsistent",
 })
 
 
@@ -165,68 +195,180 @@ def _validated_rows(rows: Iterable[Coefficient]) -> tuple[Coefficient, ...]:
 def _solution(rows: tuple[Coefficient, ...], capacity: float, ua: float) -> Solution:
     if not _finite(capacity, ua):
         raise ValueError("solution parameter is nonfinite")
-    sse = sum(residual_J(row, capacity, ua) ** 2 for row in rows)
+    try:
+        sse = math.fsum(residual_J(row, capacity, ua) ** 2 for row in rows)
+    except OverflowError as exc:
+        raise ValueError("solution SSE overflow") from exc
     if not _finite(sse):
         raise ValueError("solution SSE is nonfinite")
     return Solution(capacity, ua, sse)
 
 
-def _normal_terms(rows: tuple[Coefficient, ...]) -> tuple[float, float, float, float, float]:
-    aa = sum(row.A_K**2 for row in rows)
-    ab = sum(row.A_K * row.B_K_s for row in rows)
-    bb = sum(row.B_K_s**2 for row in rows)
-    ad = sum(row.A_K * row.D_J for row in rows)
-    bd = sum(row.B_K_s * row.D_J for row in rows)
-    if not _finite(aa, ab, bb, ad, bd):
-        raise ValueError("normal equations are nonfinite")
-    return aa, ab, bb, ad, bd
+def _dot(left: tuple[float, ...], right: tuple[float, ...], label: str) -> float:
+    try:
+        result = math.fsum(value * other for value, other in zip(left, right))
+    except OverflowError as exc:
+        raise ValueError(f"{label} overflow") from exc
+    if not math.isfinite(result):
+        raise ValueError(f"{label} is nonfinite")
+    return result
+
+
+def _norm(values: tuple[float, ...], label: str) -> float:
+    try:
+        result = math.hypot(*values)
+    except OverflowError as exc:
+        raise ValueError(f"{label} overflow") from exc
+    if not math.isfinite(result):
+        raise ValueError(f"{label} is nonfinite")
+    return result
+
+
+def _axis_candidate(
+    rows: tuple[Coefficient, ...], column: tuple[float, ...], axis: str
+) -> Solution | None:
+    scale = max(abs(value) for value in column)
+    if scale == 0.0:
+        return None
+    scaled = tuple(value / scale for value in column)
+    denominator = _dot(scaled, scaled, f"{axis} axis denominator")
+    numerator = _dot(scaled, tuple(row.D_J for row in rows), f"{axis} axis numerator")
+    parameter = max(0.0, numerator / denominator / scale)
+    if axis == "capacity":
+        return _solution(rows, parameter, 0.0)
+    return _solution(rows, 0.0, parameter)
+
+
+def _columns_are_exactly_collinear(
+    first: tuple[float, ...], second: tuple[float, ...]
+) -> bool:
+    pivot = next((index for index, value in enumerate(first) if value != 0.0), None)
+    if pivot is None:
+        return True
+    ratio = second[pivot] / first[pivot]
+    return all(other == ratio * value for value, other in zip(first, second))
+
+
+def _qr_unrestricted_solution(rows: tuple[Coefficient, ...]) -> Solution:
+    first = tuple(row.A_K for row in rows)
+    second = tuple(row.B_K_s for row in rows)
+    first_scale = max(abs(value) for value in first)
+    second_scale = max(abs(value) for value in second)
+    if first_scale == 0.0 or second_scale == 0.0:
+        raise ValueError("rank-deficient interval system has a zero column")
+    first_scaled = tuple(value / first_scale for value in first)
+    second_scaled = tuple(value / second_scale for value in second)
+    if _columns_are_exactly_collinear(first_scaled, second_scaled):
+        raise ValueError("rank-deficient interval system has collinear columns")
+    r11 = _norm(first_scaled, "QR first-column norm")
+    if r11 == 0.0:
+        raise ValueError("rank-deficient interval system")
+    q1 = tuple(value / r11 for value in first_scaled)
+    r12 = _dot(q1, second_scaled, "QR first projection")
+    residual = tuple(value - r12 * basis for value, basis in zip(second_scaled, q1))
+    correction = _dot(q1, residual, "QR re-orthogonalization")
+    r12 = math.fsum((r12, correction))
+    residual = tuple(value - correction * basis for value, basis in zip(residual, q1))
+    r22 = _norm(residual, "QR second-column norm")
+    if r22 == 0.0:
+        raise ValueError("rank-deficient interval system")
+    q2 = tuple(value / r22 for value in residual)
+    observed = tuple(row.D_J for row in rows)
+    y1 = _dot(q1, observed, "QR first right-hand projection")
+    y2 = _dot(q2, observed, "QR second right-hand projection")
+    scaled_ua = y2 / r22
+    scaled_capacity = (y1 - r12 * scaled_ua) / r11
+    capacity = scaled_capacity / first_scale
+    ua = scaled_ua / second_scale
+    return _solution(rows, capacity, ua)
 
 
 def solve_unrestricted(rows: Iterable[Coefficient]) -> Solution:
-    """Solve the exact two-by-two normal equations with no optimizer."""
+    """Solve the full-rank two-column system by scaled, re-orthogonalized QR."""
     materialized = _validated_rows(rows)
-    aa, ab, bb, ad, bd = _normal_terms(materialized)
-    determinant = aa * bb - ab * ab
-    if not math.isfinite(determinant) or determinant <= 0.0:
-        raise ValueError("rank-deficient interval system")
-    capacity = (ad * bb - bd * ab) / determinant
-    ua = (bd * aa - ad * ab) / determinant
-    return _solution(materialized, capacity, ua)
+    return _qr_unrestricted_solution(materialized)
 
 
 def solve_nnls(rows: Iterable[Coefficient]) -> Solution:
     """Analytic non-negative least squares over interior, axes, and origin."""
     materialized = _validated_rows(rows)
-    aa, _ab, bb, ad, bd = _normal_terms(materialized)
-    if aa <= 0.0 or bb <= 0.0:
-        raise ValueError("NNLS boundary denominator is rank-deficient")
-    unrestricted = solve_unrestricted(materialized)
     candidates = [_solution(materialized, 0.0, 0.0)]
-    if unrestricted.C_fluid_J_K >= 0.0 and unrestricted.UA_W_K >= 0.0:
+    capacity_axis = _axis_candidate(
+        materialized, tuple(row.A_K for row in materialized), "capacity"
+    )
+    ua_axis = _axis_candidate(
+        materialized, tuple(row.B_K_s for row in materialized), "UA"
+    )
+    candidates.extend(candidate for candidate in (capacity_axis, ua_axis) if candidate)
+    try:
+        unrestricted = solve_unrestricted(materialized)
+    except ValueError:
+        unrestricted = None
+    if (
+        unrestricted
+        and unrestricted.C_fluid_J_K >= 0.0
+        and unrestricted.UA_W_K >= 0.0
+    ):
         candidates.append(unrestricted)
-    candidates.append(_solution(materialized, max(0.0, ad / aa), 0.0))
-    candidates.append(_solution(materialized, 0.0, max(0.0, bd / bb)))
-    return min(candidates, key=lambda item: (item.sse_J2, item.C_fluid_J_K, item.UA_W_K))
+    return min(
+        candidates,
+        key=lambda item: (item.sse_J2, item.C_fluid_J_K, item.UA_W_K),
+    )
 
 
-def _gate(values_upper: list[float], values_required: list[float], prefix: str) -> Mapping[str, float | bool]:
+def _plateau_ratios_consistent(values: list[float]) -> bool:
+    reference = values[0]
+    return all(
+        math.isclose(value, reference, rel_tol=1e-12, abs_tol=0.0)
+        for value in values[1:]
+    )
+
+
+def _strict_positive_ratio_conflict(
+    upper: float, required: float, plateau_consistent: bool
+) -> bool:
+    return (
+        not plateau_consistent
+        or upper <= 0.0
+        or required <= 0.0
+        or required >= upper
+    )
+
+
+def _gate(
+    values_upper: list[float], values_required: list[float], prefix: str
+) -> Mapping[str, float | bool]:
     if not values_upper or not values_required:
         raise ValueError("sign gate requires rising and plateau intervals")
     upper = min(values_upper)
     required = max(values_required)
     if not _finite(upper, required):
         raise ValueError("sign gate ratio is nonfinite")
+    plateau_consistent = _plateau_ratios_consistent(values_required)
+    ratio_conflict = _strict_positive_ratio_conflict(
+        upper, required, plateau_consistent
+    )
     return MappingProxyType({
         f"{prefix}rising_UA_upper_W_K": upper,
         f"{prefix}plateau_UA_required_W_K": required,
-        "conflict": required > upper,
+        "plateau_consistent": plateau_consistent,
+        "strict_positive_ratio_conflict": ratio_conflict,
+        "conflict": ratio_conflict,
     })
 
 
 def nominal_sign_gate(rows: Iterable[Coefficient]) -> Mapping[str, float | bool]:
     materialized = _validated_rows(rows)
-    rising = [row.D_J / row.B_K_s for row in materialized if row.A_K > ZERO_TOLERANCE and row.B_K_s > 0.0]
-    plateau = [row.D_J / row.B_K_s for row in materialized if abs(row.A_K) <= ZERO_TOLERANCE and row.B_K_s > 0.0]
+    rising = [
+        row.D_J / row.B_K_s
+        for row in materialized
+        if row.A_K > ZERO_TOLERANCE and row.B_K_s > 0.0
+    ]
+    plateau = [
+        row.D_J / row.B_K_s
+        for row in materialized
+        if abs(row.A_K) <= ZERO_TOLERANCE and row.B_K_s > 0.0
+    ]
     return _gate(rising, plateau, "")
 
 
@@ -282,35 +424,90 @@ def favorable_sign_gate(
         interval_coefficient(first, second, tin_K, m_dot_kg_s, q_function, index)
         for index, (first, second) in enumerate(zip(materialized, materialized[1:]))
     )
-    rising_indexes = [index for index, row in enumerate(nominal) if row.A_K > ZERO_TOLERANCE]
-    plateau_indexes = [index for index, row in enumerate(nominal) if abs(row.A_K) <= ZERO_TOLERANCE]
+    rising_indexes = [
+        index for index, row in enumerate(nominal) if row.A_K > ZERO_TOLERANCE
+    ]
+    plateau_indexes = [
+        index
+        for index, row in enumerate(nominal)
+        if abs(row.A_K) <= ZERO_TOLERANCE
+    ]
     if not rising_indexes or not plateau_indexes:
         raise ValueError("sign gate requires rising and plateau intervals")
     ratio_ranges = {}
+    rising_preserved = {index: True for index in rising_indexes}
+    plateau_preserved = {index: True for index in plateau_indexes}
     for index, (first, second) in enumerate(zip(materialized, materialized[1:])):
         ratios = []
         for to_a, tw_a, to_b, tw_b in itertools.product((-1.0, 1.0), repeat=4):
-            shifted_first = _shift(first, to_a * temperature_allowance_K, tw_a * temperature_allowance_K, 0.0)
-            shifted_second = _shift(second, to_b * temperature_allowance_K, tw_b * temperature_allowance_K, 0.0)
-            row = interval_coefficient(shifted_first, shifted_second, tin_K, m_dot_kg_s, q_function, index)
+            shifted_first = _shift(
+                first,
+                to_a * temperature_allowance_K,
+                tw_a * temperature_allowance_K,
+                0.0,
+            )
+            shifted_second = _shift(
+                second,
+                to_b * temperature_allowance_K,
+                tw_b * temperature_allowance_K,
+                0.0,
+            )
+            row = interval_coefficient(
+                shifted_first,
+                shifted_second,
+                tin_K,
+                m_dot_kg_s,
+                q_function,
+                index,
+            )
+            if index in rising_preserved and not (
+                row.A_K > ZERO_TOLERANCE and row.B_K_s > 0.0
+            ):
+                rising_preserved[index] = False
+            if index in plateau_preserved and not (
+                abs(row.A_K) <= ZERO_TOLERANCE and row.B_K_s > 0.0
+            ):
+                plateau_preserved[index] = False
             if row.B_K_s > 0.0:
                 ratio = row.D_J / row.B_K_s
                 if math.isfinite(ratio):
                     ratios.append(ratio)
-        if not ratios:
-            raise ValueError("uncertainty sign gate has no positive B interval")
-        ratio_ranges[index] = (min(ratios), max(ratios))
-    return _gate(
-        [ratio_ranges[index][1] for index in rising_indexes],
-        [ratio_ranges[index][0] for index in plateau_indexes],
-        "favorable_",
+        ratio_ranges[index] = (
+            (min(ratios), max(ratios)) if ratios else (math.nan, math.nan)
+        )
+    rising_upper_values = [ratio_ranges[index][1] for index in rising_indexes]
+    plateau_required_values = [
+        ratio_ranges[index][0] for index in plateau_indexes
+    ]
+    if _finite(*rising_upper_values, *plateau_required_values):
+        gate = _gate(
+            rising_upper_values, plateau_required_values, "favorable_"
+        )
+    else:
+        gate = MappingProxyType({
+            "favorable_rising_UA_upper_W_K": math.nan,
+            "favorable_plateau_UA_required_W_K": math.nan,
+            "plateau_consistent": False,
+            "strict_positive_ratio_conflict": False,
+            "conflict": False,
+        })
+    sign_class_preserved = all(rising_preserved.values()) and all(
+        plateau_preserved.values()
     )
+    values = dict(gate)
+    values["sign_class_preserved"] = sign_class_preserved
+    values["conflict"] = sign_class_preserved and bool(
+        gate["strict_positive_ratio_conflict"]
+    )
+    return MappingProxyType(values)
 
 
 def aggregate_case_enums(case_enums: Iterable[str]) -> str:
     values = tuple(case_enums)
     if len(values) != 4:
         raise ValueError("exactly four fixed cases are required")
+    if any(value not in CASE_ENUMS for value in values):
+        raise ValueError("unknown case enum")
     if all(value == "robustly_infeasible" for value in values):
         return "constant_positive_two_state_robustly_infeasible"
     if all(value in {"robustly_infeasible", "reading_sensitive"} for value in values):

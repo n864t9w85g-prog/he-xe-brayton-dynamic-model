@@ -56,6 +56,12 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
         numerical_integral = (upper - lower) * midpoint_sum / 100_000
         self.assertAlmostEqual(model.h_nak_J_kg(upper) - model.h_nak_J_kg(lower), numerical_integral, places=3)
 
+    def test_extreme_finite_polynomial_inputs_raise_contextual_value_error(self):
+        for function in (model.cp_nak_J_kgK, model.h_nak_J_kg):
+            with self.subTest(function=function.__name__):
+                with self.assertRaises(ValueError):
+                    function(1e308)
+
     def test_public_records_are_frozen_and_have_required_fields(self):
         expected = {
             model.Coefficient: ("interval_index", "start_s", "end_s", "A_K", "B_K_s", "D_J"),
@@ -90,8 +96,11 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
             model.Coefficient(1, 1, 2, 0, 1, 30),
             model.Coefficient(2, 2, 3, 1, 1, 50),
         )
-        self.assertEqual(model.solve_unrestricted(exact), model.Solution(20, 30, 0))
-        self.assertEqual(model.solve_nnls(exact), model.Solution(20, 30, 0))
+        for solution in (model.solve_unrestricted(exact), model.solve_nnls(exact)):
+            with self.subTest(solution=solution):
+                self.assertAlmostEqual(solution.C_fluid_J_K, 20.0, places=12)
+                self.assertAlmostEqual(solution.UA_W_K, 30.0, places=12)
+                self.assertLess(solution.sse_J2, 1e-20)
         boundary = (
             model.Coefficient(0, 0, 1, 1, 0, -1),
             model.Coefficient(1, 1, 2, 0, 1, 2),
@@ -109,6 +118,29 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
                 self.assertAlmostEqual(solution.UA_W_K, 30.0, places=10)
                 self.assertAlmostEqual(solution.sse_J2, 0.0, places=30)
 
+    def test_qr_solver_recovers_near_collinear_full_rank_solution(self):
+        rows = (
+            model.Coefficient(0, 0, 1, 1.0, 1.0, 3.0),
+            model.Coefficient(1, 1, 2, 1.0, 1.0 + 1e-7, 3.0 + 2e-7),
+        )
+        for solution in (model.solve_unrestricted(rows), model.solve_nnls(rows)):
+            with self.subTest(solution=solution):
+                self.assertAlmostEqual(solution.C_fluid_J_K, 1.0, places=5)
+                self.assertAlmostEqual(solution.UA_W_K, 2.0, places=5)
+                self.assertLess(solution.sse_J2, 1e-20)
+
+    def test_nnls_returns_axis_solution_for_degenerate_systems(self):
+        zero_capacity_column = (
+            model.Coefficient(0, 0, 1, 0.0, 1.0, 2.0),
+            model.Coefficient(1, 1, 2, 0.0, 2.0, 4.0),
+        )
+        self.assertEqual(model.solve_nnls(zero_capacity_column), model.Solution(0.0, 2.0, 0.0))
+        collinear = (
+            model.Coefficient(0, 0, 1, 1.0, 1.0, 3.0),
+            model.Coefficient(1, 1, 2, 2.0, 2.0, 6.0),
+        )
+        self.assertEqual(model.solve_nnls(collinear), model.Solution(0.0, 3.0, 0.0))
+
     def test_corner_range_straddles_zero_and_discards_nonpositive_duration(self):
         first, second = _sample(0, 280, 300), _sample(2, 300, 320)
         row = model.interval_coefficient(first, second, 600, 2, _inlet_cp)
@@ -118,7 +150,7 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
         self.assertGreaterEqual(bounds.maximum_J, 0)
         self.assertTrue(bounds.contains_zero)
         self.assertGreater(bounds.admissible_corner_count, 0)
-        self.assertLess(bounds.admissible_corner_count, 64)
+        self.assertEqual(bounds.admissible_corner_count, 48)
 
     def test_nominal_and_favorable_sign_gates_cover_conflict_and_nonconflict(self):
         conflict = (
@@ -134,7 +166,57 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
         favorable_compatible = (_sample(0, 300, 300), _sample(1, 300, 320), _sample(2, 300, 320))
         favorable_conflict = (_sample(0, 100, 300), _sample(1, 450, 320), _sample(2, 450, 320))
         self.assertFalse(model.favorable_sign_gate(favorable_compatible, 600, 2, _inlet_cp, 3)["conflict"])
-        self.assertTrue(model.favorable_sign_gate(favorable_conflict, 600, 2, _inlet_cp, 3)["conflict"])
+        self.assertTrue(model.favorable_sign_gate(favorable_conflict, 600, 2, _inlet_cp, 0)["conflict"])
+
+    def test_sign_gate_requires_strict_positive_gap_and_consistent_plateaus(self):
+        equal_bounds = (
+            model.Coefficient(0, 0, 1, 1.0, 1.0, 3.0),
+            model.Coefficient(1, 1, 2, 0.0, 1.0, 3.0),
+        )
+        nonpositive_upper = (
+            model.Coefficient(0, 0, 1, 1.0, 1.0, -1.0),
+            model.Coefficient(1, 1, 2, 0.0, 1.0, 2.0),
+        )
+        nonpositive_plateau = (
+            model.Coefficient(0, 0, 1, 1.0, 1.0, 2.0),
+            model.Coefficient(1, 1, 2, 0.0, 1.0, -1.0),
+        )
+        inconsistent_plateaus = (
+            model.Coefficient(0, 0, 1, 1.0, 1.0, 4.0),
+            model.Coefficient(1, 1, 2, 0.0, 1.0, 3.0),
+            model.Coefficient(2, 2, 3, 0.0, 1.0, 3.01),
+        )
+        for rows in (equal_bounds, nonpositive_upper, nonpositive_plateau, inconsistent_plateaus):
+            with self.subTest(rows=rows):
+                gate = model.nominal_sign_gate(rows)
+                self.assertTrue(gate["conflict"])
+        self.assertFalse(model.nominal_sign_gate(inconsistent_plateaus)["plateau_consistent"])
+
+    def test_favorable_gate_is_not_robust_when_corner_changes_sign_class(self):
+        samples = (
+            _sample(0.0, 100.0, 300.0),
+            _sample(1.0, 450.0, 300.0 + 1e-11),
+            _sample(2.0, 450.0, 300.0 + 1e-11),
+        )
+        rows = tuple(
+            model.interval_coefficient(first, second, 600.0, 2.0, _inlet_cp, index)
+            for index, (first, second) in enumerate(zip(samples, samples[1:]))
+        )
+        self.assertTrue(model.nominal_sign_gate(rows)["conflict"])
+        favorable = model.favorable_sign_gate(samples, 600.0, 2.0, _inlet_cp, 3.0)
+        self.assertFalse(favorable["sign_class_preserved"])
+        self.assertFalse(favorable["conflict"])
+
+    def test_analyze_case_marks_changed_favorable_sign_class_reading_sensitive(self):
+        case = contract.Case("synthetic", "synthetic", 1.0, "inlet_cp")
+        samples = (
+            _sample(0.0, 100.0, 300.0),
+            *(_sample(float(index), 450.0, 300.0 + 1e-11) for index in range(1, 12)),
+        )
+        analysis = model.analyze_case(case, samples)
+        self.assertTrue(analysis.nominal_sign_gate["conflict"])
+        self.assertFalse(analysis.favorable_sign_gate["sign_class_preserved"])
+        self.assertEqual(analysis.case_enum, "reading_sensitive")
 
     def test_analyze_case_has_eleven_rows_plateau_none_and_positive_corner_ranges(self):
         case = contract.Case("synthetic", "synthetic", 1.0, "inlet_cp")
@@ -143,8 +225,13 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
         self.assertTrue(all(item.corner_range is not None for item in analysis.intervals))
         self.assertTrue(analysis.unrestricted_solution.C_fluid_J_K > 0)
         self.assertTrue(analysis.unrestricted_solution.UA_W_K > 0)
+        self.assertAlmostEqual(analysis.unrestricted_solution.C_fluid_J_K, 100_000.0, places=6)
+        self.assertAlmostEqual(analysis.unrestricted_solution.UA_W_K, 500.0, places=8)
+        self.assertLess(analysis.unrestricted_solution.sse_J2, 1e-12)
+        self.assertTrue(all(abs(item.residual_J) < 1e-6 for item in analysis.intervals))
         self.assertIsNotNone(analysis.equivalent_mass_kg)
         self.assertIsNone(analysis.intervals[5].conditional_C_fluid_J_K)
+        self.assertEqual(analysis.case_enum, "conditionally_feasible")
 
     def test_analyze_case_nonpositive_candidate_has_no_corner_ranges(self):
         case = contract.Case("synthetic", "synthetic", 1.0, "inlet_cp")
@@ -154,6 +241,7 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
         self.assertFalse(analysis.all_intervals_locally_compatible)
         self.assertTrue(all(item.corner_range is None for item in analysis.intervals))
         self.assertIsNone(analysis.equivalent_mass_kg)
+        self.assertEqual(analysis.case_enum, "reading_sensitive")
 
     def test_global_classification_order_is_fixed_and_requires_four_cases(self):
         self.assertEqual(model.aggregate_case_enums(["robustly_infeasible"] * 4), "constant_positive_two_state_robustly_infeasible")
@@ -162,6 +250,8 @@ class RadiatorTwoStateMathTests(unittest.TestCase):
         self.assertEqual(model.aggregate_case_enums(["robustly_infeasible", "full_interval_inconsistent", "reading_sensitive", "full_interval_inconsistent"]), "constant_positive_two_state_full_interval_inconsistent")
         with self.assertRaises(ValueError):
             model.aggregate_case_enums(["robustly_infeasible"] * 3)
+        with self.assertRaises(ValueError):
+            model.aggregate_case_enums(["robustly_infeasible"] * 3 + ["typo"])
 
     def test_invalid_times_rank_energy_paths_and_nonfinite_inputs_are_rejected(self):
         with self.assertRaises(ValueError):
