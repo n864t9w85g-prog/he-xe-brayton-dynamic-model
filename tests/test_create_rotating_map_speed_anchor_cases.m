@@ -5,11 +5,16 @@ end
 
 function testPatchesOnlyTheCommonSpeedAnchor(testCase)
 repoRoot = string(fileparts(fileparts(mfilename("fullpath"))));
-sourceRoot = fullfile(repoRoot, "tmp", ...
-    "rotating_map_candidate_A_20260902");
-verifyTrue(testCase, isfolder(fullfile(sourceRoot, "models")));
-outputRoot = string(tempname(fullfile(repoRoot, "tmp")));
-cleanup = onCleanup(@() cleanupOutput(outputRoot, repoRoot)); %#ok<NASGU>
+parent = string(tempname(fullfile(repoRoot, "tmp")));
+mkdir(parent);
+cleanup = onCleanup(@() cleanupOutput(parent, repoRoot)); %#ok<NASGU>
+sourceRoot = fullfile(parent, "source");
+bundleDir = fullfile(sourceRoot, "bundles");
+modelDir = fullfile(sourceRoot, "models");
+build_rotating_map_candidate_bundles(repoRoot, bundleDir);
+create_rotating_map_candidate_models(repoRoot, bundleDir, modelDir);
+setFixtureModelsToHistoricalSpeed(modelDir);
+outputRoot = fullfile(parent, "output");
 formalBefore = sha256File(fullfile(repoRoot, "final_steady_24a.slx"));
 
 manifest = create_rotating_map_speed_anchor_cases( ...
@@ -32,6 +37,19 @@ for caseId = ["C0", "C1", "C2", "C3"]
         caseId + "_model/TAC/Constant", "Value")), "55090");
     close_system(caseId + "_model", 0);
     clear cleanupModel
+end
+
+function setFixtureModelsToHistoricalSpeed(modelDir)
+for caseId = ["C0", "C1", "C2", "C3"]
+    modelPath = fullfile(modelDir, caseId + "_model.slx");
+    model = caseId + "_model";
+    load_system(modelPath);
+    fixtureModelCleanup = onCleanup(@() closeIfLoaded(model)); %#ok<NASGU>
+    set_param(model + "/TAC/Constant", "Value", "66100");
+    save_system(model, modelPath);
+    close_system(model, 0);
+    clear fixtureModelCleanup
+end
 end
 end
 
@@ -61,4 +79,3 @@ digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes);
 value = string(lower(reshape(dec2hex( ...
     typecast(digest, "uint8"), 2).', 1, [])));
 end
-

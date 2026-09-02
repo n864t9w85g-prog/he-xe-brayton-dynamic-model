@@ -12,7 +12,7 @@ arguments
 end
 
 SOURCE_SHA256 = ...
-    "a93cd94b6c5a0c941fe9eed40d8aea779019cbdb26fe2558df65f7c81c9dc159";
+    "31745b6487234b64938f9b61131910599db75a1b53e3d1099b8585d0b7b4e8aa";
 repoRoot = canonicalPath(repoRoot, true);
 bundleDir = canonicalPath(bundleDir, true);
 outputDir = canonicalPath(outputDir, false);
