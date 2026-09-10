@@ -1,5 +1,7 @@
 # 方案 B 散热器来源约束候选族实施计划
 
+> 阶段记录：本文件的“当前”“本轮”“下一步”属于原写作时点；当前工作状态以 [STATUS.md](../../STATUS.md) 为准。原结论的证据等级及适用模型保持，不因本次目录整理升级。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在不加载、仿真或修改正式 SLX 的前提下，建立方案 B 散热器/NaK 回路的16个来源分支、质量—能量—辐射—时间尺度约束与机器可读的不可识别性报告。

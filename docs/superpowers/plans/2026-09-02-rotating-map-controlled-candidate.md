@@ -1,5 +1,7 @@
 # Rotating Map Controlled Candidate Implementation Plan
 
+> 阶段记录：本文件的“当前”“本轮”“下一步”属于原写作时点；当前工作状态以 [STATUS.md](../../STATUS.md) 为准。原结论的证据等级及适用模型保持，不因本次目录整理升级。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Determine, with traceable C0–C3 experiments, whether the recovered paper-style compressor/turbine lookup candidate materially improves `final_steady_24a.slx` against Xu Chapter 5 steady-state evidence without changing the formal model.

@@ -1,5 +1,7 @@
 # IHX R2 He-Xe Thermal-State Shift A3 Implementation Plan
 
+> 阶段记录：本文件的“当前”“本轮”“下一步”属于原写作时点；当前工作状态以 [STATUS.md](../../STATUS.md) 为准。原结论的证据等级及适用模型保持，不因本次目录整理升级。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build, preflight, execute exactly once after a separate approval, and evidence-rank the `20260901_A3` IHX region-2 He-Xe two-state/one-scalar 500 s counterfactual without modifying or promoting a formal model.

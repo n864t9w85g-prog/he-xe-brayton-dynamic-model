@@ -1,5 +1,7 @@
 # Figure 5.18(d) Native V2 Digitization Implementation Plan
 
+> 阶段记录：本文件的“当前”“本轮”“下一步”属于原写作时点；当前工作状态以 [STATUS.md](../../STATUS.md) 为准。原结论的证据等级及适用模型保持，不因本次目录整理升级。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Produce a source-bound, two-method native-resolution digitization of thesis Figure 5.18(d), derive per-point image uncertainty, and rerun the fixed four-case constant-positive two-state feasibility gate without touching any formal model file.

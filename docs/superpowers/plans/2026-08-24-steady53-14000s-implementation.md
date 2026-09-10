@@ -1,5 +1,7 @@
 # 第 5.3.1 节名义稳态 14000 s Implementation Plan
 
+> 阶段记录：本文件的“当前”“本轮”“下一步”属于原写作时点；当前工作状态以 [STATUS.md](../../STATUS.md) 为准。原结论的证据等级及适用模型保持，不因本次目录整理升级。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 以测试先行为前提，把 `final_steady_24a.slx` 建成在论文第 5.3.1 节名义工况下无物性钳位、无查表越界且可重复运行到 `14000 s` 的稳态基线。
