@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -171,7 +172,7 @@ class Figure519A2PreflightTests(unittest.TestCase):
 
     def test_cli_verify_only_switches_to_consumed_attempt_verification(self):
         completed = subprocess.run(
-            ["python3", "tests/prepare_fig519_reactor_ic_a2.py", "--verify-only"],
+            [sys.executable, "tests/prepare_fig519_reactor_ic_a2.py", "--verify-only"],
             cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             timeout=30,
         )

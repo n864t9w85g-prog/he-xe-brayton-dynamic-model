@@ -1,6 +1,9 @@
 import csv
+import hashlib
 import os
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -102,13 +105,39 @@ class PublishFigure518dEvidenceTests(unittest.TestCase):
             durable_root = self._publish_to_temporary_root(directory)
             self.assertEqual((durable_root / "README.md").read_bytes(), committed.read_bytes())
         before = {p: p.stat().st_mtime_ns for p in publisher.DURABLE_ROOT.rglob("*") if p.is_file()}
-        command = ["python3", str(Path(__file__).parents[0] / "publish_fig518d_evidence.py")]
+        command = [sys.executable, str(Path(__file__).parents[0] / "publish_fig518d_evidence.py")]
         for _ in range(2):
             result = subprocess.run(command, cwd=publisher.ROOT, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout.strip(), "FIG518D_EVIDENCE_PASS; PAPER_POINTS=12; A1_14000_PASS=3")
         after = {p: p.stat().st_mtime_ns for p in publisher.DURABLE_ROOT.rglob("*") if p.is_file()}
         self.assertEqual(before, after)
+
+    def test_registered_two_state_extension_is_verified_and_unknown_files_are_rejected(self):
+        publisher.verify_published()
+        with tempfile.TemporaryDirectory() as directory:
+            durable_root = Path(directory) / "fig5_18d"
+            shutil.copytree(publisher.DURABLE_ROOT, durable_root)
+            summary = durable_root / "two_state_feasibility/summary.json"
+            summary.write_bytes(summary.read_bytes() + b"tamper")
+            with mock.patch.object(publisher, "DURABLE_ROOT", durable_root):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.verify_published()
+
+            shutil.copyfile(
+                publisher.DURABLE_ROOT / "two_state_feasibility/summary.json",
+                summary,
+            )
+            self.assertEqual(
+                hashlib.sha256(summary.read_bytes()).hexdigest(),
+                publisher.REGISTERED_EXTENSION_SHA256[
+                    "two_state_feasibility/summary.json"
+                ],
+            )
+            (durable_root / "unknown-evidence.txt").write_text("unregistered")
+            with mock.patch.object(publisher, "DURABLE_ROOT", durable_root):
+                with self.assertRaises(publisher.PublicationError):
+                    publisher.verify_published()
 
     def test_verify_is_durable_only_and_publication_is_idempotent(self):
         with tempfile.TemporaryDirectory() as directory:

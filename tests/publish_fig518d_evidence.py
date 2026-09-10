@@ -32,6 +32,22 @@ EXPECTED_REPRESENTATIVE_IDS = (
 EXPECTED_INELIGIBLE_IDS = {"T300_fd1p45_one__legacy_transfer"}
 REPRESENTATIVE_CANDIDATE_IDS = tuple(x for x in EXPECTED_REPRESENTATIVE_IDS if x not in EXPECTED_INELIGIBLE_IDS)
 
+# This evidence layer was published after the original 34-file A1 bundle.  It
+# is optional when reproducing the older bundle into a fresh destination, but
+# if present it is part of the closed inventory and must match byte-for-byte.
+REGISTERED_EXTENSION_SHA256 = {
+    "two_state_feasibility/intervals.csv":
+        "153a0f15c2ab3efd4df0dda7a6690b6d3a7f010ca704b516479081c5555e4c1f",
+    "two_state_feasibility/manifest.json":
+        "c28f58f9f496fc293cbf41bfaf53a28cae9a2d16ef484c5032bfd832553ec6bc",
+    "two_state_feasibility/source_hashes.json":
+        "c51b3014d3225434254149cb38fe4704b0f1f8ad00353f94770a9b07f589592d",
+    "two_state_feasibility/summary.json":
+        "e49b6b77b21485ab03c0075f0ea0d77de17a80b10589694b6b359f76235abfad",
+    "two_state_feasibility/verification.json":
+        "a92e9533a3f3a4cbb5e9f0bc70aefb4d3c5537ab324ed54c5acba5adae67ed00",
+}
+
 
 
 class PublicationError(RuntimeError):
@@ -719,11 +735,24 @@ def validate_representative_semantics(representatives, selection, candidate_mani
 def verify_published():
     manifest_rows = _parse_manifest()
     _verify_entry_files(manifest_rows)
-    expected_files = sorted(
+    expected_files = (
         [spec["durable_path"] for spec in SOURCE_SPECS]
         + ["README.md", "manifest.csv"]
     )
     actual_files = sorted(_walk_durable_files())
+    extension_present = any(
+        path.startswith("two_state_feasibility/") for path in actual_files
+    )
+    if extension_present:
+        expected_files += list(REGISTERED_EXTENSION_SHA256)
+        for relative, expected_digest in REGISTERED_EXTENSION_SHA256.items():
+            path = DURABLE_ROOT / relative
+            _require_regular_file(path, "registered two-state evidence")
+            if sha256(path) != expected_digest:
+                raise PublicationError(
+                    f"registered extension hash mismatch: {relative}"
+                )
+    expected_files = sorted(expected_files)
     if actual_files != expected_files:
         raise PublicationError(
             f"durable file inventory mismatch: expected {expected_files}, got {actual_files}"

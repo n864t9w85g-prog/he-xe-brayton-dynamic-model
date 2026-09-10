@@ -1,5 +1,7 @@
 # 散热器 A1 分阶段参数包实验 Implementation Plan
 
+> 阶段记录：本文件的“当前”“本轮”“下一步”属于原写作时点；当前工作状态以 [STATUS.md](../../STATUS.md) 为准。原结论的证据等级及适用模型保持，不因本次目录整理升级。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在不修改正式模型、正式 `.mat` 或物性函数的前提下，生成并审计 96 行来源约束散热器静态包络，确定最多 12 个固定代表候选，并对其执行严格门控的 `500 s → 14000 s` 临时整机实验。

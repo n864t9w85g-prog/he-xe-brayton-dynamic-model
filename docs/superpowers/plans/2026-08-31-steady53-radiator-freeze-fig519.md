@@ -1,5 +1,7 @@
 # Steady 5.3 Radiator Evidence Freeze and Figure 5.19 Reconstruction Implementation Plan
 
+> 阶段记录：本文件的“当前”“本轮”“下一步”属于原写作时点；当前工作状态以 [STATUS.md](../../STATUS.md) 为准。原结论的证据等级及适用模型保持，不因本次目录整理升级。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Durably preserve the completed Figure 5.18(d) evidence, then build a traceable Figure 5.19 observation contract, explain the current flat power traces, and run one isolated reactor-initial-condition counterfactual without modifying any formal model.

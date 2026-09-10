@@ -1,5 +1,7 @@
 # Cleanup Loss Recovery Implementation Plan
 
+> 阶段记录：本文件的“当前”“本轮”“下一步”属于原写作时点；当前工作状态以 [STATUS.md](../../STATUS.md) 为准。原结论的证据等级及适用模型保持，不因本次目录整理升级。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Recover the exact pre-cleanup A1 model baselines, make them durable Git-tracked provenance assets, migrate the A1 contract away from an ephemeral `tmp/` authority, preserve interrupted Task 3 work, and return the project to the approved A1 execution path without modifying model behavior.

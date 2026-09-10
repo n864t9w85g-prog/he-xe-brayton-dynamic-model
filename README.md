@@ -1,218 +1,62 @@
-# He-Xe Brayton Dynamic Model — 空间锂冷堆 He-Xe 布雷顿循环动态模型复现
+# 空间锂冷堆 He-Xe 布雷顿循环复现项目
 
-本仓库的目标是在 MATLAB/Simulink 中复现徐驰博士学位论文《空间锂冷堆He-Xe布雷顿
-循环发电系统优化设计与运行特性分析》第 5.4 节"动态运行特性分析"的仿真结果，
-包括：
+✅ 目录入口更新：2026-09-07。本项目研究徐驰《空间锂冷堆He-Xe布雷顿循环发电系统优化设计与运行特性分析》。最终目标是第 5.4 节启动与变工况响应复现；当前工作聚焦图 5.18/5.19 的稳态及能量链诊断，**整机复现未完成**。
 
-- **§5.4.1 启动瞬态**：六阶段冷启动过程，总时长 14000 s，初始堆功率 1 W、
-  初始温度 225 K。
-- **§5.4.2 变工况响应**：稳定运行点附近的 ±5% 转速扰动、TAC 负荷扰动、
-  反应性扰动，三类工况分别验证。
+## 从这里开始
 
-最终交付目标是一个干净的 Simulink 模型 `final_dynamic_24a.slx`：只包含论文本身
-描述的物理部件与物理耦合，不包含任何为了让曲线对上论文而额外加装的控制器、
-校正反馈或拟合补丁。数值与曲线的允许误差以 `验收标准_论文5.4.md` 为准。
-
-> 本项目的执行方式高度依赖三份治理文档（见下文"项目治理与规则文档"），它们
-> 规定了证据分级标注、可做/不可做的修改边界，以及探索区与交付区的划分。在对
-> 模型或代码做任何非平凡改动之前，请先读这三份文档。
-
----
-
-## 仓库状态说明
-
-本仓库当前有两个相关分支：
-
-- `main`：仅包含 `.gitignore`，尚无实质内容。
-- `codex/publish-he-xe-brayton-model`：包含本 README 描述的全部模型、脚本、
-  数据溯源材料与文档，是目前实际的工作分支。
-
-在合并到 `main`之前，克隆/拉取本仓库时请确认所在分支，否则会得到一个几乎
-为空的工作区。
-
----
-
-## 当前进度（截至 2026-08-18 只读审计）
-
-**项目尚未完成，验收标准全部未通过。** 最近一次只读审计的结论：
-
-- `run_dynamic.m` 入口目前**无法完整运行到 14000 s**：仿真在 `t ≈ 4.437 s`
-  因压气机修正流量（corrected flow）超出当前查表上界而触发
-  `Simulink:blocks:AssertionAssert`，失败块为
-  `TAC/Compressor/Corrected_Coordinates/FlowBelowMaximum_Assertion`。
-- 当前入口脚本的初值是热态工况（堆功率约 3.14 MW、燃料温度约 1743 K、
-  转子 55090 rpm），**尚未实现论文 §5.4.1 要求的 `1 W / 225 K / 0 rpm` 六阶段
-  冷启动调度**。
-- 压气机候选查表的设计转速已从历史值 18732 rpm 修正为与论文单轴设计点一致的
-  55090 rpm，速度断点也已覆盖该转速，但该查表元数据标记为
-  `candidate_status='not active until all gates pass'`，与 `start.m` 无条件
-  加载它的实际行为存在矛盾，这一点尚未澄清。
-- MATLAB 本地测试 `8/8 PASS`，Python 本地测试 `6/6 PASS`，但这些测试仅覆盖
-  常数/时序/来源审计/局部功率平衡等局部环节，**不覆盖整机动态仿真是否成功**。
-
-详见 `docs/STATUS.md`（现状审计）、`docs/MODEL_MAP.md`（模型结构盘点）与
-`docs/PLAN.md`（后续分阶段计划）。三者均标注为"只读审计"，本轮未修改任何
-`.slx` / `.m` / `.py` / `.mat` 文件或验收标准。
-
----
-
-## 项目治理与规则文档
-
-本项目对"结论必须有证据支撑"要求很高，所有实质性修改都必须遵循以下规则文件
-（均位于仓库根目录）：
-
-| 文件 | 作用 |
+| 需要了解什么 | 入口 |
 |---|---|
-| `AGENTS.md` | 项目背景、核心目标、执行原则、探索区/交付区划分、完成定义（Done Criteria）；任何自动化代理开始任务前必读。 |
-| `决策自律准则.md` | 三条铁律（不臆测、不偏执、不走极端）与证据分级标注体系 `✅ 已核实 / ⚠️ 未复验 / ❓ 推断 / ❌ 证据不支持`，全仓库结论必须统一使用这套标注。 |
-| `交付边界约束_v4.md` | 模型结构黑名单、探索区与交付区的操作细则、信号记录规则、修改—验证协议的正式依据。 |
-| `验收标准_论文5.4.md` | 逐图（论文图 5.23–5.34）整理的数值与曲线验收阈值，是判断某一工况"通过/未通过"的唯一正式依据。 |
+| 当前做到哪里、哪些结论仍有缺口、下一步 | [当前状态](docs/STATUS.md) |
+| 基线、候选、失败记录和历史报告在哪里 | [实验与文档索引](docs/README.md) |
+| 同名模型如何区分 | [模型路径与 SHA-256 清单](docs/model_inventory.tsv) |
+| tmp 中各目录的规模和引用 | [实验目录清单](docs/experiment_inventory.tsv) |
+| 主论文、NASA 与其他参考资料 | [文献统一入口](sources/README.md) |
+| 如何备份、换目录恢复及检查证据 | [恢复与可移植性说明](docs/RECOVERY.md) |
+| 自动化任务的执行边界 | [AGENTS.md](AGENTS.md) |
 
-如果规则文档之间或与 `AGENTS.md` 冲突，以更具体、更新的正式规则文档为准。
+## 当前模型与运行入口
 
----
+✅ 根目录当前模型为 [final_steady_24a.slx](final_steady_24a.slx)，SHA-256：
 
-## 环境要求
-
-- MATLAB `R2025a`（`25.1.0.2943329`）
-- Simulink `25.1`
-- Python 3（用于 `tests/` 下的来源审计脚本，标准库即可；未强制要求 `pytest`）
-
----
-
-## 快速开始
-
-```matlab
-% 在 MATLAB 中，将工作目录切到仓库根目录后运行：
-run_dynamic
+```text
+31745b6487234b64938f9b61131910599db75a1b53e3d1099b8585d0b7b4e8aa
 ```
 
-`run_dynamic.m` 会依次：
+✅ 根目录目前没有 `final_dynamic_24a.slx` 或 `run_dynamic.m`。前者是最终交付目标名；历史目录里的同名文件不代表当前动态交付版本。旧 README 的 `run_dynamic` 快速开始和 8 月 18 日失败状态已不适合作为当前入口。
 
-1. 调用 `start.m` 加载压气机/辐射器/涡轮查表（`.mat`）并初始化物性参数；
-2. 通过 `paper54_schedules()` 设置论文 §5.4 的负荷（`Pload_sched`）与反应性
-   （`rho_sched`）时序；
-3. 将 TAC 转子初值设为论文设计转速 `55090 rpm`；
-4. 设置 `StopTime` 并调用 `sim('final_dynamic_24a')`；
-5. 绘制转速、堆功率、燃料温度曲线。
+✅ 已有稳态诊断运行器为 [run_steady53_case.m](tests/steady53/run_steady53_case.m)。它接收模型绝对路径、仿真终止时间等参数，使用 [f8bcd83 冻结运行依赖](data/provenance/baselines/f8bcd83/runtime/)，不保存源模型。根目录 [start.m](start.m) 加载的是根目录查表；二者不能默认视为相同运行环境。
 
-如上文"当前进度"所述，**该入口目前会在约 4.4 s 处因压气机断言失败而提前
-终止**，这是已知且已记录在案的问题，不是使用方法错误。
+✅ 查看现有结果无需启动 MATLAB：
 
-### 运行测试
+- [14000 秒运行状态](.worktrees/rotating-map-candidate-a/tmp/final_steady_speed55090_formal_20260902/run_status.json)
+- [原始 MAT](.worktrees/rotating-map-candidate-a/tmp/final_steady_speed55090_formal_20260902/result.mat) 与 [导出信号 CSV](.worktrees/rotating-map-candidate-a/tmp/final_steady_speed55090_formal_20260902/signals.csv)
+- [图 5.18/5.19 对齐诊断](docs/2026-09-05-steady14000-readonly-energy-diagnostic.md)
 
-```matlab
-% MATLAB 单元/审计测试（tests/ 目录下的 test_*.m）
-runtests('tests')
-```
+⚠️ 该 14000 秒运行是已有暖态诊断，不能当作第 5.4 节六阶段冷启动。其 CSV 存在多速率信号对齐限制；短程对照另用固定更新协议，详见当前状态页。这里提供代码和证据入口，不把未经本轮重跑的命令写成“一键复现通过”。
 
-```bash
-# Python 来源审计测试
-python3 -m unittest discover -s tests -p 'test_*.py' -v
-```
+## 目录用途
 
----
+| 位置 | 内容 | 使用说明 |
+|---|---|---|
+| 根目录 `.slx / .m / .mat` | 当前稳态模型及脚本、物性、查表 | 运行依赖还须按具体运行器核对 |
+| 根目录规则文档 | 执行、物理边界与验收要求 | 当前状态页不能覆盖这些规则 |
+| 根目录 PDF、提取文本 | 主论文及部分参考资料 | 暂保留路径，避免破坏出处链接 |
+| [docs/](docs/README.md) | 状态入口、诊断报告、历史计划 | 按索引查找，不按文件新旧直接判定结论有效性 |
+| [data/provenance/](data/provenance/) | 冻结基线、查表与其他来源材料 | 是证据与部分运行依赖，不是缓存 |
+| [sources/](sources/) | NASA 参考报告 | 原版与 repaired 版保留来源区别 |
+| [tests/](tests/) | 审计、测试、诊断与实验运行脚本 | 部分脚本会创建或运行探索模型，勿批量执行所有脚本 |
+| [tools/](tools/) | 数字化及参考算法工具 | 不等于作者原查表生成程序 |
+| [tmp/](tmp/) | 实验副本、原始输出、验证结果及缓存 | 混有重要证据，不能按目录名整体清空 |
+| [.worktrees/](.worktrees/) | 本地 Git 工作区及运行结果 | 当前 14000 秒证据位于其中 |
+| [output/](output/) | 文献提取等生成产物 | 归档前核对引用 |
+| `slprj/`、`*.slxc` | Simulink 生成缓存 | 与原始结果分开识别 |
 
-## 仓库结构
+✅ `tmp/`、`output/`、`.worktrees/` 被 [.gitignore](.gitignore) 排除。当前本机有这些文件，不表示仅克隆 Git 仓库便能获得全部证据。搬动或清理前，先核对实验索引、脚本硬编码路径和工作区关系。
 
-```
-.
-├── AGENTS.md                      # 代理任务规则入口
-├── 决策自律准则.md                  # 证据分级与三条铁律
-├── 交付边界约束_v4.md               # 模型结构与修改边界
-├── 验收标准_论文5.4.md              # 数值/曲线验收阈值
-│
-├── start.m                        # 加载查表数据、初始化参数
-├── run_dynamic.m                  # 动态仿真主入口
-├── paper54_constants.m            # 论文常数
-├── paper54_schedules.m            # 论文 §5.4 负荷/反应性时序
-├── sys_param_rad_fixed.m          # 辐射器参数
-├── HeXe_property_simulink.m       # He-Xe 工质物性函数
-├── Lithium_property_simulink.m    # 锂工质物性函数
-├── prop_material.m                # 材料物性函数
-│
-├── final_dynamic_24a.slx          # 当前目标交付的动态模型
-├── final_steady_24a.slx           # 对应的稳态模型
-├── hexe_compressor_lookup.mat     # 压气机查表（候选表）
-├── radiator_table.mat             # 辐射器查表
-├── turbine_table1.mat/2.mat       # 涡轮查表
-│
-├── build_traceable_compressor_lookup.m   # 压气机查表溯源链
-├── rebuild_hexe_compressor_lookup.m
-├── activate_traceable_compressor_lookup.m
-├── apply_compressor_corrected_coordinates.m
-├── compressor_corrected_coordinates.m
-├── tmx2269_predict_speed_line.m
-├── tmx2269_similarity_transform.m
-│
-├── solve_paper52_operating_point.m       # 论文 §5.2 设计点/功率平衡求解
-├── apply_paper52_generator_load.m
-│
-├── data/provenance/compressor_map/       # 压气机查表数据溯源（数字化点、标定、SHA-256）
-├── sources/                              # NASA 参考报告 PDF（压气机、性能相关）
-├── tools/nasa_tn_d7487/                  # NASA TN D-7487 算法的可运行 Python 复现
-│
-├── tests/                         # 探索区：MATLAB/Python 单元与审计测试
-│
-└── docs/
-    ├── MODEL_MAP.md                # 模型结构、信号流、论文-实现对应关系
-    ├── STATUS.md                   # 当前进度与阻塞点（只读审计）
-    ├── PLAN.md                     # 分阶段后续计划
-    └── superpowers/                # 具体子任务的计划与设计文档
-```
+## 正式规则
 
----
+- [决策自律准则](决策自律准则.md)：✅ 已核实、⚠️ 沿用未复验、❓ 推断或计算、❌ 无依据。
+- [交付边界约束 v4](交付边界约束_v4.md)：探索区与交付区、允许的物理耦合、正式修改及批准边界。
+- [论文第 5.4 节验收标准](验收标准_论文5.4.md)：目标值、未定容差及论文内部矛盾。
 
-## 数据溯源
-
-压气机变工况模型的来源经过专门审计，记录在 `data/provenance/compressor_map/`：
-
-- 离心压气机变工况算法采用 Michael R. Galvas, *FORTRAN Program for Predicting
-  Off-Design Performance of Centrifugal Compressors*, NASA TN D-7487, 1973
-  （论文参考文献 [162]）。仓库中同时保留原始提供的 FORTRAN/Python 实现快照
-  （`data/provenance/compressor_map/nasa_tn_d7487/original/`）与仓库内可运行的
-  独立复现（`tools/nasa_tn_d7487/compressor_program.py`），并用 SHA-256 校验和
-  区分两者，避免"修正实现"覆盖"原始证据快照"。
-- 压气机几何与设计工况的自洽性核对见 `压气机几何自洽说明_论文级.md`：论文
-  1 MWe 单轴方案的设计转速为 55090 rpm，据此修正了查表中曾经错误的
-  `N_design = 18732 rpm`。
-- `图5_34_对比分析_14000s.md` 记录了针对论文图 5.34（变反应性工况）的一次
-  14000 s 动态仿真与论文曲线的对比分析。
-
-`sources/` 目录下另有若干与压气机/涡轮性能相关的 NASA 技术报告 PDF，作为
-建模依据的原始出处保存。
-
----
-
-## 已知风险与待确认事项
-
-摘自 `docs/MODEL_MAP.md` 的可疑项清单，供后续工作参考：
-
-1. 正式模型含 4 个 Assertion、多个 Scope、12 个 Display，哪些属于正式交付
-   输出、哪些只是调试用途，需要逐块判定。
-2. 主回路中两个 `Unit Delay`（分别位于压缩机出口压力、TAC 质量流量到
-   recuperator 的路径上）的数值依据和动态副作用尚未确认。
-3. 反应堆模型中的冷却剂反应性系数 `alphac = -8.35e-6` 目前找不到明确的论文
-   对应公式，已列为需要人工确认的事项。
-4. 压气机候选查表的"未激活"元数据（`candidate_status`）与 `start.m` 实际
-   无条件加载该表的行为不一致。
-5. `radiator_table.mat` 中混有多余的 `out`（`Simulink.SimulationOutput`）和
-   `ans` 字段，且变量名 `version` 可能遮蔽 MATLAB 内置函数 `version()`，
-   存在工作区污染风险。
-6. 尚未找到符合正式命名规则的 Step 0 时间戳备份
-   （`final_dynamic_24a_backup_YYYYMMDD_HHMMSS.slx`）；现有的 `.original` /
-   `.bak` 文件能否替代，尚未确认。
-
-以上事项按 `AGENTS.md` 第 10 节，均属于"不能被自动化代理擅自决定"的人工确认门。
-
----
-
-## 后续计划
-
-按 `docs/PLAN.md`，下一阶段的两项优先工作是：
-
-1. 在探索区（`tests/`、`tmp/`）复现并定位 4.437 s 处的压气机修正流量越界，
-   区分是查表域问题、上游热力状态问题，还是代数环/初始化问题。
-2. 在无负荷/无反应性扰动条件下，建立与论文表 5.2 对应的单一设计点稳态基线。
-
-在此之前不建议直接进行动态曲线拟合，或修改验收标准以让结果"看起来更接近论文"。
+✅ 2026-09-07 已更新入口、模型与实验目录清单，并将 3,277 个生成缓存文件压缩备份后移出原位置，详见 [整理与恢复说明](docs/README.md)。模型、物性、查表、运行器与验收标准未改动。后续实验应先阅读 [当前状态](docs/STATUS.md)，沿用已有授权，涉及正式模型或物理假设的决定仍遵守上述规则。

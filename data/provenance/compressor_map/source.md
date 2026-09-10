@@ -86,12 +86,22 @@ reproduction input.
 
 ## Active-map status
 
-`hexe_compressor_lookup.mat` is still version `3.0-paper-shape`; its metadata
-explicitly calls the off-design lines smooth surrogates, and its builder uses
-Gaussian expressions. It remains diagnostic-only and fails
-`tests/test_compressor_map_provenance.m`. The active map must not be called a
-paper reproduction until that test passes with a complete sourced input
-manifest and deterministic raw NASA output points.
+2026-09-02 correction: the root `hexe_compressor_lookup.mat` is no longer the
+historical `3.0-paper-shape` Gaussian surrogate. Its SHA-256 is
+`f9c85bc1ae831333fac5f868f15a6f82ea1c1716ee17f23dfb301f4618c9f579` and its
+metadata identifies it as `4.0-nasa-tmx2269-candidate`. It contains digitized
+TM X-2269 argon measurements at 90/100 percent speed plus bounded similarity
+predictions above 100 percent. The same metadata says
+`candidate_status='not active until all gates pass'`, while `start.m` currently
+loads the file unconditionally.
+
+This update improves the traceability of the candidate's actual source, but it
+does not establish that the TM X-2269 compressor is Xu Chi's compressor. The
+D-7487 target input manifest remains incomplete, the candidate coordinate
+definition is not implemented by the current steady SLX interface, and the
+pressure-ratio line shape differs qualitatively from the thumbnail in thesis
+Figure 5.3. The current file must not be called a paper reproduction. See
+`docs/2026-09-02-rotating-machinery-map-rootcause.md`.
 
 ## Selected bounded high-speed method
 
